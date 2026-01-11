@@ -1,0 +1,1 @@
+export { DailyAiPage } from './DailyAiPage';

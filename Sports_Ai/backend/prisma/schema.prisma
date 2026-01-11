@@ -1,0 +1,320 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String
+  subscriptionTier String   @default("free") // free, premium
+  role             String   @default("user") // user, admin
+  creditBalance    Int      @default(0)
+  preferences      String?  @default("{}")
+  profilePictureUrl String? // URL to profile picture in uploads directory
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // OAuth fields
+  googleId         String?  @unique // Google OAuth user ID
+
+  // Two-Factor Authentication fields
+  twoFactorEnabled Boolean  @default(false)
+  twoFactorSecret  String?  // Encrypted TOTP secret
+  backupCodes      String?  // JSON array of hashed backup codes
+
+  favorites           Favorite[]
+  presets             Preset[]
+  creditTransactions  CreditTransaction[]
+  passwordResetTokens PasswordResetToken[]
+  notifications       Notification[]
+  deviceSessions      DeviceSession[]
+  alertRules          AlertRule[]
+  aiConfigurations    AiConfiguration[]
+}
+
+model Sport {
+  id                   String   @id @default(uuid())
+  key                  String   @unique
+  name                 String
+  icon                 String?
+  defaultTimeZoneRules String?  @default("{}")
+
+  leagues League[]
+  markets Market[]
+  events  Event[]
+}
+
+model League {
+  id          String  @id @default(uuid())
+  sportId     String
+  sport       Sport   @relation(fields: [sportId], references: [id])
+  country     String?
+  name        String
+  tier        Int     @default(1)
+  seasonality String? @default("{}")
+
+  teams     Team[]
+  events    Event[]
+  standings Standing[]
+}
+
+model Team {
+  id          String  @id @default(uuid())
+  leagueId    String
+  league      League  @relation(fields: [leagueId], references: [id])
+  name        String
+  shortName   String?
+  country     String?
+  externalIds String? @default("{}")
+
+  homeEvents Event[]    @relation("HomeTeam")
+  awayEvents Event[]    @relation("AwayTeam")
+  standings  Standing[]
+}
+
+model Standing {
+  id             String   @id @default(uuid())
+  leagueId       String
+  league         League   @relation(fields: [leagueId], references: [id])
+  teamId         String
+  team           Team     @relation(fields: [teamId], references: [id])
+  season         String   // e.g., "2024-2025"
+  position       Int
+  played         Int      @default(0)
+  won            Int      @default(0)
+  drawn          Int      @default(0)
+  lost           Int      @default(0)
+  goalsFor       Int      @default(0)
+  goalsAgainst   Int      @default(0)
+  goalDifference Int      @default(0)
+  points         Int      @default(0)
+  form           String?  // e.g., "WWLDW" (last 5 results)
+  updatedAt      DateTime @updatedAt
+
+  @@unique([leagueId, teamId, season])
+  @@index([leagueId, season])
+}
+
+model Event {
+  id           String   @id @default(uuid())
+  sportId      String
+  sport        Sport    @relation(fields: [sportId], references: [id])
+  leagueId     String
+  league       League   @relation(fields: [leagueId], references: [id])
+  startTimeUtc DateTime
+  status       String   @default("upcoming") // upcoming, live, finished, postponed, cancelled
+  homeId       String?
+  home         Team?    @relation("HomeTeam", fields: [homeId], references: [id])
+  awayId       String?
+  away         Team?    @relation("AwayTeam", fields: [awayId], references: [id])
+  venue        String?
+  round        String?
+  externalIds  String?  @default("{}")
+
+  oddsQuotes             OddsQuote[]
+  arbitrageOpportunities ArbitrageOpportunity[]
+}
+
+model Market {
+  id            String  @id @default(uuid())
+  sportId       String
+  sport         Sport   @relation(fields: [sportId], references: [id])
+  marketKey     String
+  name          String
+  period        String?
+  liveSupported Boolean @default(false)
+
+  oddsQuotes             OddsQuote[]
+  arbitrageOpportunities ArbitrageOpportunity[]
+
+  @@unique([sportId, marketKey])
+}
+
+model Bookmaker {
+  id                   String  @id @default(uuid())
+  key                  String  @unique
+  brand                String
+  regions              String? @default("[]")
+  licenseJurisdictions String? @default("[]")
+  deepLinkTemplates    String? @default("{}")
+
+  oddsQuotes OddsQuote[]
+}
+
+model OddsQuote {
+  id             String    @id @default(uuid())
+  eventId        String
+  event          Event     @relation(fields: [eventId], references: [id])
+  bookmakerId    String
+  bookmaker      Bookmaker @relation(fields: [bookmakerId], references: [id])
+  marketId       String
+  market         Market    @relation(fields: [marketId], references: [id])
+  outcomeKey     String
+  odds           Float
+  line           Float?
+  timestamp      DateTime  @default(now())
+  isLive         Boolean   @default(false)
+  sourceProvider String?
+  confidence     Float     @default(1.0)
+
+  @@index([eventId, marketId])
+  @@index([bookmakerId])
+}
+
+model ArbitrageOpportunity {
+  id                String    @id @default(uuid())
+  eventId           String
+  event             Event     @relation(fields: [eventId], references: [id])
+  marketId          String
+  market            Market    @relation(fields: [marketId], references: [id])
+  profitMargin      Float
+  confidenceScore   Float
+  bookmakerLegs     String    @default("[]")
+  recommendedStakes String    @default("{}")
+  detectedAt        DateTime  @default(now())
+  expiresAt         DateTime?
+  isWinningTip      Boolean   @default(false)
+  creditCost        Int       @default(10)
+
+  creditTransactions CreditTransaction[]
+
+  @@index([eventId])
+  @@index([isWinningTip])
+}
+
+model Favorite {
+  id         String @id @default(uuid())
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entityType String // team, league, market
+  entityId   String
+
+  @@unique([userId, entityType, entityId])
+}
+
+model Preset {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sportId   String?
+  name      String
+  filters   String    @default("{}")
+  isPinned  Boolean   @default(false)
+  deletedAt DateTime? // Soft delete - null means active, timestamp means deleted
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@index([userId])
+  @@index([userId, deletedAt]) // For efficient queries of active presets
+}
+
+model CreditTransaction {
+  id            String                @id @default(uuid())
+  userId        String?               // Nullable to preserve transactions after user deletion
+  user          User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  deletedUserEmail String?            // Stored anonymized for audit when user deleted
+  type          String                // purchase, unlock, refund
+  amount        Int
+  opportunityId String?
+  opportunity   ArbitrageOpportunity? @relation(fields: [opportunityId], references: [id])
+  timestamp     DateTime              @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // arbitrage, odds_movement, system, promotion
+  title     String
+  message   String
+  data      String?  @default("{}") // JSON for additional data
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+model DeviceSession {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceName    String    // e.g., "Chrome on Windows"
+  deviceType    String    // desktop, mobile, tablet
+  browser       String?   // Chrome, Firefox, Safari, etc.
+  os            String?   // Windows, macOS, iOS, Android, etc.
+  ipAddress     String?
+  location      String?   // Approximate location based on IP
+  lastActiveAt  DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  expiresAt     DateTime
+  isRevoked     Boolean   @default(false)
+  revokedAt     DateTime?
+  refreshToken  String    @unique // Hashed refresh token to identify the session
+  isCurrent     Boolean   @default(false) // Flag for current session in response
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@index([userId, isRevoked])
+}
+
+model AlertRule {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String    // User-defined name for the alert
+  type          String    // odds_threshold, arbitrage_opportunity, favorite_team_event
+  isActive      Boolean   @default(true)
+  conditions    String    @default("{}") // JSON for condition parameters
+  // For odds_threshold: { threshold: 2.00, direction: "below" }
+  // For arbitrage: { minProfitMargin: 0.5 }
+  // For favorite_team: { teamId: "...", teamName: "..." }
+  triggeredCount Int      @default(0)
+  lastTriggeredAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, isActive])
+  @@index([type])
+}
+
+model AiConfiguration {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String    // User-defined name for the configuration
+  sportKey      String    // e.g., "soccer", "basketball"
+  leagues       String    @default("[]") // JSON array of league IDs/names
+  countries     String    @default("[]") // JSON array of countries
+  markets       String    @default("[]") // JSON array of market types (e.g., "1X2", "over_under", "btts")
+  isActive      Boolean   @default(false) // Only one can be active at a time per user
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, isActive])
+}

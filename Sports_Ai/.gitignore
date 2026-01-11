@@ -1,0 +1,102 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database files (development)
+*.sqlite
+*.sqlite3
+
+# Cache
+.cache/
+.parcel-cache/
+.turbo/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Python (if using any Python tools)
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Docker
+.docker/
+
+# Secrets
+*.pem
+*.key
+secrets/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Test artifacts
+test-results/
+playwright-report/
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Misc
+.agent.lock
+.claude_settings.json
+features.db
+
+# Prisma
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+
+# Uploads (user generated content)
+backend/uploads/
+
+# Playwright screenshots
+.playwright-mcp/
+
+# Test images
+test-profile-*.png
+
+# Service worker dev files
+frontend/dev-dist/

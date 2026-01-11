@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - Primary database
+  postgres:
+    image: postgres:16-alpine
+    container_name: sportsai-postgres
+    environment:
+      POSTGRES_DB: sportsai
+      POSTGRES_USER: sportsai
+      POSTGRES_PASSWORD: sportsai_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sportsai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: sportsai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # TimescaleDB for odds history (optional)
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: sportsai-timescale
+    environment:
+      POSTGRES_DB: sportsai_timeseries
+      POSTGRES_USER: sportsai
+      POSTGRES_PASSWORD: sportsai_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+
+  # Kafka (optional - for event streaming)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: sportsai-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    profiles:
+      - kafka
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: sportsai-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    profiles:
+      - kafka
+
+volumes:
+  postgres_data:
+  redis_data:
+  timescale_data:

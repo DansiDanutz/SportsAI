@@ -1,0 +1,1030 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_specification>
+  <metadata>
+    <name>SportsAI Platform</name>
+    <version>5.0.0</version>
+    <codename>Arbitrage Priority</codename>
+    <description>Next-generation sports intelligence platform with real-time arbitrage detection, multi-sportsbook odds comparison, AI-driven insights, and personalized recommendations across 10+ sports</description>
+    <status>Production Ready</status>
+  </metadata>
+
+  <executive_summary>
+    <mission>Real-time detection and delivery of sports betting arbitrage opportunities as the PRIMARY value proposition</mission>
+    <core_differentiator>Fastest and most reliable arbitrage detection engine combined with professional odds comparison across 10+ sportsbooks</core_differentiator>
+    <monetization_model>Freemium with credit-based "Winning Tips" for high-confidence arbitrage opportunities</monetization_model>
+  </executive_summary>
+
+  <technology_stack>
+    <frontend>
+      <framework>React Native</framework>
+      <language>TypeScript</language>
+      <state_management>TanStack Query + Zustand</state_management>
+      <styling>Tailwind CSS / NativeWind</styling>
+      <ui_components>Radix UI primitives</ui_components>
+      <charts>Recharts / Victory Native</charts>
+      <realtime>WebSocket + Server-Sent Events</realtime>
+    </frontend>
+    <backend>
+      <runtime>Node.js 20+ LTS</runtime>
+      <framework>NestJS / Fastify</framework>
+      <language>TypeScript</language>
+      <api_style>REST + GraphQL hybrid</api_style>
+      <authentication>OAuth2 / JWT</authentication>
+      <validation>Zod / class-validator</validation>
+    </backend>
+    <databases>
+      <primary>PostgreSQL 16 - Canonical entities, users, favorites, presets</primary>
+      <cache>Redis - Hot queries, odds cache, session store</cache>
+      <timeseries>TimescaleDB / ClickHouse - Odds history, line movement</timeseries>
+      <search>OpenSearch / Elasticsearch - Teams, leagues, fuzzy matching</search>
+      <warehouse>BigQuery / Snowflake - Analytics, ML training data</warehouse>
+    </databases>
+    <infrastructure>
+      <container>Docker + Kubernetes</container>
+      <ci_cd>GitHub Actions</ci_cd>
+      <cloud>GCP / AWS</cloud>
+      <cdn>CloudFlare</cdn>
+      <monitoring>Prometheus + Grafana + Sentry</monitoring>
+      <secrets>HashiCorp Vault / Cloud KMS</secrets>
+    </infrastructure>
+    <event_streaming>
+      <message_bus>Apache Kafka / Google Pub/Sub</message_bus>
+      <topics>fixtures.updates, odds.snapshots, odds.updates, arbitrage-opportunities, notifications.queue, ai.signals</topics>
+    </event_streaming>
+  </technology_stack>
+
+  <microservices_architecture>
+    <service priority="1" name="arbitrage-engine-service">
+      <description>Core arbitrage detection - scans normalized odds to find, validate, and score arbitrage opportunities</description>
+      <responsibilities>
+        <item>Real-time arbitrage detection using mathematical formulas</item>
+        <item>Value scoring algorithm (profit margin, bookmaker trust, odds stability, liquidity)</item>
+        <item>Cross-validation against multiple data feeds</item>
+        <item>Rules engine for false positive filtering</item>
+        <item>Staking recommendations within sportsbook limits</item>
+        <item>Publish validated opportunities to Kafka topic</item>
+      </responsibilities>
+      <algorithm>
+        <formula>Arbitrage % = (1 / Odds_A) + (1 / Odds_B) - 1</formula>
+        <condition>If result is NEGATIVE, arbitrage opportunity exists</condition>
+        <extension>Support 2-way, 3-way (Win/Draw/Loss), and multi-way markets</extension>
+      </algorithm>
+      <scoring_factors>
+        <factor name="profit_margin" weight="0.35">Calculated guaranteed profit percentage</factor>
+        <factor name="bookmaker_trust" weight="0.20">Reputation and reliability score of sportsbooks</factor>
+        <factor name="odds_stability" weight="0.20">Duration odds have been available</factor>
+        <factor name="market_liquidity" weight="0.15">Estimation of stakeable amount</factor>
+        <factor name="confidence_score" weight="0.10">Consolidated score - above 0.95 = Winning Tip</factor>
+      </scoring_factors>
+    </service>
+
+    <service priority="2" name="odds-service">
+      <description>Ingests, normalizes, and stores odds data with extreme low latency</description>
+      <responsibilities>
+        <item>Real-time odds ingestion from 10+ sportsbooks</item>
+        <item>WebSocket/API stream consumption</item>
+        <item>Odds normalization (decimal/american/fractional)</item>
+        <item>Best odds computation per event/market/outcome</item>
+        <item>Line movement tracking and history</item>
+        <item>Publish to normalized-odds-stream Kafka topic</item>
+      </responsibilities>
+      <sla>
+        <prematch_latency>Under 10 seconds</prematch_latency>
+        <live_latency>Under 2 seconds</live_latency>
+      </sla>
+    </service>
+
+    <service priority="2" name="credit-service">
+      <description>Manages credit purchases and spending for Winning Tips</description>
+      <responsibilities>
+        <item>Credit package purchases</item>
+        <item>Credit balance management</item>
+        <item>Winning Tip unlock transactions</item>
+        <item>Transaction history and receipts</item>
+        <item>Fraud detection and prevention</item>
+      </responsibilities>
+    </service>
+
+    <service priority="3" name="identity-service">
+      <description>User management, authentication, and authorization</description>
+      <responsibilities>
+        <item>User registration and profile management</item>
+        <item>OAuth2/JWT authentication</item>
+        <item>Session management and device tracking</item>
+        <item>RBAC permissions</item>
+        <item>2FA support</item>
+        <item>Subscription tier management (Free/Premium)</item>
+        <item>Consent and privacy controls</item>
+      </responsibilities>
+    </service>
+
+    <service priority="3" name="billing-service">
+      <description>Subscription and payment processing</description>
+      <responsibilities>
+        <item>Stripe/payment processor integration</item>
+        <item>Subscription lifecycle management</item>
+        <item>Invoice generation</item>
+        <item>Webhook handling for payment events</item>
+        <item>Credit package purchases</item>
+      </responsibilities>
+    </service>
+
+    <service priority="3" name="notification-service">
+      <description>Real-time alerts and push notifications</description>
+      <responsibilities>
+        <item>Push notifications (FCM/APNs)</item>
+        <item>Email notifications</item>
+        <item>In-app notification center</item>
+        <item>Arbitrage opportunity alerts</item>
+        <item>Odds movement alerts</item>
+        <item>User preference-based filtering</item>
+      </responsibilities>
+    </service>
+
+    <service priority="3" name="gateway-api">
+      <description>Public API gateway</description>
+      <responsibilities>
+        <item>REST/GraphQL API routing</item>
+        <item>Authentication middleware</item>
+        <item>Rate limiting per user/IP</item>
+        <item>Request validation</item>
+        <item>Response caching</item>
+        <item>API versioning (/v1/)</item>
+      </responsibilities>
+    </service>
+
+    <service priority="4" name="sports-catalog-service">
+      <description>Sports, leagues, teams, players catalogs</description>
+      <responsibilities>
+        <item>Sports metadata (top 10 sports)</item>
+        <item>League/competition management</item>
+        <item>Team and player catalogs</item>
+        <item>Localization support</item>
+        <item>Search and autocomplete</item>
+      </responsibilities>
+    </service>
+
+    <service priority="4" name="fixtures-service">
+      <description>Event schedules, results, and standings</description>
+      <responsibilities>
+        <item>Fixture ingestion from data providers</item>
+        <item>Event state management</item>
+        <item>Results and scores</item>
+        <item>Standings tables</item>
+        <item>Head-to-head history</item>
+      </responsibilities>
+    </service>
+
+    <service priority="4" name="news-service">
+      <description>News aggregation and context</description>
+      <responsibilities>
+        <item>News feed ingestion</item>
+        <item>Team/player tagging</item>
+        <item>Injury and lineup reports</item>
+        <item>AI summarization</item>
+      </responsibilities>
+    </service>
+
+    <service priority="4" name="favorites-service">
+      <description>User favorites and personalization</description>
+      <responsibilities>
+        <item>Favorite teams/leagues/markets</item>
+        <item>Alert rules configuration</item>
+        <item>Saved filter presets</item>
+        <item>Sport-specific settings</item>
+      </responsibilities>
+    </service>
+
+    <service priority="4" name="ai-insights-service">
+      <description>ML-powered predictions and recommendations</description>
+      <responsibilities>
+        <item>Probability models per sport/market</item>
+        <item>EV calculations</item>
+        <item>Explanation generation</item>
+        <item>Personalized ranking</item>
+        <item>Model versioning and A/B testing</item>
+        <item>User feedback loop</item>
+      </responsibilities>
+    </service>
+
+    <service priority="4" name="analytics-service">
+      <description>Event tracking and metrics</description>
+      <responsibilities>
+        <item>User event tracking</item>
+        <item>Funnel analytics</item>
+        <item>A/B test management</item>
+        <item>KPI dashboards</item>
+      </responsibilities>
+    </service>
+
+    <service priority="4" name="admin-portal">
+      <description>Internal operations dashboard</description>
+      <responsibilities>
+        <item>Partner/provider management</item>
+        <item>Mapping QA tools</item>
+        <item>Content moderation</item>
+        <item>Ops dashboards</item>
+        <item>User support tools</item>
+      </responsibilities>
+    </service>
+  </microservices_architecture>
+
+  <sports_coverage>
+    <sport key="soccer" name="Soccer (Football)">
+      <markets>1X2, Asian Handicap, Over/Under Goals, BTTS, HT/FT, Correct Score, Cards, Corners, Player Props</markets>
+      <periods>Full Time, Half Time, 1st Half, 2nd Half</periods>
+      <default_markets>Match Odds (1X2) FT, Double Chance FT, Over/Under 2.5 FT, BTTS FT, Half Time Result, Asian Handicap</default_markets>
+      <filters>Period, Market groups (Main/Goals/Cards/Corners/Props), League tier, Team form, Lineups confirmed</filters>
+    </sport>
+    <sport key="basketball" name="Basketball">
+      <markets>Moneyline, Point Spread, Total Points, Team Totals, Quarter Markets, Player Props (PTS/REB/AST)</markets>
+      <periods>Game, 1st Half, Q1, Q2, Q3, Q4</periods>
+      <default_markets>Moneyline, Point Spread, Total Points, Team Totals, Quarter Markets, Key Player Props</default_markets>
+      <filters>Period, Props (players), Back-to-back games, Injury status</filters>
+    </sport>
+    <sport key="tennis" name="Tennis">
+      <markets>Match Winner, Set Winner, Total Games, Handicap Games, First Set Winner</markets>
+      <periods>Match, Set 1, Set 2, Set 3, Set 4, Set 5</periods>
+      <default_markets>Match Winner, Set Winner, Total Games, Handicap Games, First Set Winner</default_markets>
+      <filters>Surface type, Tournament tier, Best-of-3 vs Best-of-5</filters>
+    </sport>
+    <sport key="baseball" name="Baseball">
+      <markets>Moneyline, Run Line, Total Runs, First 5 Innings, Inning Props</markets>
+      <periods>Game, First 5 Innings, Innings</periods>
+      <default_markets>Moneyline, Run Line, Total Runs, First 5 Innings</default_markets>
+      <filters>Starting pitchers known, Ballpark factors, Weather (wind)</filters>
+    </sport>
+    <sport key="american_football" name="American Football">
+      <markets>Moneyline, Point Spread, Total Points, Team Totals, Player Props (QB yards/TDs), 1st Half</markets>
+      <periods>Game, 1st Half, 1st Quarter, 2nd Quarter, 3rd Quarter, 4th Quarter</periods>
+      <default_markets>Moneyline, Point Spread, Total Points, Team Totals, Player Props, 1st Half markets</default_markets>
+      <filters>Weather (wind/rain), Injury report severity, Home/away splits</filters>
+    </sport>
+    <sport key="ice_hockey" name="Ice Hockey">
+      <markets>Moneyline (incl. OT rules), Puck Line, Total Goals, Period Markets, Team Totals</markets>
+      <periods>Game, 1st Period, 2nd Period, 3rd Period</periods>
+      <default_markets>Moneyline, Puck Line, Total Goals, Period Markets, Team Totals</default_markets>
+      <filters>Goalie confirmed, Back-to-back games, Travel distance</filters>
+    </sport>
+    <sport key="cricket" name="Cricket">
+      <markets>Match Winner, Top Batsman/Bowler, Total Runs (innings), Method of Dismissal Props</markets>
+      <periods>Match, Innings</periods>
+      <default_markets>Match Winner, Top Batsman/Bowler, Total Runs (innings)</default_markets>
+      <filters>Format (T20/ODI/Test), Venue, Toss result</filters>
+    </sport>
+    <sport key="rugby" name="Rugby (Union/League)">
+      <markets>Match Winner, Point Spread, Total Points, Try Scorer, Half-time Markets</markets>
+      <periods>Game, 1st Half, 2nd Half</periods>
+      <default_markets>Match Winner, Point Spread, Total Points, Try Scorer, Half-time Markets</default_markets>
+      <filters>Competition, International vs club, Weather</filters>
+    </sport>
+    <sport key="mma" name="MMA / UFC">
+      <markets>Fight Winner, Method of Victory, Round Betting, Total Rounds</markets>
+      <periods>Fight</periods>
+      <default_markets>Fight Winner, Method of Victory, Round Betting, Total Rounds</default_markets>
+      <filters>Weight class, Short-notice replacement, Reach/age stats</filters>
+    </sport>
+    <sport key="esports" name="eSports">
+      <markets>Match Winner, Map Winner, Handicap Maps, Total Rounds/Kills</markets>
+      <periods>Match, Map</periods>
+      <default_markets>Match Winner, Map Winner, Handicap Maps, Total Rounds/Kills</default_markets>
+      <filters>Patch version, Map pool, LAN vs online</filters>
+      <games>CS2, League of Legends, Dota 2, Valorant</games>
+    </sport>
+  </sports_coverage>
+
+  <sportsbook_integrations>
+    <bookmaker key="superbet" name="Superbet" priority="1" />
+    <bookmaker key="betano" name="Betano" priority="1" />
+    <bookmaker key="unibet" name="Unibet" priority="1" />
+    <bookmaker key="stake" name="Stake" priority="1" />
+    <bookmaker key="bet365" name="bet365" priority="1" />
+    <bookmaker key="william_hill" name="William Hill" priority="2" />
+    <bookmaker key="betfair" name="Betfair (Exchange + Sportsbook)" priority="2" />
+    <bookmaker key="paddy_power" name="Paddy Power" priority="2" />
+    <bookmaker key="ladbrokes" name="Ladbrokes" priority="2" />
+    <bookmaker key="888sport" name="888sport" priority="2" />
+  </sportsbook_integrations>
+
+  <data_providers>
+    <tier name="Enterprise">
+      <provider name="Sportradar">Multi-sport fixtures/results, historical data, optional odds comparison APIs</provider>
+      <provider name="Stats Perform (Opta)">Premium soccer/basketball/football event data and advanced metrics</provider>
+      <provider name="Genius Sports">Official real-time data and low-latency odds feeds</provider>
+      <provider name="Betfair Exchange API">Market odds and traded volumes for liquidity indicators</provider>
+    </tier>
+    <tier name="Cost-effective MVP">
+      <provider name="The Odds API">Odds across many bookmakers, quick prototyping</provider>
+      <provider name="SportsDataIO">Odds + injuries/lineups/news + historical odds + GRid ID mapping</provider>
+      <provider name="SportMonks">Football-specific odds and bookmaker endpoints</provider>
+      <provider name="API-SPORTS">Fixtures/results for multiple sports</provider>
+    </tier>
+  </data_providers>
+
+  <monetization>
+    <tier name="Free">
+      <feature>Basic odds comparison for limited events</feature>
+      <feature>See arbitrage opportunity COUNT only ("3 arbs found in Premier League")</feature>
+      <feature>Cannot view arbitrage details - creates FOMO</feature>
+      <feature>Limited time windows</feature>
+    </tier>
+    <tier name="Premium" type="subscription">
+      <feature>Full odds comparison across all sports and events</feature>
+      <feature>View low-confidence arbitrage opportunities (less than 1% profit)</feature>
+      <feature>Advanced filtering and saved presets</feature>
+      <feature>Real-time notification engine</feature>
+      <feature>Line movement charts</feature>
+      <feature>AI insights and predictions</feature>
+      <feature>Does NOT include Winning Tips - requires credits</feature>
+    </tier>
+    <tier name="Winning Tips" type="credit-based">
+      <description>High-confidence arbitrage opportunities (greater than 1% profit, validated)</description>
+      <unlock_process>
+        <step>User sees locked Winning Tip with confidence score and profit margin preview</step>
+        <step>User taps "Unlock" and spends credits (e.g., 10 credits per tip)</step>
+        <step>Full details revealed: event, markets, sportsbooks, recommended stakes</step>
+      </unlock_process>
+      <credit_packages>
+        <package credits="50" price="$4.99" />
+        <package credits="150" price="$12.99" />
+        <package credits="400" price="$29.99" />
+        <package credits="1000" price="$59.99" />
+      </credit_packages>
+    </tier>
+  </monetization>
+
+  <user_personas>
+    <persona name="Odds Shopper">Wants best price across multiple sportsbooks quickly</persona>
+    <persona name="Market Specialist">Plays specific markets (Asian handicap, player props), needs deep filters</persona>
+    <persona name="Team Follower">Follows favorite teams/leagues, wants notifications and curated content</persona>
+    <persona name="Data-Driven Bettor">Wants probabilities, implied odds, closing line movement, backtested metrics</persona>
+    <persona name="Casual Fan">Wants simple interface, tips in plain language, guardrails for information overload</persona>
+  </user_personas>
+
+  <screens>
+    <!-- ONBOARDING FLOW -->
+    <screen id="APP-001" name="Welcome / Onboarding Start">
+      <purpose>Introduce product value and collect consent</purpose>
+      <components>Hero statement, Continue button, Sign in, Terms/Privacy links, Language selector</components>
+      <api_calls>POST /v1/analytics/event, GET /v1/config/public</api_calls>
+    </screen>
+    <screen id="APP-002" name="Select Sports">
+      <purpose>Choose which sports to personalize</purpose>
+      <components>Grid of 10 sports with icons, Select all/clear, Continue button</components>
+      <api_calls>GET /v1/sports, POST /v1/users/me/preferences</api_calls>
+    </screen>
+    <screen id="APP-003" name="Select Favorite Teams/Leagues">
+      <purpose>Seed favorites for personalized feed</purpose>
+      <components>Search bar, Suggested popular teams, Follow toggles</components>
+      <api_calls>GET /v1/search, POST /v1/users/me/favorites</api_calls>
+    </screen>
+    <screen id="APP-004" name="Select Sportsbooks">
+      <purpose>Choose which sportsbooks to compare</purpose>
+      <components>Bookmaker list with logos, Include/exclude toggles, Region selector</components>
+      <api_calls>GET /v1/bookmakers, POST /v1/users/me/preferences</api_calls>
+    </screen>
+    <screen id="APP-005" name="Risk Profile + Responsible Gambling">
+      <purpose>Set risk appetite and safety controls</purpose>
+      <components>Risk slider (Conservative/Balanced/Aggressive), Time limit toggles, Help resources</components>
+      <api_calls>POST /v1/users/me/preferences</api_calls>
+    </screen>
+    <screen id="APP-006" name="Notification Permissions">
+      <purpose>Request push notification access</purpose>
+      <components>Permission request dialog, Skip option</components>
+    </screen>
+
+    <!-- MAIN NAVIGATION -->
+    <screen id="APP-010" name="Home (For You Feed)">
+      <purpose>Personalized list of upcoming events</purpose>
+      <components>Time window selector (Today/1h/4h/12h), Filter chips, Event card list, Quick actions</components>
+      <api_calls>GET /v1/feed, GET /v1/events, GET /v1/odds/best</api_calls>
+      <interactions>Change time window, Tap event for detail, Long-press for quick odds</interactions>
+    </screen>
+    <screen id="APP-015" name="Arbitrage Feed">
+      <purpose>Primary screen for premium users - real-time arbitrage opportunities</purpose>
+      <components>Arbitrage opportunity cards, Profit margin display, Confidence score, Unlock button, Filter by sport/profit</components>
+      <api_calls>GET /v1/arbitrage/opportunities, POST /v1/arbitrage/opportunities/{id}/unlock</api_calls>
+      <tier_restrictions>
+        <free>Shows count only, no details</free>
+        <premium>Shows low-confidence arbs, locked high-confidence</premium>
+        <credits>Unlock full details with credit spend</credits>
+      </tier_restrictions>
+    </screen>
+    <screen id="APP-020" name="Sports Hub">
+      <purpose>Entry point for sport-specific browsing</purpose>
+      <components>Top 10 sports grid, Pinned sports, League search</components>
+      <api_calls>GET /v1/sports, GET /v1/users/me/preferences</api_calls>
+    </screen>
+
+    <!-- SPORT-SPECIFIC SCREENS (x10 sports, each has Events List + Settings) -->
+    <screen id="APP-030" name="Soccer - Events List">
+      <components>Time window, League selector, Filter chips, Event list with best odds, Live/upcoming toggle</components>
+      <api_calls>GET /v1/events?sport=Soccer, GET /v1/odds/best, GET /v1/leagues</api_calls>
+    </screen>
+    <screen id="APP-031" name="Soccer - Sport Settings">
+      <components>Market group toggles, Period selector, Default sorting, Save preset, Reset</components>
+      <api_calls>GET /v1/markets?sport=Soccer, POST /v1/users/me/presets</api_calls>
+    </screen>
+    <screen id="APP-032" name="Basketball - Events List" />
+    <screen id="APP-033" name="Basketball - Sport Settings" />
+    <screen id="APP-034" name="Tennis - Events List" />
+    <screen id="APP-035" name="Tennis - Sport Settings" />
+    <screen id="APP-036" name="Baseball - Events List" />
+    <screen id="APP-037" name="Baseball - Sport Settings" />
+    <screen id="APP-038" name="American Football - Events List" />
+    <screen id="APP-039" name="American Football - Sport Settings" />
+    <screen id="APP-040" name="Ice Hockey - Events List" />
+    <screen id="APP-041" name="Ice Hockey - Sport Settings" />
+    <screen id="APP-042" name="Cricket - Events List" />
+    <screen id="APP-043" name="Cricket - Sport Settings" />
+    <screen id="APP-044" name="Rugby - Events List" />
+    <screen id="APP-045" name="Rugby - Sport Settings" />
+    <screen id="APP-046" name="MMA - Events List" />
+    <screen id="APP-047" name="MMA - Sport Settings" />
+    <screen id="APP-048" name="eSports - Events List" />
+    <screen id="APP-049" name="eSports - Sport Settings" />
+
+    <!-- EVENT DETAIL SCREENS -->
+    <screen id="APP-060" name="Event Detail - Overview">
+      <purpose>Summary view with teams, time, key markets</purpose>
+      <components>Header with teams/logos, Quick stats (form, standings, H2H), Best odds panel, Tab navigation</components>
+      <tabs>Odds, Markets, Stats, News, Line Movement, AI</tabs>
+      <api_calls>GET /v1/events/{id}, GET /v1/odds/best, GET /v1/stats/preview</api_calls>
+    </screen>
+    <screen id="APP-061" name="Event Detail - Odds Comparison">
+      <purpose>Compare odds from multiple sportsbooks</purpose>
+      <components>Market selector, Odds table (bookmaker rows, outcome columns), Best odds highlight, Deep links</components>
+      <api_calls>GET /v1/odds?eventId, GET /v1/bookmakers</api_calls>
+    </screen>
+    <screen id="APP-062" name="Event Detail - Markets &amp; Periods">
+      <purpose>Browse all markets grouped by period</purpose>
+      <components>Market search, Grouped list (FT/HT/Q1), Pin favorites, Availability badges</components>
+      <api_calls>GET /v1/markets/event/{id}, GET /v1/odds/best</api_calls>
+    </screen>
+    <screen id="APP-063" name="Event Detail - Stats &amp; History">
+      <purpose>Team form, H2H, standings, injuries</purpose>
+      <components>Form tables (last 5-10), H2H list, Standings snapshot, Injuries panel</components>
+      <api_calls>GET /v1/history/team, GET /v1/history/h2h, GET /v1/standings, GET /v1/injuries</api_calls>
+    </screen>
+    <screen id="APP-064" name="Event Detail - News &amp; Context">
+      <purpose>Trusted context from news sources</purpose>
+      <components>News list tagged to event, Source labels, AI summary, Report incorrect mapping</components>
+      <api_calls>GET /v1/news, POST /v1/feedback/news-mapping</api_calls>
+    </screen>
+    <screen id="APP-065" name="Event Detail - Line Movement">
+      <purpose>Odds/line movement over time</purpose>
+      <components>Outcome selector, Time-series chart, Book selector, Event markers (lineup, injury)</components>
+      <api_calls>GET /v1/odds/history</api_calls>
+    </screen>
+    <screen id="APP-066" name="Event Detail - AI Insight">
+      <purpose>Model-based probabilities and reasoning</purpose>
+      <components>Probability estimates, Confidence score, Key factors, User recommendation alignment, Disclaimer</components>
+      <api_calls>GET /v1/ai/insight, POST /v1/ai/feedback</api_calls>
+    </screen>
+
+    <!-- FILTERS AND PRESETS -->
+    <screen id="APP-070" name="Filters Builder">
+      <purpose>Structured query builder with maximum filtering options</purpose>
+      <components>Sections (Time, Competitions, Teams, Markets, Bookmakers, Odds, AI), Preview count, Save preset</components>
+      <api_calls>POST /v1/search/preview-count, POST /v1/users/me/presets</api_calls>
+    </screen>
+    <screen id="APP-071" name="Preset Manager">
+      <purpose>Manage saved filter presets</purpose>
+      <components>Preset list by sport, Pin toggles, Actions menu (rename, duplicate, delete)</components>
+      <api_calls>GET/PATCH/DELETE /v1/users/me/presets</api_calls>
+    </screen>
+
+    <!-- FAVORITES -->
+    <screen id="APP-080" name="Favorites">
+      <purpose>Centralized view of favorite teams/leagues/markets</purpose>
+      <components>Tabs (Teams/Leagues/Markets), Upcoming events filtered, Alert rules</components>
+      <api_calls>GET /v1/users/me/favorites, GET /v1/events?favoritesOnly=true</api_calls>
+    </screen>
+    <screen id="APP-081" name="Favorite Team Detail">
+      <purpose>Deep dive into a favorite team</purpose>
+      <components>Team profile, Upcoming fixtures, Recent results, News</components>
+    </screen>
+
+    <!-- AI TIPS -->
+    <screen id="APP-090" name="AI Tips - List">
+      <purpose>Ranked AI insights based on user presets</purpose>
+      <components>Preset selector, Ranked tip cards, Time filter, Feedback buttons</components>
+      <api_calls>GET /v1/ai/tips, GET /v1/odds/best</api_calls>
+    </screen>
+    <screen id="APP-091" name="AI Tip - Detail &amp; Explanation">
+      <purpose>Deep dive with transparent reasoning</purpose>
+      <components>Tip summary, Probability/confidence, Evidence sections, Model card, Explanation depth toggle</components>
+      <api_calls>GET /v1/ai/tip/{id}, GET /v1/events/{id}</api_calls>
+    </screen>
+    <screen id="APP-092" name="AI Tips Settings">
+      <purpose>Control AI behavior and variable weights</purpose>
+      <components>Sport scope, Variable weight sliders, Risk profile, Confidence threshold, Exclude markets</components>
+      <api_calls>GET/PATCH /v1/users/me/ai-settings</api_calls>
+    </screen>
+
+    <!-- BOOKMAKERS -->
+    <screen id="APP-100" name="Bookmakers - List">
+      <purpose>Supported sportsbooks and coverage</purpose>
+      <components>Bookmaker list with logos, Coverage badges, Include/exclude toggles, Data freshness</components>
+      <api_calls>GET /v1/bookmakers, PATCH /v1/users/me/preferences</api_calls>
+    </screen>
+    <screen id="APP-101" name="Bookmaker - Detail">
+      <purpose>Transparency on bookmaker data</purpose>
+      <components>Brand profile, Supported sports/markets, Deep link examples, Known limitations</components>
+      <api_calls>GET /v1/bookmakers/{id}, GET /v1/bookmakers/{id}/coverage</api_calls>
+    </screen>
+
+    <!-- SETTINGS -->
+    <screen id="APP-110" name="Account Settings">
+      <purpose>Profile and security management</purpose>
+      <components>Profile fields, Password/2FA, Connected devices, Delete account</components>
+      <api_calls>GET/PATCH /v1/users/me, POST /v1/auth/2fa/enable</api_calls>
+    </screen>
+    <screen id="APP-111" name="Display Preferences">
+      <purpose>Odds format, timezone, theme</purpose>
+      <components>Odds format (Decimal/American/Fractional), Timezone, Default time window, Theme</components>
+      <api_calls>PATCH /v1/users/me/preferences</api_calls>
+    </screen>
+    <screen id="APP-112" name="Privacy &amp; Data Controls">
+      <purpose>Personalization and data controls</purpose>
+      <components>Consent toggles, Data export request, Retention explanation</components>
+      <api_calls>PATCH /v1/users/me/consents, POST /v1/users/me/export</api_calls>
+    </screen>
+    <screen id="APP-113" name="Responsible Gambling Settings">
+      <purpose>Safety controls and reminders</purpose>
+      <components>Session reminders, Self-exclusion links, Regional resources</components>
+      <api_calls>PATCH /v1/users/me/rg-settings, GET /v1/content/rg-resources</api_calls>
+    </screen>
+
+    <!-- CREDITS AND PURCHASES -->
+    <screen id="APP-120" name="Credits - Balance &amp; History">
+      <purpose>View credit balance and transaction history</purpose>
+      <components>Current balance, Purchase button, Transaction list, Receipts</components>
+      <api_calls>GET /v1/credits/balance, GET /v1/credits/transactions</api_calls>
+    </screen>
+    <screen id="APP-121" name="Buy Credits">
+      <purpose>Purchase credit packages</purpose>
+      <components>Package options, Price comparison, Payment flow</components>
+      <api_calls>POST /v1/credits/purchase</api_calls>
+    </screen>
+    <screen id="APP-122" name="Subscription Management">
+      <purpose>Manage Premium subscription</purpose>
+      <components>Current plan, Upgrade/downgrade, Billing history, Cancel</components>
+      <api_calls>GET /v1/subscription, POST /v1/subscription/change</api_calls>
+    </screen>
+  </screens>
+
+  <api_specification>
+    <principles>
+      <versioning>/v1/ prefix; backward-compatible changes only</versioning>
+      <auth>OAuth2/JWT for user endpoints; API keys for services</auth>
+      <pagination>Cursor-based for large lists; limit default 50</pagination>
+      <filtering>Structured JSON for complex queries (POST /events/search)</filtering>
+      <idempotency>Idempotency-Key header for POST creates</idempotency>
+      <rate_limiting>Per-user and per-IP; 429 with Retry-After</rate_limiting>
+    </principles>
+
+    <endpoint_groups>
+      <group name="Auth">
+        <endpoint method="POST" path="/v1/auth/signup">Create account</endpoint>
+        <endpoint method="POST" path="/v1/auth/login">Obtain JWT</endpoint>
+        <endpoint method="POST" path="/v1/auth/logout">Invalidate session</endpoint>
+        <endpoint method="POST" path="/v1/auth/refresh">Refresh token</endpoint>
+        <endpoint method="POST" path="/v1/auth/2fa/enable">Enable 2FA</endpoint>
+        <endpoint method="POST" path="/v1/auth/2fa/verify">Verify 2FA code</endpoint>
+      </group>
+
+      <group name="Arbitrage">
+        <endpoint method="GET" path="/v1/arbitrage/opportunities">List arbitrage opportunities (tier-filtered response)</endpoint>
+        <endpoint method="POST" path="/v1/arbitrage/opportunities/{id}/unlock">Spend credits to unlock full details</endpoint>
+        <endpoint method="GET" path="/v1/arbitrage/opportunities/{id}">Get single opportunity details</endpoint>
+      </group>
+
+      <group name="Credits">
+        <endpoint method="GET" path="/v1/credits/balance">Get credit balance</endpoint>
+        <endpoint method="POST" path="/v1/credits/purchase">Purchase credit package</endpoint>
+        <endpoint method="GET" path="/v1/credits/transactions">Transaction history</endpoint>
+      </group>
+
+      <group name="Sports Catalog">
+        <endpoint method="GET" path="/v1/sports">List supported sports</endpoint>
+        <endpoint method="GET" path="/v1/leagues">List leagues for sport</endpoint>
+        <endpoint method="GET" path="/v1/teams">List teams in league</endpoint>
+        <endpoint method="GET" path="/v1/players">List players in team</endpoint>
+        <endpoint method="GET" path="/v1/search">Unified search with fuzzy matching</endpoint>
+      </group>
+
+      <group name="Events">
+        <endpoint method="GET" path="/v1/events">Simple event list with filters</endpoint>
+        <endpoint method="POST" path="/v1/events/search">Advanced filtering with JSON body</endpoint>
+        <endpoint method="GET" path="/v1/events/{eventId}">Event detail</endpoint>
+        <endpoint method="GET" path="/v1/standings">Standings snapshot</endpoint>
+        <endpoint method="GET" path="/v1/history/team">Team form history</endpoint>
+        <endpoint method="GET" path="/v1/history/h2h">Head-to-head history</endpoint>
+        <endpoint method="GET" path="/v1/injuries">Injuries/lineups</endpoint>
+      </group>
+
+      <group name="Odds">
+        <endpoint method="GET" path="/v1/markets">Canonical market list for sport</endpoint>
+        <endpoint method="GET" path="/v1/markets/event/{eventId}">Available markets for event</endpoint>
+        <endpoint method="GET" path="/v1/odds">Odds snapshots per bookmaker</endpoint>
+        <endpoint method="GET" path="/v1/odds/best">Best odds per outcome</endpoint>
+        <endpoint method="GET" path="/v1/odds/history">Line movement time-series</endpoint>
+        <endpoint method="GET" path="/v1/offers">Promotions/boosts for event</endpoint>
+      </group>
+
+      <group name="News">
+        <endpoint method="GET" path="/v1/news">News items for event/team</endpoint>
+        <endpoint method="POST" path="/v1/news/summarize">Generate AI summary</endpoint>
+        <endpoint method="POST" path="/v1/feedback/news-mapping">Report incorrect mapping</endpoint>
+      </group>
+
+      <group name="Users">
+        <endpoint method="GET" path="/v1/users/me">Current user profile</endpoint>
+        <endpoint method="PATCH" path="/v1/users/me">Update profile</endpoint>
+        <endpoint method="GET" path="/v1/users/me/preferences">All preferences</endpoint>
+        <endpoint method="PATCH" path="/v1/users/me/preferences">Update preferences</endpoint>
+        <endpoint method="GET" path="/v1/users/me/favorites">Favorites list</endpoint>
+        <endpoint method="POST" path="/v1/users/me/favorites">Add favorite</endpoint>
+        <endpoint method="DELETE" path="/v1/users/me/favorites/{id}">Remove favorite</endpoint>
+        <endpoint method="GET" path="/v1/users/me/presets">Saved filter presets</endpoint>
+        <endpoint method="POST" path="/v1/users/me/presets">Create preset</endpoint>
+        <endpoint method="PATCH" path="/v1/users/me/presets/{id}">Update preset</endpoint>
+        <endpoint method="DELETE" path="/v1/users/me/presets/{id}">Delete preset</endpoint>
+      </group>
+
+      <group name="AI">
+        <endpoint method="GET" path="/v1/ai/insight">Insight for specific event</endpoint>
+        <endpoint method="GET" path="/v1/ai/tips">Ranked tips list</endpoint>
+        <endpoint method="GET" path="/v1/ai/tip/{tipId}">Tip detail with evidence</endpoint>
+        <endpoint method="POST" path="/v1/ai/feedback">User feedback on insight</endpoint>
+        <endpoint method="GET" path="/v1/users/me/ai-settings">AI personalization settings</endpoint>
+        <endpoint method="PATCH" path="/v1/users/me/ai-settings">Update AI settings</endpoint>
+      </group>
+
+      <group name="Bookmakers">
+        <endpoint method="GET" path="/v1/bookmakers">List bookmakers with coverage</endpoint>
+        <endpoint method="GET" path="/v1/bookmakers/{id}">Bookmaker detail</endpoint>
+        <endpoint method="GET" path="/v1/bookmakers/{id}/coverage">Coverage per sport/market</endpoint>
+      </group>
+    </endpoint_groups>
+  </api_specification>
+
+  <database_schema>
+    <entity name="Sport">
+      <field name="id" type="uuid" primary_key="true" />
+      <field name="key" type="string" unique="true" />
+      <field name="name" type="string" />
+      <field name="icon" type="string" />
+      <field name="default_time_zone_rules" type="jsonb" />
+    </entity>
+    <entity name="League">
+      <field name="id" type="uuid" primary_key="true" />
+      <field name="sport_id" type="uuid" foreign_key="Sport.id" />
+      <field name="country" type="string" />
+      <field name="name" type="string" />
+      <field name="tier" type="integer" />
+      <field name="seasonality" type="jsonb" />
+    </entity>
+    <entity name="Team">
+      <field name="id" type="uuid" primary_key="true" />
+      <field name="league_id" type="uuid" foreign_key="League.id" />
+      <field name="name" type="string" />
+      <field name="short_name" type="string" />
+      <field name="country" type="string" />
+      <field name="external_ids" type="jsonb" />
+    </entity>
+    <entity name="Event">
+      <field name="id" type="uuid" primary_key="true" />
+      <field name="sport_id" type="uuid" foreign_key="Sport.id" />
+      <field name="league_id" type="uuid" foreign_key="League.id" />
+      <field name="start_time_utc" type="timestamp" />
+      <field name="status" type="enum" values="upcoming,live,finished,postponed,cancelled" />
+      <field name="home_id" type="uuid" foreign_key="Team.id" />
+      <field name="away_id" type="uuid" foreign_key="Team.id" />
+      <field name="venue" type="string" />
+      <field name="round" type="string" />
+      <field name="external_ids" type="jsonb" />
+    </entity>
+    <entity name="Market">
+      <field name="id" type="uuid" primary_key="true" />
+      <field name="sport_id" type="uuid" foreign_key="Sport.id" />
+      <field name="market_key" type="string" />
+      <field name="name" type="string" />
+      <field name="period" type="string" />
+      <field name="live_supported" type="boolean" />
+    </entity>
+    <entity name="Bookmaker">
+      <field name="id" type="uuid" primary_key="true" />
+      <field name="key" type="string" unique="true" />
+      <field name="brand" type="string" />
+      <field name="region" type="string[]" />
+      <field name="license_jurisdictions" type="string[]" />
+      <field name="deep_link_templates" type="jsonb" />
+    </entity>
+    <entity name="OddsQuote">
+      <field name="id" type="uuid" primary_key="true" />
+      <field name="event_id" type="uuid" foreign_key="Event.id" />
+      <field name="bookmaker_id" type="uuid" foreign_key="Bookmaker.id" />
+      <field name="market_id" type="uuid" foreign_key="Market.id" />
+      <field name="outcome_key" type="string" />
+      <field name="odds" type="decimal" />
+      <field name="line" type="decimal" nullable="true" />
+      <field name="timestamp" type="timestamp" />
+      <field name="is_live" type="boolean" />
+      <field name="source_provider" type="string" />
+      <field name="confidence" type="decimal" />
+    </entity>
+    <entity name="ArbitrageOpportunity">
+      <field name="id" type="uuid" primary_key="true" />
+      <field name="event_id" type="uuid" foreign_key="Event.id" />
+      <field name="market_id" type="uuid" foreign_key="Market.id" />
+      <field name="profit_margin" type="decimal" />
+      <field name="confidence_score" type="decimal" />
+      <field name="bookmaker_legs" type="jsonb" />
+      <field name="recommended_stakes" type="jsonb" />
+      <field name="detected_at" type="timestamp" />
+      <field name="expires_at" type="timestamp" />
+      <field name="is_winning_tip" type="boolean" />
+      <field name="credit_cost" type="integer" />
+    </entity>
+    <entity name="User">
+      <field name="id" type="uuid" primary_key="true" />
+      <field name="email" type="string" unique="true" />
+      <field name="password_hash" type="string" />
+      <field name="subscription_tier" type="enum" values="free,premium" />
+      <field name="credit_balance" type="integer" default="0" />
+      <field name="preferences" type="jsonb" />
+      <field name="created_at" type="timestamp" />
+    </entity>
+    <entity name="Favorite">
+      <field name="id" type="uuid" primary_key="true" />
+      <field name="user_id" type="uuid" foreign_key="User.id" />
+      <field name="entity_type" type="enum" values="team,league,market" />
+      <field name="entity_id" type="uuid" />
+    </entity>
+    <entity name="Preset">
+      <field name="id" type="uuid" primary_key="true" />
+      <field name="user_id" type="uuid" foreign_key="User.id" />
+      <field name="sport_id" type="uuid" foreign_key="Sport.id" nullable="true" />
+      <field name="name" type="string" />
+      <field name="filters" type="jsonb" />
+      <field name="is_pinned" type="boolean" />
+    </entity>
+    <entity name="CreditTransaction">
+      <field name="id" type="uuid" primary_key="true" />
+      <field name="user_id" type="uuid" foreign_key="User.id" />
+      <field name="type" type="enum" values="purchase,unlock,refund" />
+      <field name="amount" type="integer" />
+      <field name="opportunity_id" type="uuid" foreign_key="ArbitrageOpportunity.id" nullable="true" />
+      <field name="timestamp" type="timestamp" />
+    </entity>
+    <entity name="ProviderEventMap">
+      <field name="provider" type="string" />
+      <field name="provider_event_id" type="string" />
+      <field name="canonical_event_id" type="uuid" foreign_key="Event.id" />
+      <field name="confidence" type="decimal" />
+      <field name="last_verified" type="timestamp" />
+    </entity>
+    <entity name="ProviderTeamMap">
+      <field name="provider" type="string" />
+      <field name="provider_team_id" type="string" />
+      <field name="canonical_team_id" type="uuid" foreign_key="Team.id" />
+      <field name="confidence" type="decimal" />
+    </entity>
+    <entity name="ProviderMarketMap">
+      <field name="provider" type="string" />
+      <field name="provider_market_key" type="string" />
+      <field name="canonical_market_key" type="string" />
+      <field name="transform_rules" type="jsonb" />
+    </entity>
+  </database_schema>
+
+  <ai_ml_specification>
+    <components>
+      <component name="Feature Store">Computes and stores model features per event/team/player</component>
+      <component name="Model Registry">Versioned models per sport/market; A/B testing support</component>
+      <component name="Inference Service">Online scoring; caching for repeated calls</component>
+      <component name="Evidence Retriever">Fetches stats + news for explanations; no hallucination rule</component>
+      <component name="Ranking Engine">Combines probabilities, odds, confidence, preferences</component>
+      <component name="Feedback Loop">Captures user feedback and outcomes for improvement</component>
+    </components>
+
+    <models_by_sport>
+      <model sport="Soccer">Poisson/xG-based goal models + ELO; markets: 1X2, O/U 2.5, BTTS</model>
+      <model sport="Basketball">ELO + regression on possessions/ratings; markets: moneyline, spread, totals</model>
+      <model sport="Tennis">Player Elo (surface-adjusted) + serve/return stats; markets: match/set winner</model>
+      <model sport="Baseball">Starting pitcher + team wOBA/ERA; markets: moneyline, totals</model>
+      <model sport="American Football">ELO + EPA-based features; markets: moneyline, spread, totals</model>
+      <model sport="Ice Hockey">ELO + expected goals proxies; markets: moneyline, totals</model>
+      <model sport="Cricket">Team rating + venue + format; markets: match winner</model>
+      <model sport="Rugby">Team rating + injuries + venue; markets: match winner/spread</model>
+      <model sport="MMA">Fighter rating + reach/age + style; markets: moneyline/method</model>
+      <model sport="eSports">Team rating + map pool; markets: match winner</model>
+    </models_by_sport>
+
+    <feature_engineering>
+      <general>
+        <feature>Team/fighter/player rating (ELO-style), rating delta</feature>
+        <feature>Recent form (last N games): wins, goal/point differential, xG proxy</feature>
+        <feature>Rest days, travel distance</feature>
+        <feature>Home advantage indicator</feature>
+        <feature>Injury/lineup strength deltas</feature>
+        <feature>Market signals: odds movement and consensus changes</feature>
+      </general>
+      <soccer_specific>
+        <feature>Expected goals for/against trends</feature>
+        <feature>Shot quality, possession-adjusted metrics</feature>
+        <feature>Set-piece and defensive metrics</feature>
+        <feature>Lineup confirmation time and changes</feature>
+      </soccer_specific>
+      <basketball_specific>
+        <feature>Pace, offensive/defensive rating trends</feature>
+        <feature>Back-to-back indicator</feature>
+        <feature>Player usage rates and injuries</feature>
+      </basketball_specific>
+      <tennis_specific>
+        <feature>Surface-adjusted Elo</feature>
+        <feature>Serve/return hold/break rates</feature>
+        <feature>Fatigue: matches played in last 7 days</feature>
+      </tennis_specific>
+    </feature_engineering>
+
+    <evaluation>
+      <metric>Brier score</metric>
+      <metric>Log loss</metric>
+      <metric>Calibration curve</metric>
+      <metric>AUC</metric>
+      <metric>Coverage metrics per league/market</metric>
+    </evaluation>
+  </ai_ml_specification>
+
+  <filter_catalog>
+    <category name="Time">
+      <filter key="time.window" label="Time Window" type="enum" values="today,next_1h,next_4h,next_12h,custom" />
+      <filter key="time.start_after" label="Start After" type="datetime" />
+      <filter key="time.start_before" label="Start Before" type="datetime" />
+    </category>
+    <category name="Status">
+      <filter key="status" label="Event Status" type="enum[]" values="upcoming,live,finished,postponed,cancelled" />
+      <filter key="is_live" label="Live Only" type="boolean" />
+    </category>
+    <category name="Sports">
+      <filter key="sport" label="Sport" type="enum" />
+      <filter key="league.include" label="Leagues Include" type="string[]" />
+      <filter key="league.exclude" label="Leagues Exclude" type="string[]" />
+      <filter key="country" label="Country" type="string[]" />
+    </category>
+    <category name="Teams">
+      <filter key="team.include" label="Teams Include" type="string[]" />
+      <filter key="team.exclude" label="Teams Exclude" type="string[]" />
+      <filter key="favorites.only" label="Favorites Only" type="boolean" />
+    </category>
+    <category name="Bookmakers">
+      <filter key="bookmaker.include" label="Bookmakers Include" type="string[]" />
+      <filter key="bookmaker.exclude" label="Bookmakers Exclude" type="string[]" />
+      <filter key="availability.min_books" label="Min Bookmakers Offering" type="integer" />
+    </category>
+    <category name="Odds">
+      <filter key="odds.min" label="Min Odds" type="decimal" />
+      <filter key="odds.max" label="Max Odds" type="decimal" />
+      <filter key="line.min" label="Min Line" type="decimal" />
+      <filter key="line.max" label="Max Line" type="decimal" />
+      <filter key="implied_prob.min" label="Min Implied Probability" type="decimal" />
+      <filter key="implied_prob.max" label="Max Implied Probability" type="decimal" />
+      <filter key="odds.spread.min" label="Min Book-to-Book Spread" type="decimal" />
+    </category>
+    <category name="Movement">
+      <filter key="movement.direction" label="Odds Movement Direction" type="enum" values="up,down,any" />
+      <filter key="movement.magnitude.min" label="Min Movement Magnitude" type="decimal" />
+      <filter key="movement.lookback" label="Movement Lookback" type="enum" values="1h,4h,12h,24h" />
+    </category>
+    <category name="Markets">
+      <filter key="market.include_keys" label="Markets Include" type="string[]" />
+      <filter key="market.exclude_keys" label="Markets Exclude" type="string[]" />
+      <filter key="periods" label="Periods" type="string[]" values="FT,HT,Q1,Q2,Q3,Q4" />
+      <filter key="market.props_only" label="Props Only" type="boolean" />
+    </category>
+    <category name="Stats">
+      <filter key="stats.form.window" label="Form Window (games)" type="integer" />
+      <filter key="stats.form.min_win_pct" label="Min Win % (Form)" type="decimal" />
+      <filter key="stats.h2h.window" label="H2H Window (matches)" type="integer" />
+      <filter key="standings.max_rank" label="Max Standings Rank" type="integer" />
+    </category>
+    <category name="Context">
+      <filter key="injuries.exclude_star_out" label="Exclude if Star Out" type="boolean" />
+      <filter key="lineups.only_confirmed" label="Lineups Confirmed Only" type="boolean" />
+    </category>
+    <category name="AI">
+      <filter key="ai.enabled" label="AI Tips Enabled" type="boolean" />
+      <filter key="ai.confidence.min" label="Min Model Confidence" type="decimal" />
+      <filter key="ai.probability.min" label="Min Predicted Probability" type="decimal" />
+      <filter key="ai.ev.min" label="Min Expected Value" type="decimal" />
+      <filter key="ai.risk_profile" label="Risk Profile" type="enum" values="conservative,balanced,aggressive" />
+    </category>
+  </filter_catalog>
+
+  <performance_requirements>
+    <sla metric="Public API p95 latency">Less than 300ms cached, less than 800ms uncached</sla>
+    <sla metric="Odds update ingest latency">Less than 10s pre-match, less than 2s live streaming</sla>
+    <sla metric="Uptime">99.9% monthly</sla>
+    <sla metric="RPO">Less than or equal to 5 minutes</sla>
+    <sla metric="RTO">Less than or equal to 30 minutes</sla>
+
+    <caching>
+      <rule entity="sports/leagues/teams">Cache 24h with background refresh</rule>
+      <rule entity="event lists">Cache 15-60s per sport/window</rule>
+      <rule entity="best odds">Cache 5-15s (live) or 30-60s (pre-match)</rule>
+      <rule strategy="stale-while-revalidate">Keep UI responsive during refresh</rule>
+    </caching>
+
+    <realtime>
+      <protocol>WebSocket for live odds on event detail pages</protocol>
+      <protocol>Server-Sent Events for arbitrage alerts</protocol>
+      <fallback>Polling with exponential backoff</fallback>
+    </realtime>
+  </performance_requirements>
+
+  <security_compliance>
+    <security>
+      <requirement>Encrypt data in transit (TLS) and at rest</requirement>
+      <requirement>JWT short-lived access tokens; secure refresh token storage</requirement>
+      <requirement>RBAC for admin portal; audit logs for sensitive operations</requirement>
+      <requirement>Secret management via Vault/KMS for provider credentials</requirement>
+      <requirement>Rate limiting and WAF for public APIs</requirement>
+      <requirement>Input validation and output encoding (injection/XSS prevention)</requirement>
+      <requirement>Dependency scanning and CI security checks</requirement>
+    </security>
+    <privacy>
+      <requirement>Store minimal PII; separate identity from analytics</requirement>
+      <requirement>User consent for personalization and analytics with opt-out</requirement>
+      <requirement>Data export and deletion workflows</requirement>
+      <requirement>GDPR/CCPA compliance planning</requirement>
+    </privacy>
+    <compliance>
+      <requirement>Terms of Service stating platform provides analytical information only</requirement>
+      <requirement>No guarantee of profits; probabilistic insights disclaimer</requirement>
+      <requirement>Responsible gambling messaging and regional resources</requirement>
+      <requirement>Age gating where required by jurisdiction</requirement>
+      <requirement>Affiliate and marketing regulation compliance</requirement>
+    </compliance>
+  </security_compliance>
+
+  <success_metrics>
+    <kpi name="Time-to-find-best-odds">Median less than 20 seconds for event/market</kpi>
+    <kpi name="Search success rate">Greater than 85% find relevant matches without manual scrolling</kpi>
+    <kpi name="Odds freshness">95th percentile under target SLA</kpi>
+    <kpi name="AI engagement">Percentage of active users viewing AI insights weekly</kpi>
+    <kpi name="Data quality">Mismatch rate less than 0.5% after stabilization</kpi>
+    <kpi name="Arbitrage detection speed">Sub-second detection from odds update</kpi>
+    <kpi name="Winning Tips conversion">Credit purchase rate from tip views</kpi>
+  </success_metrics>
+
+  <implementation_roadmap>
+    <phase number="1" name="The Arbitrage Engine" duration="Months 1-4">
+      <deliverable>Core arbitrage detection service</deliverable>
+      <deliverable>Data ingestion from 5+ sportsbooks</deliverable>
+      <deliverable>Value scoring algorithm</deliverable>
+      <deliverable>MVP credit-based unlocking mechanism</deliverable>
+      <deliverable>Basic notification for detected arbs</deliverable>
+    </phase>
+    <phase number="2" name="Platform and Mobile MVP" duration="Months 5-7">
+      <deliverable>User identity and authentication</deliverable>
+      <deliverable>Billing service integration</deliverable>
+      <deliverable>Mobile app MVP displaying arbitrage tips</deliverable>
+      <deliverable>Basic filtering and presets</deliverable>
+      <deliverable>Subscription management</deliverable>
+    </phase>
+    <phase number="3" name="Expansion and AI" duration="Months 8-10">
+      <deliverable>Integration of all 10+ sportsbooks</deliverable>
+      <deliverable>Advanced AI forecasting models</deliverable>
+      <deliverable>Full feature-gating by tier</deliverable>
+      <deliverable>Comprehensive notification service</deliverable>
+      <deliverable>Admin portal for mapping QA</deliverable>
+    </phase>
+    <phase number="4" name="Public Launch and Scale" duration="Months 11-12">
+      <deliverable>Beta testing with real users</deliverable>
+      <deliverable>Production deployment</deliverable>
+      <deliverable>Public launch</deliverable>
+      <deliverable>Scaling of arbitrage engine</deliverable>
+      <deliverable>Enterprise provider redundancy</deliverable>
+    </phase>
+  </implementation_roadmap>
+
+  <non_goals>
+    <item>Placing bets directly in-app (unless future licensed integration)</item>
+    <item>Web scraping sportsbook websites (fragile, violates terms)</item>
+    <item>Guaranteeing outcomes or "sure win" tips (impossible; probabilistic only)</item>
+  </non_goals>
+
+  <risks_constraints>
+    <risk>Sportsbook data access is largely commercial/partner-based</risk>
+    <risk>Data licensing restricts redistribution and display per provider/jurisdiction</risk>
+    <risk>Event/market mapping across providers is complex - different IDs/naming</risk>
+    <risk>AI recommendations for betting are high-risk for trust and regulation</risk>
+    <mitigation>Use licensed aggregation providers, not scraping</mitigation>
+    <mitigation>Legal review per provider and jurisdiction before launch</mitigation>
+    <mitigation>Dedicated mapping layer with automated QA tools</mitigation>
+    <mitigation>Include responsible gambling messaging; avoid misleading claims</mitigation>
+  </risks_constraints>
+</project_specification>
