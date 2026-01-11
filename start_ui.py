@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AutoCoder UI Launcher
+SportsAI UI Launcher
 =====================
 
 Automated launcher that handles all setup:

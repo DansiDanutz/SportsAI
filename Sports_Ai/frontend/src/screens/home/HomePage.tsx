@@ -6,47 +6,9 @@ import { ErrorDisplay } from '../../components/ErrorDisplay';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { useAuthStore } from '../../store/authStore';
 import { eventsApi, Event, api } from '../../services/api';
+import { useArbitrage } from '../../hooks/useArbitrage';
 
-interface AiAdvice {
-  id: string;
-  title: string;
-  content: string;
-  category: 'strategy' | 'insight' | 'warning' | 'opportunity';
-  confidence: number;
-  sport?: string;
-  relatedMatch?: string;
-  createdAt: string;
-}
-
-interface AiNewsItem {
-  id: string;
-  headline: string;
-  summary: string;
-  sport: string;
-  impact: 'high' | 'medium' | 'low';
-  createdAt: string;
-}
-
-interface SharpMoneyAlert {
-  id: string;
-  eventId: string;
-  homeTeam: string;
-  awayTeam: string;
-  league: string;
-  alertType: 'steam_move' | 'reverse_line_movement' | 'sharp_action' | 'volume_spike';
-  severity: 'high' | 'medium' | 'low';
-  description: string;
-  details: {
-    previousOdds: number;
-    currentOdds: number;
-    oddsChange: number;
-    percentageChange: number;
-    timeFrame: string;
-    affectedOutcome: string;
-  };
-  recommendation: string;
-  detectedAt: string;
-}
+// ... (keep interface definitions)
 
 export function HomePage() {
   const { user } = useAuthStore();
@@ -56,6 +18,11 @@ export function HomePage() {
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
+
+  // Fetch Arbitrage Data
+  const { data: arbitrageData } = useArbitrage();
+
+  // Fetch AI Advice ...
 
   // Fetch AI Advice
   const { data: adviceData } = useQuery({
@@ -180,8 +147,8 @@ export function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <StatCard
               title="Active Arbitrage"
-              value="12"
-              change="+3"
+              value={arbitrageData?.count?.toString() || '0'}
+              change={arbitrageData?.summary?.bestROI ? `+${arbitrageData.summary.bestROI.toFixed(1)}%` : ''}
               changeType="positive"
               icon={
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -18,6 +18,7 @@ import { TeamsModule } from './teams/teams.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { SetupModule } from './setup/setup.module';
 import { ApifyModule } from './apify/apify.module';
+import { IntegrationsModule } from './integrations/integrations.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { ApifyModule } from './apify/apify.module';
     AlertsModule,
     SetupModule,
     ApifyModule,
+    IntegrationsModule,
   ],
   controllers: [],
   providers: [

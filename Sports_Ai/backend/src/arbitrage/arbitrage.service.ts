@@ -18,6 +18,28 @@ export class ArbitrageService {
   }
 
   /**
+   * Calculates a consolidated confidence score (0-1) based on weighted factors.
+   * Factors: Profit (35%), Bookmaker Trust (20%), Odds Stability (20%), Liquidity (15%), Confidence (10%)
+   * Above 0.95 = Winning Tip
+   */
+  calculateConfidenceScore(factors: {
+    profitMargin: number;
+    bookmakerTrust: number;
+    oddsStability: number;
+    marketLiquidity: number;
+    baseConfidence: number;
+  }): number {
+    const score =
+      (factors.profitMargin * 0.35) +
+      (factors.bookmakerTrust * 0.20) +
+      (factors.oddsStability * 0.20) +
+      (factors.marketLiquidity * 0.15) +
+      (factors.baseConfidence * 0.10);
+    
+    return Math.min(Math.max(score, 0), 1);
+  }
+
+  /**
    * Finds arbitrage opportunities across all events and markets.
    * In a real system, this would be triggered by odds updates.
    * For now, we'll fetch from the database.

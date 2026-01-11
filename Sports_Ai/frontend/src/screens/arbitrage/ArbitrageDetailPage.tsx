@@ -1,136 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Layout } from '../../components/Layout';
 import { PremiumGate, useIsPremium } from '../../components/PremiumGate';
 import { ConfirmationDialog } from '../../components/ConfirmationDialog';
-import { api } from '../../services/api';
+import { api, ArbitrageOpportunity, ArbitrageLeg } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
+import { calculateArbitrageProfit, calculateStakes } from '../../utils/arbitrageUtils';
+import { useArbitrage, useUnlockArbitrage } from '../../hooks/useArbitrage';
 
-interface Leg {
-  outcome: string;
-  odds: number;
-  bookmaker: string;
-}
-
-interface ArbitrageData {
-  id: string;
-  sport: string;
-  event: string;
-  league: string;
-  market: string;
-  profit: number;
-  confidence: number;
-  timeLeft: string;
-  legs: Leg[];
-  isWinningTip?: boolean;
-  creditCost?: number;
-}
-
-// Calculate arbitrage profit percentage from odds
-function calculateArbitrageProfit(legs: Leg[]): number {
-  const sumImpliedProb = legs.reduce((sum, leg) => sum + (1 / leg.odds), 0);
-  const profit = (1 - sumImpliedProb) * 100;
-  return Math.round(profit * 100) / 100;
-}
-
-// Calculate recommended stakes for each leg given a total stake
-function calculateStakes(legs: Leg[], totalStake: number = 100): { outcome: string; stake: number; potentialReturn: number }[] {
-  const sumImpliedProb = legs.reduce((sum, leg) => sum + (1 / leg.odds), 0);
-  return legs.map(leg => {
-    const stake = (totalStake / leg.odds) / sumImpliedProb * leg.odds;
-    const roundedStake = Math.round(stake * 100) / 100;
-    return {
-      outcome: leg.outcome,
-      stake: roundedStake,
-      potentialReturn: Math.round(roundedStake * leg.odds * 100) / 100,
-    };
-  });
-}
-
-// Mock data for demo - in production this would come from API
-const ALL_ARBITRAGE_DATA: ArbitrageData[] = [
-  {
-    id: 'arb-low-001',
-    sport: 'Tennis',
-    event: 'Djokovic vs Alcaraz',
-    league: 'ATP Masters',
-    market: 'Match Winner',
-    profit: 0,
-    confidence: 0.78,
-    timeLeft: '2h 15m',
-    legs: [
-      { outcome: 'Djokovic', odds: 2.01, bookmaker: 'Betfair' },
-      { outcome: 'Alcaraz', odds: 2.02, bookmaker: 'Unibet' },
-    ],
-    isWinningTip: false,
-    creditCost: 0,
-  },
-  {
-    id: 'arb-low-002',
-    sport: 'Soccer',
-    event: 'Liverpool vs Man City',
-    league: 'Premier League',
-    market: 'Over/Under 2.5',
-    profit: 0,
-    confidence: 0.72,
-    timeLeft: '4h 30m',
-    legs: [
-      { outcome: 'Over 2.5', odds: 2.00, bookmaker: 'Stake' },
-      { outcome: 'Under 2.5', odds: 2.01, bookmaker: 'Betano' },
-    ],
-    isWinningTip: false,
-    creditCost: 0,
-  },
-  {
-    id: 'arb-001',
-    sport: 'Soccer',
-    event: 'Real Madrid vs Barcelona',
-    league: 'La Liga',
-    market: 'Match Winner (1X2)',
-    profit: 0,
-    confidence: 0.96,
-    timeLeft: '3h 20m',
-    legs: [
-      { outcome: 'Real Madrid', odds: 2.95, bookmaker: 'Bet365' },
-      { outcome: 'Draw', odds: 3.85, bookmaker: 'Betano' },
-      { outcome: 'Barcelona', odds: 3.15, bookmaker: 'Unibet' },
-    ],
-    isWinningTip: true,
-    creditCost: 10,
-  },
-  {
-    id: 'arb-002',
-    sport: 'Basketball',
-    event: 'Lakers vs Warriors',
-    league: 'NBA',
-    market: 'Moneyline',
-    profit: 0,
-    confidence: 0.92,
-    timeLeft: '5h 45m',
-    legs: [
-      { outcome: 'Lakers', odds: 2.04, bookmaker: 'Stake' },
-      { outcome: 'Warriors', odds: 2.04, bookmaker: 'William Hill' },
-    ],
-    isWinningTip: true,
-    creditCost: 5,
-  },
-  {
-    id: 'arb-003',
-    sport: 'Tennis',
-    event: 'Sinner vs Medvedev',
-    league: 'ATP Finals',
-    market: 'Match Winner',
-    profit: 0,
-    confidence: 0.88,
-    timeLeft: '1h 10m',
-    legs: [
-      { outcome: 'Sinner', odds: 2.03, bookmaker: 'Betfair' },
-      { outcome: 'Medvedev', odds: 2.03, bookmaker: 'Paddy Power' },
-    ],
-    isWinningTip: true,
-    creditCost: 5,
-  },
-];
+interface ArbitrageData extends ArbitrageOpportunity {}
 
 export function ArbitrageDetailPage() {
   const { arbId } = useParams<{ arbId: string }>();
@@ -138,25 +17,71 @@ export function ArbitrageDetailPage() {
   const isPremium = useIsPremium();
   const { user, updateUser } = useAuthStore();
 
-  const [isUnlocking, setIsUnlocking] = useState(false);
-  const [showUnlockDialog, setShowUnlockDialog] = useState(false);
+  const { data: arbitrageData, isLoading } = useArbitrage(isPremium);
+  const unlockMutation = useUnlockArbitrage();
+
+  const [selectedTip, setSelectedTip] = useState<ArbitrageData | null>(null);
   const [unlockError, setUnlockError] = useState<{
     message: string;
     required: number;
     available: number;
   } | null>(null);
   const [unlockSuccess, setUnlockSuccess] = useState(false);
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [showUnlockDialog, setShowUnlockDialog] = useState(false);
 
-  // Find the arbitrage opportunity by ID
-  const arb = ALL_ARBITRAGE_DATA.find(a => a.id === arbId);
+  // Find the specific arbitrage opportunity
+  const arb = arbitrageData?.opportunities?.find(a => a.id === arbId);
 
-  // Auto-unlock non-winning tips for premium users
-  useEffect(() => {
-    if (arb && isPremium && !arb.isWinningTip) {
-      setIsUnlocked(true);
+  const handleUnlockConfirm = async () => {
+    if (!arb) return;
+    
+    try {
+      const result = await unlockMutation.mutateAsync(arb.id);
+      
+      if (result.success) {
+        updateUser({ creditBalance: result.newBalance });
+        setUnlockSuccess(true);
+        setTimeout(() => {
+          setShowUnlockDialog(false);
+          setUnlockSuccess(false);
+        }, 2000);
+      }
+    } catch (error: any) {
+      const errorData = error.response?.data;
+      setUnlockError({
+        message: errorData?.message || 'Failed to unlock. Please try again.',
+        required: errorData?.required || arb.creditCost || 10,
+        available: errorData?.available || user?.creditBalance || 0,
+      });
     }
-  }, [arb, isPremium]);
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const calculatedProfit = arb ? calculateArbitrageProfit(arb.legs) : 0;
+  const stakes = arb ? calculateStakes(arb.legs, 100) : [];
+  const totalReturn = stakes.length > 0 ? stakes[0].potentialReturn : 0;
+  const actualProfit = Math.round((totalReturn - 100) * 100) / 100;
+
+  const confidenceLevel = arb ? (arb.confidence >= 0.95 ? 'high' : arb.confidence >= 0.85 ? 'medium' : 'low') : 'low';
+  const confidenceColors = {
+    high: 'bg-green-500/20 text-green-400 border-green-500/50',
+    medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
+    low: 'bg-orange-500/20 text-orange-400 border-orange-500/50',
+  };
+
+  const handleBuyCredits = () => {
+    setShowUnlockDialog(false);
+    navigate('/credits');
+  };
 
   if (!arb) {
     return (
@@ -174,63 +99,6 @@ export function ArbitrageDetailPage() {
       </Layout>
     );
   }
-
-  const calculatedProfit = calculateArbitrageProfit(arb.legs);
-  const stakes = calculateStakes(arb.legs, 100);
-  const totalReturn = stakes[0]?.potentialReturn || 0;
-  const actualProfit = Math.round((totalReturn - 100) * 100) / 100;
-
-  const confidenceLevel = arb.confidence >= 0.95 ? 'high' : arb.confidence >= 0.85 ? 'medium' : 'low';
-  const confidenceColors = {
-    high: 'bg-green-500/20 text-green-400 border-green-500/50',
-    medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
-    low: 'bg-orange-500/20 text-orange-400 border-orange-500/50',
-  };
-
-  const handleUnlockConfirm = async () => {
-    setIsUnlocking(true);
-    setUnlockError(null);
-
-    try {
-      const response = await api.post('/v1/credits/unlock', {
-        opportunityId: arb.id,
-        creditCost: arb.creditCost || 10,
-      });
-
-      if (response.data.success) {
-        updateUser({ creditBalance: response.data.newBalance });
-        setUnlockSuccess(true);
-        setIsUnlocked(true);
-
-        setTimeout(() => {
-          setShowUnlockDialog(false);
-          setUnlockSuccess(false);
-        }, 2000);
-      }
-    } catch (error: any) {
-      const errorData = error.response?.data;
-      if (errorData?.required && errorData?.available !== undefined) {
-        setUnlockError({
-          message: errorData.message || 'Insufficient credits',
-          required: errorData.required,
-          available: errorData.available,
-        });
-      } else {
-        setUnlockError({
-          message: 'Failed to unlock. Please try again.',
-          required: arb.creditCost || 10,
-          available: user?.creditBalance || 0,
-        });
-      }
-    } finally {
-      setIsUnlocking(false);
-    }
-  };
-
-  const handleBuyCredits = () => {
-    setShowUnlockDialog(false);
-    navigate('/credits');
-  };
 
   // Non-premium users see the paywall
   if (!isPremium) {
@@ -262,6 +130,7 @@ export function ArbitrageDetailPage() {
   }
 
   // Premium users - show content or unlock prompt
+  const isUnlocked = arb.isUnlocked || arb.legs.length > 0;
   const showFullDetails = isUnlocked || !arb.isWinningTip;
 
   return (
@@ -474,7 +343,7 @@ export function ArbitrageDetailPage() {
         confirmText={unlockSuccess ? '' : unlockError ? 'Buy More Credits' : 'Unlock'}
         cancelText={unlockSuccess ? 'Close' : 'Cancel'}
         variant={unlockError ? 'warning' : 'info'}
-        isLoading={isUnlocking}
+        isLoading={unlockMutation.isPending}
       />
     </Layout>
   );

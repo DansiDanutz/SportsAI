@@ -281,6 +281,7 @@ export interface ArbitrageOpportunity {
   legs: ArbitrageLeg[];
   isWinningTip?: boolean;
   creditCost?: number;
+  isUnlocked?: boolean;
 }
 
 export interface ArbitrageResponse {

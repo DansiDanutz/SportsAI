@@ -16,11 +16,13 @@ const SPORTS_OPTIONS = [
 
 const BOOKMAKER_OPTIONS = [
   { key: 'bet365', name: 'Bet365' },
-  { key: 'draftkings', name: 'DraftKings' },
-  { key: 'fanduel', name: 'FanDuel' },
-  { key: 'betmgm', name: 'BetMGM' },
-  { key: 'caesars', name: 'Caesars' },
-  { key: 'pointsbet', name: 'PointsBet' },
+  { key: 'superbet', name: 'Superbet' },
+  { key: 'betano', name: 'Betano' },
+  { key: 'stake', name: 'Stake' },
+  { key: 'unibet', name: 'Unibet' },
+  { key: 'william_hill', name: 'William Hill' },
+  { key: 'betfair', name: 'Betfair' },
+  { key: '888sport', name: '888sport' },
 ];
 
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
@@ -28,9 +30,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
   const [selectedBookmakers, setSelectedBookmakers] = useState<string[]>([]);
   const [oddsFormat, setOddsFormat] = useState<'decimal' | 'american' | 'fractional'>('decimal');
+  const [riskProfile, setRiskProfile] = useState<'conservative' | 'balanced' | 'aggressive'>('balanced');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const totalSteps = 3;
+  const totalSteps = 4;
 
   const handleSportToggle = (sportKey: string) => {
     setSelectedSports(prev =>
@@ -68,6 +71,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         hasCompletedOnboarding: true,
         favoriteSports: selectedSports,
         favoriteBookmakers: selectedBookmakers,
+        riskProfile,
         display: {
           oddsFormat,
           theme: 'dark',
@@ -215,6 +219,67 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 >
                   <span className="text-white font-medium">Fractional</span>
                   <span className="text-gray-400 text-sm block">e.g., 3/2, 5/1</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                What is your risk profile?
+              </h3>
+              <p className="text-gray-400 text-sm mb-4">
+                This helps us rank arbitrage opportunities and AI tips.
+              </p>
+              <div className="space-y-3">
+                <button
+                  onClick={() => setRiskProfile('conservative')}
+                  className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                    riskProfile === 'conservative'
+                      ? 'border-green-500 bg-green-500/20'
+                      : 'border-gray-600 hover:border-gray-500 bg-gray-700/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🛡️</span>
+                    <div>
+                      <span className="text-white font-medium block">Conservative</span>
+                      <span className="text-gray-400 text-xs">High confidence, lower returns</span>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setRiskProfile('balanced')}
+                  className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                    riskProfile === 'balanced'
+                      ? 'border-green-500 bg-green-500/20'
+                      : 'border-gray-600 hover:border-gray-500 bg-gray-700/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">⚖️</span>
+                    <div>
+                      <span className="text-white font-medium block">Balanced</span>
+                      <span className="text-gray-400 text-xs">Equal focus on confidence and returns</span>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setRiskProfile('aggressive')}
+                  className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                    riskProfile === 'aggressive'
+                      ? 'border-green-500 bg-green-500/20'
+                      : 'border-gray-600 hover:border-gray-500 bg-gray-700/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🚀</span>
+                    <div>
+                      <span className="text-white font-medium block">Aggressive</span>
+                      <span className="text-gray-400 text-xs">Higher returns, lower confidence threshold</span>
+                    </div>
+                  </div>
                 </button>
               </div>
             </div>

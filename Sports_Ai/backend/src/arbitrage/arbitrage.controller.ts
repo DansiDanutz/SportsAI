@@ -2,6 +2,7 @@ import { Controller, Get, UseGuards, Request, Query, Header } from '@nestjs/comm
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
 import { ArbitrageService } from './arbitrage.service';
+import { CreditsService } from '../credits/credits.service';
 
 @Controller('v1/arbitrage')
 @UseGuards(JwtAuthGuard)
@@ -9,6 +10,7 @@ export class ArbitrageController {
   constructor(
     private usersService: UsersService,
     private arbitrageService: ArbitrageService,
+    private creditsService: CreditsService,
   ) {}
 
   @Get('opportunities')
@@ -19,11 +21,12 @@ export class ArbitrageController {
   ) {
     const user = await this.usersService.findById(req.user.id);
     const isPremium = user?.subscriptionTier === 'premium';
+    const unlockedIds = await this.creditsService.getUnlockedOpportunities(req.user.id);
 
     const dbOpportunities = await this.arbitrageService.findOpportunities();
     
     // If database is empty, use the legacy mock data structure for demo purposes
-    const opportunities = dbOpportunities.length > 0 
+    const rawOpportunities = dbOpportunities.length > 0 
       ? dbOpportunities.map(o => ({
           id: o.id,
           sport: o.event?.sport?.name || 'Unknown',
@@ -34,6 +37,8 @@ export class ArbitrageController {
           confidence: o.confidenceScore,
           timeLeft: '3h 20m', // Placeholder
           legs: JSON.parse(o.bookmakerLegs as string),
+          isWinningTip: o.isWinningTip || o.confidenceScore >= 0.95,
+          creditCost: o.creditCost || 10,
         }))
       : [
           {
@@ -45,6 +50,8 @@ export class ArbitrageController {
             profit: 2.8,
             confidence: 0.96,
             timeLeft: '3h 20m',
+            isWinningTip: true,
+            creditCost: 10,
             legs: [
               { outcome: 'Real Madrid', odds: 2.45, bookmaker: 'Bet365' },
               { outcome: 'Draw', odds: 3.60, bookmaker: 'Betano' },
@@ -60,12 +67,27 @@ export class ArbitrageController {
             profit: 1.9,
             confidence: 0.92,
             timeLeft: '5h 45m',
+            isWinningTip: false,
+            creditCost: 10,
             legs: [
               { outcome: 'Lakers', odds: 2.15, bookmaker: 'Stake' },
               { outcome: 'Warriors', odds: 1.95, bookmaker: 'William Hill' },
             ],
           },
         ];
+
+    // Map opportunities to hide legs for locked Winning Tips
+    const opportunities = rawOpportunities.map(o => {
+      const isUnlocked = unlockedIds.includes(o.id);
+      // Even premium users need to unlock Winning Tips (confidence >= 0.95)
+      const needsUnlock = o.isWinningTip && !isUnlocked;
+      
+      return {
+        ...o,
+        legs: needsUnlock ? [] : o.legs,
+        isUnlocked,
+      };
+    });
 
     // If free user requests full details, return tier-restricted response
     if (fullDetails === 'true' && !isPremium) {

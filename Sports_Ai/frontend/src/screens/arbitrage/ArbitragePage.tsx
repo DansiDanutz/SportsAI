@@ -1,32 +1,116 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Layout } from '../../components/Layout';
 import { PremiumGate, PremiumBadge, useIsPremium } from '../../components/PremiumGate';
 import { ConfirmationDialog } from '../../components/ConfirmationDialog';
+import { LineMovementChart } from '../../components/LineMovementChart';
 import { useAuthStore } from '../../store/authStore';
 import { useArbitrage, useUnlockArbitrage } from '../../hooks/useArbitrage';
+import { useOddsHistory } from '../../hooks/useOddsHistory';
+import { api, ArbitrageOpportunity, ArbitrageLeg } from '../../services/api';
+import { calculateArbitrageProfit, calculateStakes } from '../../utils/arbitrageUtils';
 
-interface Leg {
-  outcome: string;
-  odds: number;
-  bookmaker: string;
+interface ArbitrageData extends ArbitrageOpportunity {}
+
+function LineMovementSection({ opportunities }: { opportunities: ArbitrageData[] }) {
+  const [selectedEventId, setSelectedEventId] = useState<string | undefined>(
+    opportunities.length > 0 ? opportunities[0].id : undefined
+  );
+  
+  const { data: historyData, isLoading } = useOddsHistory(selectedEventId);
+
+  if (opportunities.length === 0) {
+    return (
+      <div className="h-64 flex items-center justify-center text-gray-500">
+        No active opportunities to track
+      </div>
+    );
+  }
+
+  const selectedOpp = opportunities.find(o => o.id === selectedEventId) || opportunities[0];
+
+  return (
+    <div>
+      <div className="flex items-center gap-4 mb-6">
+        <select 
+          value={selectedEventId}
+          onChange={(e) => setSelectedEventId(e.target.value)}
+          className="bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500"
+        >
+          {opportunities.map(o => (
+            <option key={o.id} value={o.id}>{o.event}</option>
+          ))}
+        </select>
+        <span className="text-sm text-gray-400">{selectedOpp.market}</span>
+      </div>
+
+      {isLoading ? (
+        <div className="h-64 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+        </div>
+      ) : (
+        <LineMovementChart 
+          movements={historyData?.history[0]?.movements || []} 
+          title={`Odds Movement: ${selectedOpp.event}`}
+        />
+      )}
+    </div>
+  );
 }
 
-interface ArbitrageData {
-  id: string;
-  sport: string;
-  event: string;
-  league: string;
-  market: string;
-  profit: number;
-  confidence: number;
-  timeLeft: string;
-  legs: Leg[];
-  isWinningTip?: boolean;
-  creditCost?: number;
-}
+function AiInsightsSection() {
+  const { data: tipsData, isLoading } = useQuery({
+    queryKey: ['ai-tips'],
+    queryFn: async () => {
+      const response = await api.get<{ tips: any[] }>('/v1/ai/tips');
+      return response.data;
+    },
+  });
 
-// ... calculateArbitrageProfit and calculateStakes ...
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
+
+  const tips = tipsData?.tips || [];
+
+  if (tips.length === 0) {
+    return (
+      <div className="text-gray-500 text-center py-8">
+        No AI insights available for current opportunities
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {tips.slice(0, 3).map((tip) => (
+        <div key={tip.id} className="flex items-start space-x-3 p-3 bg-gray-700/30 rounded-lg border-l-4 border-l-green-500">
+          <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <p className="text-white text-sm">{tip.insight}</p>
+            <div className="flex items-center justify-between mt-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 capitalize">{tip.type.replace('_', ' ')}</span>
+                <span className="text-gray-600">•</span>
+                <span className="text-xs text-green-400">{tip.confidence}% confidence</span>
+              </div>
+              <span className="text-xs text-gray-500">{new Date(tip.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function ArbitragePage() {
   const isPremium = useIsPremium();
@@ -434,7 +518,7 @@ export function ArbitragePage() {
                   </div>
                 ) : (
                   filteredHighConfidenceArbs.map((arb) => {
-                    const isUnlocked = arbitrageData?.opportunities?.find(o => o.id === arb.id)?.legs?.length > 0;
+                    const isUnlocked = !!arb.isUnlocked;
                     return (
                       <ArbitrageDetailCard
                         key={arb.id}
@@ -478,9 +562,7 @@ export function ArbitragePage() {
 
           {isPremium ? (
             <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-              <div className="h-64 flex items-center justify-center text-gray-400">
-                Line movement chart visualization would appear here
-              </div>
+              <LineMovementSection opportunities={opportunities} />
             </div>
           ) : (
             <PremiumGate feature="Line movement charts" showBlur={false}>
@@ -502,19 +584,7 @@ export function ArbitragePage() {
 
           {isPremium ? (
             <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                    <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-white">High confidence in Real Madrid vs Barcelona arb due to significant odds discrepancy across bookmakers</p>
-                    <p className="text-sm text-gray-400 mt-1">Updated 5 mins ago</p>
-                  </div>
-                </div>
-              </div>
+              <AiInsightsSection />
             </div>
           ) : (
             <PremiumGate feature="AI-powered betting insights" showBlur={false}>
