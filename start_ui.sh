@@ -1,11 +1,11 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-# AutoCoder UI Launcher for Unix/Linux/macOS
+# SportsAI UI Launcher for Unix/Linux/macOS
 # This script launches the web UI for the autonomous coding agent.
 
 echo ""
 echo "===================================="
-echo "  AutoCoder UI"
+echo "  SportsAI UI"
 echo "===================================="
 echo ""
 
@@ -30,17 +30,25 @@ else
 fi
 echo ""
 
-# Check if Python is available
-if ! command -v python3 &> /dev/null; then
-    if ! command -v python &> /dev/null; then
-        echo "ERROR: Python not found"
-        echo "Please install Python from https://python.org"
-        exit 1
-    fi
+# Check if Python 3.10+ is available (required for claude-agent-sdk)
+if command -v /opt/homebrew/bin/python3.11 &> /dev/null; then
+    PYTHON_CMD="/opt/homebrew/bin/python3.11"
+elif command -v python3.11 &> /dev/null; then
+    PYTHON_CMD="python3.11"
+elif command -v python3.12 &> /dev/null; then
+    PYTHON_CMD="python3.12"
+elif command -v python3.10 &> /dev/null; then
+    PYTHON_CMD="python3.10"
+elif command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+elif command -v python &> /dev/null; then
     PYTHON_CMD="python"
 else
-    PYTHON_CMD="python3"
+    echo "ERROR: Python not found"
+    echo "Please install Python 3.10+ from https://python.org"
+    exit 1
 fi
+echo "[OK] Using Python: $PYTHON_CMD"
 
 # Check if venv exists with correct structure for this platform
 # Windows venvs have Scripts/, Linux/macOS have bin/

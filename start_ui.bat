@@ -1,11 +1,11 @@
 @echo off
 cd /d "%~dp0"
-REM AutoCoder UI Launcher for Windows
+REM SportsAI UI Launcher for Windows
 REM This script launches the web UI for the autonomous coding agent.
 
 echo.
 echo ====================================
-echo   AutoCoder UI
+echo   SportsAI UI
 echo ====================================
 echo.
 

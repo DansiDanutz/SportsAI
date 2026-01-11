@@ -157,7 +157,7 @@ function App() {
           <div className="flex items-center justify-between">
             {/* Logo and Title */}
             <h1 className="font-display text-2xl font-bold tracking-tight uppercase">
-              AutoCoder
+              SportsAI
             </h1>
 
             {/* Controls */}
@@ -199,7 +199,7 @@ function App() {
         {!selectedProject ? (
           <div className="neo-empty-state mt-12">
             <h2 className="font-display text-2xl font-bold mb-2">
-              Welcome to AutoCoder
+              Welcome to SportsAI
             </h2>
             <p className="text-[var(--color-neo-text-secondary)] mb-4">
               Select a project from the dropdown above or create a new one to get started.

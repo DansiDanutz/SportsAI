@@ -36,6 +36,24 @@ fi
 
 echo ""
 
+# Check if Python 3.10+ is available (required for claude-agent-sdk)
+if command -v /opt/homebrew/bin/python3.11 &> /dev/null; then
+    PYTHON_CMD="/opt/homebrew/bin/python3.11"
+elif command -v python3.11 &> /dev/null; then
+    PYTHON_CMD="python3.11"
+elif command -v python3.12 &> /dev/null; then
+    PYTHON_CMD="python3.12"
+elif command -v python3.10 &> /dev/null; then
+    PYTHON_CMD="python3.10"
+elif command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+else
+    echo "ERROR: Python not found"
+    echo "Please install Python 3.10+ from https://python.org"
+    exit 1
+fi
+echo "[OK] Using Python: $PYTHON_CMD"
+
 # Check if venv exists with correct structure for this platform
 # Windows venvs have Scripts/, Linux/macOS have bin/
 if [ ! -f "venv/bin/activate" ]; then
@@ -52,7 +70,7 @@ if [ ! -f "venv/bin/activate" ]; then
     else
         echo "Creating virtual environment..."
     fi
-    python3 -m venv venv
+    $PYTHON_CMD -m venv venv
     if [ $? -ne 0 ]; then
         echo "[ERROR] Failed to create virtual environment"
         echo "Please ensure the venv module is installed:"

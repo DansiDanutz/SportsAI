@@ -200,7 +200,7 @@ def main() -> None:
     dev_mode = "--dev" in sys.argv
 
     print("=" * 50)
-    print("  AutoCoder UI Setup")
+    print("  SportsAI UI Setup")
     print("=" * 50)
 
     total_steps = 6 if not dev_mode else 5
