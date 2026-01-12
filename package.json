@@ -3,9 +3,8 @@
   "version": "5.0.0",
   "private": true,
   "scripts": {
-    "build": "npm run build:ui",
-    "build:ui": "cd ui && NPM_CONFIG_PRODUCTION=false npm ci && npm run build",
-    "vercel-build": "cd ui && NPM_CONFIG_PRODUCTION=false npm ci && npm run vercel-build"
+    "build": "cd Sports_Ai/frontend && npm run build && cd ../.. && rm -rf dist && cp -R Sports_Ai/frontend/dist dist",
+    "vercel-build": "cd Sports_Ai/frontend && npm run build && cd ../.. && rm -rf dist && cp -R Sports_Ai/frontend/dist dist"
   },
   "_comment": "Trigger redeploy with TypeScript fix",
   "dependencies": {
