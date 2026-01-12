@@ -9039,4 +9039,4 @@ APKPure listing screenshots for Superbet app (e.g.,
 https://apkpure.com/superbet-sportska-kladionica/rs.superbet.sport)
 Apple App Store listing for Superbet Sports Betting (https://apps.apple.com/ro/app/superbet-sportsbetting/id1314878525)
 
-
+# Heartbeat
