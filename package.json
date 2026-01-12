@@ -1,16 +1,12 @@
 {
   "name": "sports-ai",
-  "version": "1.0.0",
+  "version": "5.0.0",
   "private": true,
-  "workspaces": [
-    "Sports_Ai/backend",
-    "ui"
-  ],
   "scripts": {
     "postinstall": "cd Sports_Ai/backend && npx prisma generate",
-    "install:all": "npm install",
-    "build:ui": "npm run build --workspace=ui",
-    "build:backend": "npm run build --workspace=sportsai-backend"
+    "build": "npm run build:ui",
+    "build:ui": "cd ui && npm install && npm run build",
+    "vercel-build": "npm run build:ui"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -33,10 +29,21 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.0",
     "uuid": "^13.0.0",
-    "zod": "^3.22.0"
+    "zod": "^3.22.0",
+    "otplib": "^13.0.2",
+    "qrcode": "^1.5.4",
+    "passport-jwt": "^4.0.0",
+    "tsx": "^4.21.0",
+    "kafkajs": "^2.2.0",
+    "ioredis": "^5.3.0",
+    "axios": "^1.6.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/bcryptjs": "^2.4.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/uuid": "^10.0.0",
+    "@types/passport-jwt": "^4.0.1",
     "typescript": "^5.0.0",
     "prisma": "^6.19.1"
   }

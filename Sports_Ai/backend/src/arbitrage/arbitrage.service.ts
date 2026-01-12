@@ -30,7 +30,7 @@ export class ArbitrageService {
       },
     });
 
-    if (!arb) return null;
+    if (!arb || !arb.event.home || !arb.event.away) return null;
 
     const prompt = `Explain why this sports arbitrage opportunity exists and what the risk factor is:
     Event: ${arb.event.home.name} vs ${arb.event.away.name}
@@ -38,7 +38,7 @@ export class ArbitrageService {
     League: ${arb.event.league.name}
     Profit Margin: ${arb.profitMargin}%
     Confidence: ${arb.confidenceScore * 100}%
-    
+
     Provide a professional 2-sentence explanation.`;
 
     const advice = await this.openRouter.generateAdvice(
