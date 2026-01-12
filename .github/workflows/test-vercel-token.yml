@@ -2,9 +2,6 @@ name: Test Vercel Token
 
 on:
   workflow_dispatch: # Manual trigger only
-  push:
-    branches:
-      - main
 
 jobs:
   test-token:
