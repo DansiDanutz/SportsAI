@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useScrollRestoration } from './hooks/useScrollRestoration';
@@ -26,7 +26,8 @@ import { SetupPage } from './screens/setup';
 import { DailyAiPage } from './screens/daily-ai';
 
 function App() {
-  const { checkAuth, isAuthenticated } = useAuthStore();
+  const { checkAuth, isAuthenticated, user } = useAuthStore();
+  const location = useLocation();
 
   // Enable scroll position restoration for back/forward navigation
   useScrollRestoration();
@@ -34,6 +35,14 @@ function App() {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // Force setup if onboarding is not completed
+  const needsSetup = isAuthenticated && user && !user.hasCompletedOnboarding;
+  const isAtSetup = location.pathname === '/setup';
+
+  if (needsSetup && !isAtSetup) {
+    return <Navigate to="/setup" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-900">
