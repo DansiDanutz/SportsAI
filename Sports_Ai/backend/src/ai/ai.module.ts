@@ -4,13 +4,29 @@ import { UsersModule } from '../users/users.module';
 import { OpenRouterService } from './openrouter.service';
 import { DailyTipsService } from './daily-tips.service';
 import { SharpMoneyService } from './sharp-money.service';
+import { StrangeBetsService } from './strange-bets.service';
+import { TicketGeneratorService } from './ticket-generator.service';
 import { LanguageService } from './language.service';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [UsersModule, PrismaModule],
   controllers: [AiController],
-  providers: [OpenRouterService, DailyTipsService, SharpMoneyService, LanguageService],
-  exports: [OpenRouterService, DailyTipsService, SharpMoneyService, LanguageService],
+  providers: [
+    OpenRouterService,
+    DailyTipsService,
+    SharpMoneyService,
+    StrangeBetsService,
+    TicketGeneratorService,
+    LanguageService,
+  ],
+  exports: [
+    OpenRouterService,
+    DailyTipsService,
+    SharpMoneyService,
+    StrangeBetsService,
+    TicketGeneratorService,
+    LanguageService,
+  ],
 })
 export class AiModule {}

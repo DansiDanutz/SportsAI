@@ -4,6 +4,8 @@ import { UsersService } from '../users/users.service';
 import { OpenRouterService } from './openrouter.service';
 import { DailyTipsService } from './daily-tips.service';
 import { SharpMoneyService } from './sharp-money.service';
+import { StrangeBetsService } from './strange-bets.service';
+import { TicketGeneratorService } from './ticket-generator.service';
 import { LanguageService, SUPPORTED_LANGUAGES } from './language.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -29,9 +31,22 @@ export class AiController {
     private openRouterService: OpenRouterService,
     private dailyTipsService: DailyTipsService,
     private sharpMoneyService: SharpMoneyService,
+    private strangeBetsService: StrangeBetsService,
+    private ticketGeneratorService: TicketGeneratorService,
     private languageService: LanguageService,
     private prisma: PrismaService,
   ) {}
+
+  @Get('strange-bets')
+  async getStrangeBets() {
+    return this.strangeBetsService.detectStrangeBets();
+  }
+
+  @Get('tickets/daily')
+  async getDailyTickets(@Query('type') type: string) {
+    const target = type === '3x' ? 3 : 2;
+    return this.ticketGeneratorService.generateDailyTicket(target as 2 | 3);
+  }
 
   /**
    * Helper to get user's preferred language
