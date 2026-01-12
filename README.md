@@ -325,3 +325,4 @@ The agent tried to run a command not in the allowlist. This is the security syst
 
 This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE.md](LICENSE.md) file for details.
 Copyright (C) 2026 Leon van Zyl (https://leonvanzyl.com)
+# Build Trigger v4
