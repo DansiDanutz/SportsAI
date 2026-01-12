@@ -3,6 +3,12 @@
   "public": true,
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "ui/dist",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "master": true
+    }
+  },
   "routes": [
     {
       "handle": "filesystem"
