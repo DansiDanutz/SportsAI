@@ -5,7 +5,7 @@
   "scripts": {
     "build": "npm run build:ui",
     "build:ui": "cd ui && NPM_CONFIG_PRODUCTION=false npm ci && npm run build",
-    "vercel-build": "npm run build:ui"
+    "vercel-build": "cd ui && NPM_CONFIG_PRODUCTION=false npm ci && npm run vercel-build"
   },
   "_comment": "Trigger redeploy with TypeScript fix",
   "dependencies": {
