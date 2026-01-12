@@ -11,26 +11,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if VERCEL_TOKEN is set
-        run: |
-          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
-            echo "❌ VERCEL_TOKEN secret is NOT set in GitHub"
-            echo "Please add it at: https://github.com/DansiDanutz/SportsAI/settings/secrets/actions"
-            exit 1
-          else
-            echo "✅ VERCEL_TOKEN secret is set"
-            echo "Token length: ${#VERCEL_TOKEN}"
-          fi
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "${VERCEL_TOKEN}" ]; then
+            echo "VERCEL_TOKEN secret is NOT set in GitHub"
+            echo "Please add it at: https://github.com/${{ github.repository }}/settings/secrets/actions"
+            exit 1
+          else
+            echo "VERCEL_TOKEN secret is set"
+            echo "Token length: ${#VERCEL_TOKEN}"
+          fi
 
       - name: Verify Vercel CLI can authenticate
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           npm install --global vercel@latest
-          if vercel whoami --token="${{ secrets.VERCEL_TOKEN }}" 2>&1 | grep -q "error\|Error\|unauthorized"; then
-            echo "❌ VERCEL_TOKEN is invalid or expired"
+          if vercel whoami --token="${VERCEL_TOKEN}" 2>&1 | grep -q "error\|Error\|unauthorized"; then
+            echo "VERCEL_TOKEN is invalid or expired"
             echo "Get a new token from: https://vercel.com/account/tokens"
             exit 1
           else
-            echo "✅ VERCEL_TOKEN is valid"
-            vercel whoami --token="${{ secrets.VERCEL_TOKEN }}"
+            echo "VERCEL_TOKEN is valid"
+            vercel whoami --token="${VERCEL_TOKEN}"
           fi
