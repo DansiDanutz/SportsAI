@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "name": "sportsai",
+  "builds": [
+    {
+      "src": "Sports_Ai/backend/api/index.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "ui/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "Sports_Ai/backend/api/index.ts"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "ui/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
