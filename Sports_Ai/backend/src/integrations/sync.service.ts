@@ -37,8 +37,8 @@ export class SyncService implements OnModuleInit {
         if (oddsData) {
           await this.processOddsData(oddsData);
         }
-      } catch (error) {
-        this.logger.error(`Failed to sync odds for ${sportKey}: ${error.message}`);
+      } catch (error: any) {
+        this.logger.error(`Failed to sync odds for ${sportKey}: ${error?.message || String(error)}`);
       }
     }
   }
@@ -55,8 +55,8 @@ export class SyncService implements OnModuleInit {
         // Process live fixtures and update Event status in DB
         this.logger.log(`Received ${liveFixtures.length} live fixtures`);
       }
-    } catch (error) {
-      this.logger.error(`Failed to sync live scores: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to sync live scores: ${error?.message || String(error)}`);
     }
   }
 
@@ -111,8 +111,8 @@ export class SyncService implements OnModuleInit {
 
         // 4. Trigger Arbitrage Detection
         // This would call arbitrageService.detect() with the fresh data
-      } catch (error) {
-        this.logger.error(`Error processing event ${entry.id}: ${error.message}`);
+      } catch (error: any) {
+        this.logger.error(`Error processing event ${entry.id}: ${error?.message || String(error)}`);
       }
     }
   }

@@ -161,7 +161,7 @@ export class LanguageService {
         regionName?: string;
       }
 
-      const data: IpApiResponse = await response.json();
+      const data = await response.json() as IpApiResponse;
 
       if (data.status === 'fail') {
         this.logger.warn(`IP geolocation failed: ${data.message}`);

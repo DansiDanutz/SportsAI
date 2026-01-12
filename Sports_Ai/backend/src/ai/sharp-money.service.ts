@@ -12,7 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
  * - Reverse line movement (odds moving opposite to ticket count)
  */
 
-interface SharpMoneyAlert {
+export interface SharpMoneyAlert {
   id: string;
   eventId: string;
   homeTeam: string;

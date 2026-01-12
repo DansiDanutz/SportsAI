@@ -24,8 +24,8 @@ export class MappingService {
     try {
       this.logger.log(`Fetching odds for ${sportKey} from primary provider (The Odds API)`);
       return await this.theOddsApi.getOdds(sportKey);
-    } catch (error) {
-      this.logger.warn(`Primary odds provider failed, no free fallbacks implemented for raw odds yet. Error: ${error.message}`);
+    } catch (error: any) {
+      this.logger.warn(`Primary odds provider failed, no free fallbacks implemented for raw odds yet. Error: ${error?.message || String(error)}`);
       // In a real scenario, we might have another odds provider here
       return null;
     }
@@ -38,8 +38,8 @@ export class MappingService {
     try {
       this.logger.log(`Fetching fixtures for ${sport} from primary provider (API-Sports)`);
       return await this.apiSports.getFixtures(sport as any, params);
-    } catch (error) {
-      this.logger.warn(`Primary fixture provider failed, trying Sportmonks fallback for football...`);
+    } catch (error: any) {
+      this.logger.warn(`Primary fixture provider failed, trying Sportmonks fallback for football... Error: ${error?.message || String(error)}`);
       if (sport === 'football' || sport === 'soccer') {
         return await this.sportmonks.getFootballFixtures(params);
       }
@@ -53,8 +53,8 @@ export class MappingService {
   async enrichTeamDetails(teamName: string) {
     try {
       return await this.theSportsDb.searchTeams(teamName);
-    } catch (error) {
-      this.logger.error(`Failed to enrich team details for ${teamName}: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to enrich team details for ${teamName}: ${error?.message || String(error)}`);
       return null;
     }
   }
@@ -63,25 +63,13 @@ export class MappingService {
    * Resolves a provider-specific event ID to a canonical event ID.
    */
   async resolveEvent(provider: string, providerEventId: string): Promise<string | null> {
-    // Check if mapping exists in ProviderEventMap
-    const mapping = await this.prisma.providerEventMap.findUnique({
-      where: {
-        provider_providerEventId: {
-          provider,
-          providerEventId,
-        },
-      },
-    });
-    
-    if (mapping) return mapping.eventId;
-
-    // Fallback: search in Event model externalIds JSON
+    // Search in Event model externalIds JSON
     const event = await this.prisma.event.findFirst({
       where: {
         externalIds: {
           path: [provider],
           equals: providerEventId,
-        },
+        } as any,
       },
     });
     return event?.id || null;

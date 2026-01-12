@@ -25,8 +25,8 @@ export class TheSportsDbService implements OnModuleInit {
         params: { t: teamName },
       });
       return response.data.teams;
-    } catch (error) {
-      this.logger.error(`Failed to search teams: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to search teams: ${error?.message || String(error)}`);
       throw error;
     }
   }
@@ -37,8 +37,8 @@ export class TheSportsDbService implements OnModuleInit {
         params: { s: leagueName },
       });
       return response.data.countrys;
-    } catch (error) {
-      this.logger.error(`Failed to get league details: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to get league details: ${error?.message || String(error)}`);
       throw error;
     }
   }
@@ -49,8 +49,8 @@ export class TheSportsDbService implements OnModuleInit {
         params: { id: teamId },
       });
       return response.data.player;
-    } catch (error) {
-      this.logger.error(`Failed to get team players: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to get team players: ${error?.message || String(error)}`);
       throw error;
     }
   }

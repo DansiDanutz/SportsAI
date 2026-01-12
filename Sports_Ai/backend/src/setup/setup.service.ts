@@ -20,7 +20,7 @@ interface UpdateConfigDto {
   isActive?: boolean;
 }
 
-interface AiMatchInsight {
+export interface AiMatchInsight {
   eventId: string;
   homeTeam: string;
   awayTeam: string;

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 // Types for Apify API responses
-interface ApifyOddsResult {
+export interface ApifyOddsResult {
   team1: string;
   team2: string;
   gameTime: string;
@@ -28,7 +28,7 @@ interface ApifyOddsResult {
   timestamp: string;
 }
 
-interface ApifySofaScoreMatch {
+export interface ApifySofaScoreMatch {
   id: string;
   homeTeam: string;
   awayTeam: string;
@@ -41,7 +41,7 @@ interface ApifySofaScoreMatch {
   statistics?: Record<string, unknown>;
 }
 
-interface ApifyPrediction {
+export interface ApifyPrediction {
   event: string;
   prediction: string;
   confidence: number;
@@ -50,7 +50,7 @@ interface ApifyPrediction {
   timestamp: string;
 }
 
-interface ApifyRunStatus {
+export interface ApifyRunStatus {
   actorRunId: string;
   status: 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'ABORTED';
   startedAt: string;

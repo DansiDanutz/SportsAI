@@ -42,8 +42,8 @@ export class ApiSportsService implements OnModuleInit {
     try {
       const response = await this.client.get('/leagues');
       return response.data.response;
-    } catch (error) {
-      this.logger.error(`Failed to fetch leagues for ${sport}: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch leagues for ${sport}: ${error?.message || String(error)}`);
       throw error;
     }
   }
@@ -53,8 +53,8 @@ export class ApiSportsService implements OnModuleInit {
     try {
       const response = await this.client.get('/fixtures', { params });
       return response.data.response;
-    } catch (error) {
-      this.logger.error(`Failed to fetch fixtures for ${sport}: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch fixtures for ${sport}: ${error?.message || String(error)}`);
       throw error;
     }
   }
@@ -66,8 +66,8 @@ export class ApiSportsService implements OnModuleInit {
         params: { league, season },
       });
       return response.data.response;
-    } catch (error) {
-      this.logger.error(`Failed to fetch standings for ${sport}: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch standings for ${sport}: ${error?.message || String(error)}`);
       throw error;
     }
   }

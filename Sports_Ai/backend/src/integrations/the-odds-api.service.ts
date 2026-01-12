@@ -29,8 +29,8 @@ export class TheOddsApiService implements OnModuleInit {
     try {
       const response = await this.client.get('');
       return response.data;
-    } catch (error) {
-      this.logger.error(`Failed to fetch sports: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch sports: ${error?.message || String(error)}`);
       throw error;
     }
   }
@@ -51,8 +51,8 @@ export class TheOddsApiService implements OnModuleInit {
         },
       });
       return response.data;
-    } catch (error) {
-      this.logger.error(`Failed to fetch odds for ${sportKey}: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch odds for ${sportKey}: ${error?.message || String(error)}`);
       throw error;
     }
   }
@@ -68,8 +68,8 @@ export class TheOddsApiService implements OnModuleInit {
         },
       });
       return response.data;
-    } catch (error) {
-      this.logger.error(`Failed to fetch scores for ${sportKey}: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch scores for ${sportKey}: ${error?.message || String(error)}`);
       throw error;
     }
   }

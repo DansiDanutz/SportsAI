@@ -24,7 +24,7 @@ export class TicketGeneratorService {
       take: 20,
     });
 
-    const ticket = [];
+    const ticket: Array<{ eventId: string; match: string; pick: string; odds: number }> = [];
     let currentTotalOdds = 1.0;
 
     for (const pick of picks) {
@@ -35,7 +35,7 @@ export class TicketGeneratorService {
 
       ticket.push({
         eventId: pick.eventId,
-        match: `${pick.event.home.name} vs ${pick.event.away.name}`,
+        match: `${pick.event.home?.name || 'Home'} vs ${pick.event.away?.name || 'Away'}`,
         pick: pick.outcomeKey,
         odds: pick.odds,
       });

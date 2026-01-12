@@ -26,8 +26,8 @@ export class SportmonksService implements OnModuleInit {
     try {
       const response = await this.client.get('/core/leagues');
       return response.data.data;
-    } catch (error) {
-      this.logger.error(`Failed to fetch football leagues: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch football leagues: ${error?.message || String(error)}`);
       throw error;
     }
   }
@@ -36,8 +36,8 @@ export class SportmonksService implements OnModuleInit {
     try {
       const response = await this.client.get('/football/fixtures', { params });
       return response.data.data;
-    } catch (error) {
-      this.logger.error(`Failed to fetch football fixtures: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch football fixtures: ${error?.message || String(error)}`);
       throw error;
     }
   }
@@ -46,8 +46,8 @@ export class SportmonksService implements OnModuleInit {
     try {
       const response = await this.client.get('/cricket/leagues');
       return response.data.data;
-    } catch (error) {
-      this.logger.error(`Failed to fetch cricket leagues: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch cricket leagues: ${error?.message || String(error)}`);
       throw error;
     }
   }

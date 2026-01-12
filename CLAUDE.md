@@ -59,12 +59,14 @@ python autonomous_agent_demo.py --project-dir my-app --yolo
 ```
 
 **What's different in YOLO mode:**
+
 - No regression testing (skips `feature_get_for_regression`)
 - No Playwright MCP server (browser automation disabled)
 - Features marked passing after lint/type-check succeeds
 - Faster iteration for prototyping
 
 **What's the same:**
+
 - Lint and type-check still run to verify code compiles
 - Feature MCP server for tracking progress
 - All other development tools available
@@ -99,9 +101,11 @@ npm run lint     # Run ESLint
 ### Project Registry
 
 Projects can be stored in any directory. The registry maps project names to paths using SQLite:
+
 - **All platforms**: `~/.autocoder/registry.db`
 
 The registry uses:
+
 - SQLite database with SQLAlchemy ORM
 - POSIX path format (forward slashes) for cross-platform compatibility
 - SQLite's built-in transaction handling for concurrency safety
@@ -124,6 +128,7 @@ Features are stored in SQLite (`features.db`) via SQLAlchemy. The agent interact
 - `api/database.py` - SQLAlchemy models (Feature table with priority, category, name, description, steps, passes)
 
 MCP tools available to the agent:
+
 - `feature_get_stats` - Progress statistics
 - `feature_get_next` - Get highest-priority pending feature
 - `feature_get_for_regression` - Random passing features for regression testing
@@ -145,6 +150,7 @@ MCP tools available to the agent:
 ### Project Structure for Generated Apps
 
 Projects can be stored in any directory (registered in `~/.autocoder/registry.db`). Each project contains:
+
 - `prompts/app_spec.txt` - Application specification (XML format)
 - `prompts/initializer_prompt.md` - First session prompt
 - `prompts/coding_prompt.md` - Continuation session prompt
@@ -154,6 +160,7 @@ Projects can be stored in any directory (registered in `~/.autocoder/registry.db
 ### Security Model
 
 Defense-in-depth approach configured in `client.py`:
+
 1. OS-level sandbox for bash commands
 2. Filesystem restricted to project directory only
 3. Bash commands validated against `ALLOWED_COMMANDS` in `security.py`
@@ -181,6 +188,7 @@ Defense-in-depth approach configured in `client.py`:
 ### Real-time UI Updates
 
 The UI receives updates via WebSocket (`/ws/projects/{project_name}`):
+
 - `progress` - Test pass counts
 - `agent_status` - Running/paused/stopped/crashed
 - `log` - Agent output lines (streamed from subprocess stdout)
@@ -189,6 +197,7 @@ The UI receives updates via WebSocket (`/ws/projects/{project_name}`):
 ### Design System
 
 The UI uses a **neobrutalism** design with Tailwind CSS v4:
+
 - CSS variables defined in `ui/src/styles/globals.css` via `@theme` directive
 - Custom animations: `animate-slide-in`, `animate-pulse-neo`, `animate-shimmer`
 - Color tokens: `--color-neo-pending` (yellow), `--color-neo-progress` (cyan), `--color-neo-done` (green)
