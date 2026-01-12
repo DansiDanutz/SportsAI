@@ -6,7 +6,10 @@
       "src": "Sports_Ai/backend/api/index.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["Sports_Ai/backend/prisma/schema.prisma"]
+        "includeFiles": [
+          "Sports_Ai/backend/prisma/schema.prisma",
+          "Sports_Ai/backend/node_modules/.prisma/client/*"
+        ]
       }
     },
     {
@@ -20,11 +23,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "Sports_Ai/backend/api/index.ts"
+      "destination": "/Sports_Ai/backend/api/index.ts"
     },
     {
       "source": "/(.*)",
-      "destination": "ui/$1"
+      "destination": "/ui/$1"
     }
   ]
 }
