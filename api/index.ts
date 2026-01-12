@@ -15,7 +15,6 @@
 // Keep typings intentionally loose so Vercel can compile this function
 // even if it doesn't load Node/DOM typings during its function build step.
 declare const Buffer: any
-declare const process: any
 
 type VercelRequest = any
 type VercelResponse = any
@@ -53,56 +52,87 @@ function stripHopByHopHeaders(headers: Record<string, any>) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const method = (req.method || 'GET').toUpperCase()
-  const url = normalizeUrl(req.url)
+  try {
+    const g: any = globalThis as any
+    const method = (req.method || 'GET').toUpperCase()
+    const url = normalizeUrl(req.url)
 
-  // Health (works for both "/api/health" and "/health" depending on rewrites)
-  if (method === 'GET' && (url === '/api/health' || url === '/health')) {
-    res.setHeader('content-type', 'application/json; charset=utf-8')
-    res.statusCode = 200
-    res.end(JSON.stringify({ status: 'ok' }))
-    return
+    // Health (works for both "/api/health" and "/health" depending on rewrites)
+    if (method === 'GET' && (url === '/api/health' || url === '/health')) {
+      res.setHeader('content-type', 'application/json; charset=utf-8')
+      res.statusCode = 200
+      res.end(JSON.stringify({ status: 'ok' }))
+      return
+    }
+
+    // Access env safely even if `process` isn't defined in the runtime
+    const proxyBase = g.process?.env?.API_PROXY_BASE_URL
+    if (!proxyBase) {
+      res.setHeader('content-type', 'application/json; charset=utf-8')
+      res.statusCode = 501
+      res.end(
+        JSON.stringify({
+          error: 'API not configured',
+          message:
+            'Set API_PROXY_BASE_URL in Vercel Environment Variables to proxy /api/* to a backend.',
+        })
+      )
+      return
+    }
+
+    // Proxy request to external backend
+    const base = String(proxyBase).replace(/\/+$/, '')
+    const upstreamUrl = `${base}${url}`
+
+    // If Vercel rewrite sends /api/* here, keep it as-is. (Most backends expect /api prefix.)
+    const headers: Record<string, any> = { ...(req.headers || {}) }
+    stripHopByHopHeaders(headers)
+
+    const bodyBuffer =
+      method === 'GET' || method === 'HEAD' ? undefined : await readBody(req)
+
+    const upstreamRes = await fetch(upstreamUrl, {
+      method,
+      headers,
+      body: bodyBuffer ? bodyBuffer.toString() : undefined,
+      redirect: 'manual',
+    })
+
+    res.statusCode = upstreamRes.status
+    upstreamRes.headers.forEach((value, key) => {
+      // Avoid sending a mismatched content-length if runtime changes encoding
+      if (key.toLowerCase() === 'content-length') return
+      res.setHeader(key, value)
+    })
+
+    const buf = g.Buffer?.from ? g.Buffer.from(await upstreamRes.arrayBuffer()) : null
+    if (buf) {
+      res.end(buf)
+      return
+    }
+
+    // Fallback for runtimes without Buffer
+    const text = await upstreamRes.text()
+    res.end(text)
+  } catch (err: any) {
+    try {
+      res.setHeader('content-type', 'application/json; charset=utf-8')
+      res.statusCode = 500
+      res.end(
+        JSON.stringify({
+          error: 'function_error',
+          message: err?.message || String(err),
+        })
+      )
+    } catch {
+      // If headers are already sent or response is unusable, just end.
+      try {
+        res.end()
+      } catch {}
+    }
   }
+}
 
-  const proxyBase = process?.env?.API_PROXY_BASE_URL
-  if (!proxyBase) {
-    res.setHeader('content-type', 'application/json; charset=utf-8')
-    res.statusCode = 501
-    res.end(
-      JSON.stringify({
-        error: 'API not configured',
-        message:
-          'Set API_PROXY_BASE_URL in Vercel Environment Variables to proxy /api/* to a backend.',
-      })
-    )
-    return
-  }
-
-  // Proxy request to external backend
-  const base = String(proxyBase).replace(/\/+$/, '')
-  const upstreamUrl = `${base}${url}`
-
-  // If Vercel rewrite sends /api/* here, keep it as-is. (Most backends expect /api prefix.)
-  const headers: Record<string, any> = { ...(req.headers || {}) }
-  stripHopByHopHeaders(headers)
-
-  const bodyBuffer =
-    method === 'GET' || method === 'HEAD' ? undefined : await readBody(req)
-
-  const upstreamRes = await fetch(upstreamUrl, {
-    method,
-    headers,
-    body: bodyBuffer ? bodyBuffer.toString() : undefined,
-    redirect: 'manual',
-  })
-
-  res.statusCode = upstreamRes.status
-  upstreamRes.headers.forEach((value, key) => {
-    // Avoid sending a mismatched content-length if runtime changes encoding
-    if (key.toLowerCase() === 'content-length') return
-    res.setHeader(key, value)
-  })
-
-  const buf = Buffer.from(await upstreamRes.arrayBuffer())
-  res.end(buf)
+export const config = {
+  runtime: 'nodejs',
 }
