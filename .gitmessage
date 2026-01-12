@@ -1,0 +1,2 @@
+# Auto-commit pattern for Render deployments
+# Always commit after fixes/repairs to trigger auto-deploy
