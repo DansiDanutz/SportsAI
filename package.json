@@ -3,7 +3,7 @@
   "version": "5.0.0",
   "private": true,
   "scripts": {
-    "build": "cd Sports_Ai/frontend && node ./node_modules/vite/bin/vite.js build && cd ../.. && node scripts/copy-frontend-dist.mjs",
+    "build": "cd Sports_Ai/frontend && npm exec -- vite build && cd ../.. && node scripts/copy-frontend-dist.mjs",
     "vercel-build": "npm run build"
   },
   "_comment": "Trigger redeploy with TypeScript fix",
