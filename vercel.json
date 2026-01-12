@@ -1,38 +1,14 @@
 {
   "version": 2,
   "name": "sportsai",
-  "builds": [
+  "rewrites": [
     {
-      "src": "Sports_Ai/backend/api/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "Sports_Ai/backend/prisma/schema.prisma",
-          "Sports_Ai/backend/node_modules/.prisma/client/*"
-        ]
-      }
+      "source": "/api/(.*)",
+      "destination": "/api/index.ts"
     },
     {
-      "src": "ui/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "Sports_Ai/backend/api/index.ts"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "ui/$1",
-      "check": true
-    },
-    {
-      "src": "/(.*)",
-      "dest": "ui/index.html"
+      "source": "/(.*)",
+      "destination": "/ui/$1"
     }
   ]
 }
