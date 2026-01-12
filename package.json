@@ -1,0 +1,43 @@
+{
+  "name": "sports-ai",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "Sports_Ai/backend",
+    "ui"
+  ],
+  "scripts": {
+    "postinstall": "cd Sports_Ai/backend && npx prisma generate",
+    "install:all": "npm install",
+    "build:ui": "npm run build --workspace=ui",
+    "build:backend": "npm run build --workspace=sportsai-backend"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/jwt": "^10.0.0",
+    "@nestjs/passport": "^10.0.0",
+    "@nestjs/platform-fastify": "^10.0.0",
+    "@nestjs/platform-socket.io": "^10.0.0",
+    "@nestjs/schedule": "^6.1.0",
+    "@nestjs/throttler": "^6.5.0",
+    "@nestjs/websockets": "^10.0.0",
+    "@prisma/client": "^6.19.1",
+    "@fastify/helmet": "^11.1.1",
+    "@fastify/multipart": "^7.7.3",
+    "@fastify/static": "^6.12.0",
+    "bcryptjs": "^2.4.3",
+    "class-transformer": "^0.5.0",
+    "class-validator": "^0.14.0",
+    "dotenv": "^17.2.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.0",
+    "uuid": "^13.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "prisma": "^6.19.1"
+  }
+}
