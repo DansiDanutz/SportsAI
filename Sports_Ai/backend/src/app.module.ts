@@ -19,6 +19,7 @@ import { AlertsModule } from './alerts/alerts.module';
 import { SetupModule } from './setup/setup.module';
 import { ApifyModule } from './apify/apify.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
     SetupModule,
     ApifyModule,
     IntegrationsModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [

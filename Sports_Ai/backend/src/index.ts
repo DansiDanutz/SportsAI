@@ -12,6 +12,7 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from '@fastify/helmet';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -95,6 +96,21 @@ async function bootstrap() {
       origin: allowedOrigins,
       credentials: true,
     });
+
+    // Swagger (API docs) - enabled in production by default
+    const swaggerDisabled = (process.env.DISABLE_SWAGGER || '').toLowerCase() === 'true';
+    if (!swaggerDisabled) {
+      const config = new DocumentBuilder()
+        .setTitle('SportsAI API')
+        .setDescription('SportsAI Platform Backend API')
+        .setVersion('5.0.0')
+        .addBearerAuth()
+        .build();
+
+      const document = SwaggerModule.createDocument(app, config);
+      SwaggerModule.setup('api/docs', app, document);
+      console.log('📚 Swagger docs enabled at /api/docs');
+    }
 
     console.log('🌐 Starting server...');
     const port = process.env.PORT || 4000;
