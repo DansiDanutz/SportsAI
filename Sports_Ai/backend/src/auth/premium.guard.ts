@@ -31,6 +31,11 @@ export class PremiumGuard implements CanActivate {
 
     const fullUser = await this.usersService.findById(user.id);
 
+    // Admins can access premium-gated features
+    if (fullUser?.role === 'admin') {
+      return true;
+    }
+
     if (!fullUser || fullUser.subscriptionTier !== 'premium') {
       throw new ForbiddenException({
         statusCode: 403,

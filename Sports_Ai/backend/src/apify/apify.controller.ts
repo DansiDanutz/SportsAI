@@ -50,7 +50,11 @@ export class ApifyController {
       count: odds.length,
       data: odds,
       fetchedAt: new Date().toISOString(),
-      source: this.apifyService.isConfigured() ? 'apify' : 'mock',
+      source: this.apifyService.isConfigured()
+        ? 'apify'
+        : this.apifyService.isMockEnabled()
+          ? 'mock'
+          : 'unconfigured',
     };
   }
 
@@ -70,7 +74,11 @@ export class ApifyController {
       count: matches.length,
       data: matches,
       fetchedAt: new Date().toISOString(),
-      source: this.apifyService.isConfigured() ? 'apify' : 'mock',
+      source: this.apifyService.isConfigured()
+        ? 'apify'
+        : this.apifyService.isMockEnabled()
+          ? 'mock'
+          : 'unconfigured',
     };
   }
 
@@ -86,7 +94,11 @@ export class ApifyController {
       count: predictions.length,
       data: predictions,
       fetchedAt: new Date().toISOString(),
-      source: this.apifyService.isConfigured() ? 'apify' : 'mock',
+      source: this.apifyService.isConfigured()
+        ? 'apify'
+        : this.apifyService.isMockEnabled()
+          ? 'mock'
+          : 'unconfigured',
     };
   }
 

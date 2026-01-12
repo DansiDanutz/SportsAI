@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException, BadGatewayException } from '@nestjs/common';
 import { LanguageService } from './language.service';
 
 interface OpenRouterMessage {
@@ -49,8 +49,14 @@ export class OpenRouterService {
   private readonly apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
   // Free model that doesn't require credits
   private readonly freeModel = 'meta-llama/llama-3.2-3b-instruct:free';
+  private readonly allowMockData: boolean;
 
-  constructor(private languageService: LanguageService) {}
+  constructor(private languageService: LanguageService) {
+    this.allowMockData = (process.env.ALLOW_MOCK_DATA || '').toLowerCase() === 'true';
+    if (this.allowMockData) {
+      this.logger.warn('ALLOW_MOCK_DATA=true: OpenRouterService may return mock content when API is unavailable.');
+    }
+  }
 
   async generateAdvice(
     configuration: {
@@ -72,8 +78,11 @@ export class OpenRouterService {
 
     // If no API key, return mock data
     if (!apiKey) {
-      this.logger.warn('OPENROUTER_API_KEY not set, returning mock advice');
-      return this.getMockAdvice(configuration, matches, languageCode);
+      if (this.allowMockData) {
+        this.logger.warn('OPENROUTER_API_KEY not set, returning mock advice');
+        return this.getMockAdvice(configuration, matches, languageCode);
+      }
+      throw new ServiceUnavailableException('OPENROUTER_API_KEY not configured');
     }
 
     const translationInstruction = this.languageService.getTranslationInstruction(languageCode);
@@ -126,7 +135,8 @@ Only return the JSON array, no other text.`;
       if (!response.ok) {
         const error = await response.text();
         this.logger.error(`OpenRouter API error: ${error}`);
-        return this.getMockAdvice(configuration, matches, languageCode);
+        if (this.allowMockData) return this.getMockAdvice(configuration, matches, languageCode);
+        throw new BadGatewayException('OpenRouter API error');
       }
 
       const data = (await response.json()) as OpenRouterResponse;
@@ -146,12 +156,16 @@ Only return the JSON array, no other text.`;
           createdAt: new Date().toISOString(),
         }));
       } catch {
-        this.logger.warn('Failed to parse AI response, returning mock advice');
-        return this.getMockAdvice(configuration, matches, languageCode);
+        if (this.allowMockData) {
+          this.logger.warn('Failed to parse AI response, returning mock advice');
+          return this.getMockAdvice(configuration, matches, languageCode);
+        }
+        throw new BadGatewayException('Failed to parse AI response from OpenRouter');
       }
     } catch (error) {
       this.logger.error(`OpenRouter request failed: ${error}`);
-      return this.getMockAdvice(configuration, matches, languageCode);
+      if (this.allowMockData) return this.getMockAdvice(configuration, matches, languageCode);
+      throw new BadGatewayException('OpenRouter request failed');
     }
   }
 
@@ -163,8 +177,11 @@ Only return the JSON array, no other text.`;
 
     // If no API key, return mock data
     if (!apiKey) {
-      this.logger.warn('OPENROUTER_API_KEY not set, returning mock news');
-      return this.getMockNews(sportKeys, languageCode);
+      if (this.allowMockData) {
+        this.logger.warn('OPENROUTER_API_KEY not set, returning mock news');
+        return this.getMockNews(sportKeys, languageCode);
+      }
+      throw new ServiceUnavailableException('OPENROUTER_API_KEY not configured');
     }
 
     const translationInstruction = this.languageService.getTranslationInstruction(languageCode);
@@ -215,7 +232,8 @@ Only return the JSON array, no other text.`;
       if (!response.ok) {
         const error = await response.text();
         this.logger.error(`OpenRouter API error: ${error}`);
-        return this.getMockNews(sportKeys, languageCode);
+        if (this.allowMockData) return this.getMockNews(sportKeys, languageCode);
+        throw new BadGatewayException('OpenRouter API error');
       }
 
       const data = (await response.json()) as OpenRouterResponse;
@@ -233,12 +251,16 @@ Only return the JSON array, no other text.`;
           createdAt: new Date().toISOString(),
         }));
       } catch {
-        this.logger.warn('Failed to parse AI news response, returning mock news');
-        return this.getMockNews(sportKeys, languageCode);
+        if (this.allowMockData) {
+          this.logger.warn('Failed to parse AI news response, returning mock news');
+          return this.getMockNews(sportKeys, languageCode);
+        }
+        throw new BadGatewayException('Failed to parse AI news response from OpenRouter');
       }
     } catch (error) {
       this.logger.error(`OpenRouter news request failed: ${error}`);
-      return this.getMockNews(sportKeys, languageCode);
+      if (this.allowMockData) return this.getMockNews(sportKeys, languageCode);
+      throw new BadGatewayException('OpenRouter news request failed');
     }
   }
 

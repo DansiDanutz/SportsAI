@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 // Types for Apify API responses
@@ -84,6 +84,7 @@ interface ApifyRunListResponse {
 export class ApifyService {
   private readonly logger = new Logger(ApifyService.name);
   private readonly apiToken: string;
+  private readonly allowMockData: boolean;
   private readonly baseUrl = 'https://api.apify.com/v2';
 
   // Apify Actor IDs from the store
@@ -100,8 +101,13 @@ export class ApifyService {
 
   constructor(private prisma: PrismaService) {
     this.apiToken = process.env.APIFY_API_TOKEN || '';
+    this.allowMockData = (process.env.ALLOW_MOCK_DATA || '').toLowerCase() === 'true';
     if (!this.apiToken) {
-      this.logger.warn('APIFY_API_TOKEN not set. Apify integration will use mock data.');
+      if (this.allowMockData) {
+        this.logger.warn('APIFY_API_TOKEN not set. Apify integration will use mock data (ALLOW_MOCK_DATA=true).');
+      } else {
+        this.logger.warn('APIFY_API_TOKEN not set. Apify integration is disabled (no mock data in production).');
+      }
     }
   }
 
@@ -110,6 +116,10 @@ export class ApifyService {
    */
   isConfigured(): boolean {
     return !!this.apiToken;
+  }
+
+  isMockEnabled(): boolean {
+    return this.allowMockData;
   }
 
   /**
@@ -136,8 +146,11 @@ export class ApifyService {
     waitForResults = true,
   ): Promise<T[]> {
     if (!this.isConfigured()) {
-      this.logger.warn(`Apify not configured. Returning mock data for ${actorId}`);
-      return this.getMockData(actorId) as T[];
+      if (this.allowMockData) {
+        this.logger.warn(`Apify not configured. Returning mock data for ${actorId}`);
+        return this.getMockData(actorId) as T[];
+      }
+      throw new ServiceUnavailableException('Apify is not configured (APIFY_API_TOKEN missing)');
     }
 
     try {
@@ -197,8 +210,11 @@ export class ApifyService {
       throw new Error('Actor run timed out');
     } catch (error) {
       this.logger.error(`Error running Apify actor ${actorId}:`, error);
-      // Return mock data as fallback
-      return this.getMockData(actorId) as T[];
+      if (this.allowMockData) {
+        // Return mock data as fallback (dev/demo only)
+        return this.getMockData(actorId) as T[];
+      }
+      throw new ServiceUnavailableException('Apify request failed (no mock fallback enabled)');
     }
   }
 

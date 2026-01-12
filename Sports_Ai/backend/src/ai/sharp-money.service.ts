@@ -49,8 +49,14 @@ interface MarketMovement {
 @Injectable()
 export class SharpMoneyService {
   private readonly logger = new Logger(SharpMoneyService.name);
+  private readonly allowMockData: boolean;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {
+    this.allowMockData = (process.env.ALLOW_MOCK_DATA || '').toLowerCase() === 'true';
+    if (this.allowMockData) {
+      this.logger.warn('ALLOW_MOCK_DATA=true: SharpMoneyService may return demo alerts when real signals are missing.');
+    }
+  }
 
   async getSharpMoneyAlerts(userId: string): Promise<SharpMoneyAlert[]> {
     // Get user's active configuration for sport preference
@@ -136,8 +142,8 @@ export class SharpMoneyService {
     const oddsHistory = event.oddsQuotes || [];
 
     if (oddsHistory.length < 2) {
-      // Not enough data for movement analysis, generate mock alerts for demo
-      return this.generateMockAlerts(event);
+      // Not enough data for movement analysis
+      return this.allowMockData ? this.generateMockAlerts(event) : [];
     }
 
     // Group odds by outcome
@@ -172,17 +178,15 @@ export class SharpMoneyService {
       }
     }
 
-    // If no real alerts, generate some mock alerts for demonstration
-    if (alerts.length === 0) {
-      return this.generateMockAlerts(event);
-    }
+    // If no real alerts, return empty (or demo alerts in ALLOW_MOCK_DATA mode)
+    if (alerts.length === 0) return this.allowMockData ? this.generateMockAlerts(event) : [];
 
     return alerts;
   }
 
   private analyzeLiveSharpAction(event: any): SharpMoneyAlert[] {
     // For live events, detect in-play sharp action
-    return this.generateLiveMockAlerts(event);
+    return this.allowMockData ? this.generateLiveMockAlerts(event) : [];
   }
 
   private generateMockAlerts(event: any): SharpMoneyAlert[] {
