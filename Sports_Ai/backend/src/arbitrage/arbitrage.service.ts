@@ -1,20 +1,58 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { OpenRouterService } from '../ai/openrouter.service';
 
 @Injectable()
 export class ArbitrageService {
   private readonly logger = new Logger(ArbitrageService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private openRouter: OpenRouterService,
+  ) {}
 
   /**
    * Calculates the arbitrage percentage for a set of odds.
-   * Formula: (1 / Odds_A) + (1 / Odds_B) + ... + (1 / Odds_N) - 1
-   * If the result is negative, an arbitrage opportunity exists.
    */
   calculateArbitragePercentage(odds: number[]): number {
     const sumInvOdds = odds.reduce((sum, o) => sum + (1 / o), 0);
     return (sumInvOdds - 1) * 100;
+  }
+
+  /**
+   * Generates an AI explanation for an arbitrage opportunity.
+   */
+  async generateAiExplanation(opportunityId: string) {
+    const arb = await this.prisma.arbitrageOpportunity.findUnique({
+      where: { id: opportunityId },
+      include: {
+        event: { include: { home: true, away: true, league: true, sport: true } },
+      },
+    });
+
+    if (!arb) return null;
+
+    const prompt = `Explain why this sports arbitrage opportunity exists and what the risk factor is:
+    Event: ${arb.event.home.name} vs ${arb.event.away.name}
+    Sport: ${arb.event.sport.name}
+    League: ${arb.event.league.name}
+    Profit Margin: ${arb.profitMargin}%
+    Confidence: ${arb.confidenceScore * 100}%
+    
+    Provide a professional 2-sentence explanation.`;
+
+    const advice = await this.openRouter.generateAdvice(
+      { sportKey: arb.event.sport.key, countries: [], leagues: [], markets: [] },
+      [{
+        homeTeam: arb.event.home.name,
+        awayTeam: arb.event.away.name,
+        league: arb.event.league.name,
+        startTime: arb.event.startTimeUtc.toISOString(),
+        odds: { home: 2.0, away: 2.0 }, // Dummy for the service method structure
+      }]
+    );
+
+    return advice[0]?.content || "This arbitrage opportunity arises from market inefficiency between bookmakers.";
   }
 
   /**

@@ -43,9 +43,45 @@ export class AiController {
   }
 
   @Get('tickets/daily')
-  async getDailyTickets(@Query('type') type: string) {
-    const target = type === '3x' ? 3 : 2;
-    return this.ticketGeneratorService.generateDailyTicket(target as 2 | 3);
+  async getDailyTickets(@Request() req: any, @Query('type') type: string) {
+    // Premium check
+    const user = await this.usersService.findById(req.user.id);
+    const isPremium = user?.subscriptionTier === 'premium';
+    
+    const tickets = await this.dailyTipsService.getDailyTickets(req.user.id);
+    
+    // Add AI explanations for each match in the ticket
+    for (const ticket of tickets) {
+      for (const match of ticket.matches) {
+        if (isPremium) {
+          match.analysis.summary = await this.generateExplanation(match);
+        }
+      }
+    }
+    
+    return tickets;
+  }
+
+  private async generateExplanation(match: any) {
+    const prompt = `Provide a professional betting analysis for ${match.homeTeam} vs ${match.awayTeam}. 
+    Prediction: ${match.prediction}. Confidence: ${match.confidence}%.
+    Focus on form and statistical trends. Keep it to 2 concise sentences.`;
+    
+    try {
+      const advice = await this.openRouterService.generateAdvice(
+        { sportKey: 'soccer', countries: [], leagues: [], markets: [] },
+        [{
+          homeTeam: match.homeTeam,
+          awayTeam: match.awayTeam,
+          league: match.league,
+          startTime: match.startTime,
+          odds: { home: match.odds, away: 2.0 },
+        }]
+      );
+      return advice[0]?.content || match.analysis.summary;
+    } catch (e) {
+      return match.analysis.summary;
+    }
   }
 
   /**
