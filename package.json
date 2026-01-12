@@ -3,7 +3,6 @@
   "version": "5.0.0",
   "private": true,
   "scripts": {
-    "postinstall": "cd Sports_Ai/backend && npx prisma generate",
     "build": "npm run build:ui",
     "build:ui": "cd ui && NPM_CONFIG_PRODUCTION=false npm ci && npm run build",
     "vercel-build": "npm run build:ui"

@@ -1,0 +1,14 @@
+# UI-only Vercel deployment
+# Exclude backend + python tooling from uploads/build detection.
+
+server/
+Sports_Ai/
+api/
+
+requirements.txt
+pyproject.toml
+
+*.py
+*.pyc
+__pycache__/
+
