@@ -17,6 +17,5 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "_comment": "Latest deployment with all fixes"
+  ]
 }
