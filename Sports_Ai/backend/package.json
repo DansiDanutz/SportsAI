@@ -17,7 +17,8 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:create-user": "tsx create-user.ts"
   },
   "dependencies": {
     "@fastify/helmet": "^11.1.1",
