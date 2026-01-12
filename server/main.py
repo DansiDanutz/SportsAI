@@ -72,16 +72,40 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS - allow only localhost origins for security
+# ----------------------------------------------------------------------------
+# Deployment configuration (Render / cloud hosting)
+#
+# Default behavior is "localhost only" (safer for local dev).
+# To allow external access (e.g., Render), set:
+# - PUBLIC_DEPLOYMENT=1
+# and optionally:
+# - CORS_ORIGINS=https://your-vercel-app.vercel.app,https://your-domain.com
+# ----------------------------------------------------------------------------
+
+PUBLIC_DEPLOYMENT = os.getenv("PUBLIC_DEPLOYMENT", "").lower() in ("1", "true", "yes")
+
+cors_origins_env = os.getenv("CORS_ORIGINS", "").strip()
+if cors_origins_env:
+    allow_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
+elif PUBLIC_DEPLOYMENT:
+    # If you deploy publicly and don't set CORS_ORIGINS, allow all origins so the UI can reach the API.
+    # (You can lock this down later by setting CORS_ORIGINS.)
+    allow_origins = ["*"]
+else:
+    # Local dev defaults
+    allow_origins = [
+        "http://localhost:5173",  # Vite dev server
+        "http://127.0.0.1:5173",
+        "http://localhost:8888",  # Production
+        "http://127.0.0.1:8888",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",      # Vite dev server
-        "http://127.0.0.1:5173",
-        "http://localhost:8888",      # Production
-        "http://127.0.0.1:8888",
-    ],
-    allow_credentials=True,
+    allow_origins=allow_origins,
+    # If allow_origins is ["*"], browsers will reject credentialed CORS responses.
+    # Keep credentials enabled only when origins are explicit.
+    allow_credentials=(allow_origins != ["*"]),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -94,6 +118,9 @@ app.add_middleware(
 @app.middleware("http")
 async def require_localhost(request: Request, call_next):
     """Only allow requests from localhost."""
+    if PUBLIC_DEPLOYMENT:
+        return await call_next(request)
+
     client_host = request.client.host if request.client else None
 
     # Allow localhost connections
