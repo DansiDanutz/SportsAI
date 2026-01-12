@@ -57,8 +57,36 @@ async function bootstrap() {
       prefix: '/uploads/',
     });
 
+    // CORS: allow a strict list of origins (comma-separated), plus optional Vercel wildcard support.
+    // Examples:
+    // - CORS_ORIGIN="https://sports-ai-one.vercel.app,https://sportsapiai.onrender.com"
+    // - CORS_ORIGIN="https://sports-ai-one.vercel.app,https://*.vercel.app"
+    const defaultLocalOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'http://localhost:3003',
+      'http://localhost:3004',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+    ];
+
+    const rawCors = (process.env.CORS_ORIGIN || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const allowVercelWildcard =
+      rawCors.includes('https://*.vercel.app') ||
+      rawCors.includes('*.vercel.app') ||
+      rawCors.includes('.vercel.app');
+
+    const allowedOrigins = (rawCors.length ? rawCors : defaultLocalOrigins).filter(
+      (o) => !['*.vercel.app', '.vercel.app'].includes(o)
+    );
+
     // Register helmet for security headers including CSP
-    const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
 
     await app.register(helmet, {
       contentSecurityPolicy: {
@@ -67,7 +95,13 @@ async function bootstrap() {
           scriptSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for React
           imgSrc: ["'self'", 'data:', 'https:'],
-          connectSrc: ["'self'", ...allowedOrigins, 'ws:', 'wss:'],
+          connectSrc: [
+            "'self'",
+            ...allowedOrigins,
+            ...(allowVercelWildcard ? ['https://*.vercel.app'] : []),
+            'ws:',
+            'wss:',
+          ],
           fontSrc: ["'self'", 'https:', 'data:'],
           objectSrc: ["'none'"],
           mediaSrc: ["'self'"],
@@ -93,7 +127,26 @@ async function bootstrap() {
     // Note: Global API rate limiting is configured via APP_GUARD in AuthModule
 
     app.enableCors({
-      origin: allowedOrigins,
+      // With credentials, we must reflect the exact allowed origin (no '*').
+      origin: (origin, callback) => {
+        // Non-browser requests (curl/postman) may not send Origin
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+
+        if (allowVercelWildcard) {
+          try {
+            const url = new URL(origin);
+            if (url.protocol === 'https:' && url.hostname.endsWith('.vercel.app')) {
+              return callback(null, true);
+            }
+          } catch {
+            // ignore invalid origin formats
+          }
+        }
+
+        return callback(new Error(`CORS blocked origin: ${origin}`), false);
+      },
       credentials: true,
     });
 

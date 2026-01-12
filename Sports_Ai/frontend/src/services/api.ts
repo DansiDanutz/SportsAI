@@ -6,7 +6,11 @@ import {
   shouldUseIdempotencyKey,
 } from '../utils/idempotencyUtils';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+// Prefer explicit Vercel env var, but default production to the known Render backend
+// so the app works even if `VITE_API_URL` wasn't set in Vercel project settings.
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? 'https://sportsapiai.onrender.com' : 'http://localhost:4000');
 
 // Default timeout of 30 seconds to prevent indefinite hanging
 const DEFAULT_TIMEOUT = 30000;
