@@ -1,0 +1,28 @@
+name: Render Deployment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Trigger Render Deploy Hook
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "${RENDER_DEPLOY_HOOK_URL}" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL secret is NOT set"
+            echo "Add it in GitHub: Settings → Environments → Production → Secrets"
+            exit 1
+          fi
+
+          echo "Triggering Render deploy hook..."
+          # Render returns 200/201 on success depending on hook; fail on non-2xx
+          curl -fsS -X POST "${RENDER_DEPLOY_HOOK_URL}"
+          echo "✅ Render deploy hook triggered"
+
