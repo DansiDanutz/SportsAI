@@ -1,9 +1,9 @@
 {
   "version": 2,
   "public": true,
-  "buildCommand": "cd Sports_Ai/frontend && npm run build",
-  "outputDirectory": "Sports_Ai/frontend/dist",
-  "installCommand": "cd Sports_Ai/frontend && npm ci --include=dev",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "echo \"Using root build script (installs + builds frontend via --prefix)\"",
   "git": {
     "deploymentEnabled": {
       "main": true,

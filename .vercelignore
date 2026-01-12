@@ -1,9 +1,15 @@
-# UI-only Vercel deployment
+# SportsAI Vercel deployment should include the Sports_Ai frontend.
 # Exclude backend + python tooling from uploads/build detection.
 
 server/
-Sports_Ai/
 api/
+
+# Keep Sports_Ai/frontend/ for the Vercel build, exclude the rest
+Sports_Ai/backend/
+Sports_Ai/docker/
+Sports_Ai/prompts/
+Sports_Ai/init.sh
+Sports_Ai/claude-progress.txt
 
 requirements.txt
 pyproject.toml
