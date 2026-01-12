@@ -1,8 +1,9 @@
 {
   "version": 2,
   "public": true,
-  "buildCommand": "npm run vercel-build",
-  "outputDirectory": "ui/dist",
+  "buildCommand": "cd Sports_Ai/frontend && npm ci && npm run build",
+  "outputDirectory": "Sports_Ai/frontend/dist",
+  "installCommand": "cd Sports_Ai/frontend && npm install",
   "git": {
     "deploymentEnabled": {
       "main": true,
