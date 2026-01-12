@@ -1,13 +1,14 @@
 # Setup VERCEL_TOKEN Secret - Quick Guide
 
-## ✅ Status: VERCEL_TOKEN is NOT set
+## Status: VERCEL_TOKEN is NOT set
 
 The GitHub API confirms: **No secrets are configured** in your repository.
 
 ## Step 1: Get Your Vercel Token
 
 1. **Go to Vercel Account Tokens**:
-   ```
+
+   ```text
    https://vercel.com/account/tokens
    ```
 
@@ -16,23 +17,26 @@ The GitHub API confirms: **No secrets are configured** in your repository.
    - **Name**: `GitHub Actions Deploy` (or any name you prefer)
    - **Expiration**: Choose "No expiration" or set a date
    - Click **"Create Token"**
-   - **⚠️ IMPORTANT**: Copy the token immediately - you won't see it again!
+   - **IMPORTANT**: Copy the token immediately - you won't see it again!
 
 ## Step 2: Add Token to GitHub Secrets
 
 ### Option A: Using GitHub CLI (Recommended - I can do this for you)
 
 Run this command (I'll need the token):
+
 ```bash
-gh secret set VERCEL_TOKEN --repo DansiDanutz/SportsAI
+gh secret set VERCEL_TOKEN --repo YourUsername/SportsAI
 ```
+
 Then paste your token when prompted.
 
 ### Option B: Using GitHub Web Interface
 
 1. **Go to Repository Secrets**:
-   ```
-   https://github.com/DansiDanutz/SportsAI/settings/secrets/actions
+
+   ```text
+   https://github.com/YourUsername/SportsAI/settings/secrets/actions
    ```
 
 2. **Add New Secret**:
@@ -44,8 +48,9 @@ Then paste your token when prompted.
 ## Step 3: Verify It's Set
 
 After adding the secret, I can verify it's set by running:
+
 ```bash
-gh api repos/DansiDanutz/SportsAI/actions/secrets
+gh api repos/YourUsername/SportsAI/actions/secrets
 ```
 
 You should see `"total_count":1` instead of `0`.
