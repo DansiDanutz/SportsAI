@@ -1,0 +1,4 @@
+Render deploy trigger file.
+Purpose: create a new commit to verify GitHub Actions -> Render Deploy Hook auto-deploy.
+Timestamp: 2026-01-12
+
