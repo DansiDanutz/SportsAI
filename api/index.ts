@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import { AppModule } from '../src/app.module';
+import { AppModule } from '../Sports_Ai/backend/src/app.module';
 
 let app: NestFastifyApplication;
 
