@@ -216,12 +216,13 @@ export class ApifyService {
 
       throw new Error('Actor run timed out');
     } catch (error) {
-      this.logger.error(`Error running Apify actor ${actorId}:`, error);
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error running Apify actor ${actorId}: ${msg}`);
       if (this.allowMockData) {
         // Return mock data as fallback (dev/demo only)
         return this.getMockData(actorId) as T[];
       }
-      throw new ServiceUnavailableException('Apify request failed (no mock fallback enabled)');
+      throw new ServiceUnavailableException(`Apify request failed: ${msg}`);
     }
   }
 
