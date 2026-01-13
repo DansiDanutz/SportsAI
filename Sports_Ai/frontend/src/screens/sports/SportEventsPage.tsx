@@ -1,9 +1,10 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Layout } from '../../components/Layout';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { usePreferencesStore, formatOdds, formatEventTimeWithTimezone } from '../../store/preferencesStore';
-import { api } from '../../services/api';
+import { api, eventsApi, Event as ApiEvent } from '../../services/api';
 
 // Sport-specific settings state (would be persisted in a real app)
 interface SportSettings {
@@ -84,6 +85,18 @@ interface MockEvent {
   homeOdds: number;
   drawOdds?: number;
   awayOdds: number;
+}
+
+interface DisplayEvent {
+  id: string;
+  homeTeam: string;
+  awayTeam: string;
+  league: string;
+  startDate: Date;
+  homeOdds?: number;
+  drawOdds?: number;
+  awayOdds?: number;
+  status?: string;
 }
 
 // Mock events data by sport with actual dates
@@ -204,6 +217,34 @@ export function SportEventsPage() {
   // Refresh key to trigger re-render of mock data with fresh timestamps
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Production should use real API events (mock data is for dev/demo only)
+  const useMockData = import.meta.env.DEV;
+
+  const {
+    data: eventsResponse,
+    refetch: refetchEvents,
+    isFetching: isFetchingEvents,
+  } = useQuery({
+    queryKey: ['events', sportKey, refreshKey],
+    enabled: !!sportKey && !useMockData,
+    queryFn: async () => {
+      // Fetch both live + upcoming for this sport and merge client-side filters
+      const [upcoming, live] = await Promise.all([
+        eventsApi.getUpcoming({ limit: 200 }),
+        eventsApi.getLive({ limit: 200 }),
+      ]);
+
+      // Filter to this sportKey (backend also supports filtering, but we keep it safe here)
+      const merged = [...(live.events || []), ...(upcoming.events || [])].filter(
+        (e) => e.sportKey === sportKey
+      );
+
+      return { events: merged };
+    },
+    staleTime: 1000 * 30, // 30s
+    retry: 1,
+  });
+
   // Pull to refresh handler - refreshes favorites and events
   const handleRefresh = useCallback(async () => {
     try {
@@ -215,12 +256,17 @@ export function SportEventsPage() {
         .map((f: { entityId: string }) => f.entityId);
       setFavoriteTeams(new Set(teamIds));
 
-      // Trigger mock data refresh by updating the key
-      setRefreshKey(prev => prev + 1);
+      // Refresh events
+      if (useMockData) {
+        // Trigger mock data refresh by updating the key
+        setRefreshKey(prev => prev + 1);
+      } else {
+        await refetchEvents();
+      }
     } catch (error) {
       console.error('Failed to refresh:', error);
     }
-  }, []);
+  }, [refetchEvents, useMockData]);
 
   // Toggle a team as favorite (with optimistic updates and rollback)
   const handleToggleFavorite = async (teamName: string, e: React.MouseEvent) => {
@@ -289,7 +335,28 @@ export function SportEventsPage() {
   const sport = sportKey ? sportsData[sportKey] : null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const mockEventsBySport = useMemo(() => getMockEventsBySport(), [refreshKey]);
-  const allEvents = sportKey ? mockEventsBySport[sportKey] || [] : [];
+
+  const allEvents: DisplayEvent[] = useMemo(() => {
+    if (!sportKey) return [];
+
+    if (useMockData) {
+      return (mockEventsBySport[sportKey] || []).map((e) => ({ ...e }));
+    }
+
+    const apiEvents: ApiEvent[] = eventsResponse?.events || [];
+    return apiEvents.map((e) => ({
+      id: e.id,
+      homeTeam: e.homeTeam,
+      awayTeam: e.awayTeam,
+      league: e.league,
+      startDate: new Date(e.startTime),
+      status: e.status,
+      // Odds are not yet available in the /v1/events list response; show placeholders.
+      homeOdds: undefined,
+      drawOdds: undefined,
+      awayOdds: undefined,
+    }));
+  }, [eventsResponse, mockEventsBySport, sportKey, useMockData]);
 
   // Get unique leagues for filter
   const leagues = useMemo(() => {
@@ -860,7 +927,7 @@ export function SportEventsPage() {
               return (
                 <div
                   key={event.id}
-                  onClick={() => navigate(`/event/${eventId}`)}
+                  onClick={() => navigate(`/event/${event.id}`)}
                   className="bg-gray-800 rounded-xl border border-gray-700 p-6 hover:border-gray-600 hover:bg-gray-800/80 transition-colors cursor-pointer"
                 >
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

@@ -151,7 +151,10 @@ export function decimalToFractional(decimal: number): string {
   return `${numerator / divisor}/${denominator / divisor}`;
 }
 
-export function formatOdds(decimalOdds: number, format: OddsFormat): string {
+export function formatOdds(decimalOdds: number | null | undefined, format: OddsFormat): string {
+  if (decimalOdds === null || decimalOdds === undefined || !Number.isFinite(decimalOdds)) {
+    return '—';
+  }
   switch (format) {
     case 'decimal':
       return decimalOdds.toFixed(2);
