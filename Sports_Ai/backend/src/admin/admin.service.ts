@@ -5,6 +5,32 @@ import { PrismaService } from '../prisma/prisma.service';
 export class AdminService {
   constructor(private prisma: PrismaService) {}
 
+  getEnvStatus() {
+    const has = (v?: string) => !!v && v.trim().length > 0;
+    const isPlaceholder = (v?: string) => !v || v === 'YOUR_API_KEY';
+
+    const apiSports = process.env.API_SPORTS_KEY;
+    const oddsApi = process.env.THE_ODDS_API_KEY;
+    const openRouter = process.env.OPENROUTER_API_KEY;
+    const apify = process.env.APIFY_API_TOKEN;
+    const sportmonks = process.env.SPORTMONKS_KEY;
+    const sportsDb = process.env.THE_SPORTS_DB_KEY;
+
+    return {
+      nodeEnv: process.env.NODE_ENV || 'unknown',
+      allowMockData: (process.env.ALLOW_MOCK_DATA || '').toLowerCase() === 'true',
+      keys: {
+        API_SPORTS_KEY: { set: has(apiSports), placeholder: isPlaceholder(apiSports) },
+        THE_ODDS_API_KEY: { set: has(oddsApi), placeholder: isPlaceholder(oddsApi) },
+        OPENROUTER_API_KEY: { set: has(openRouter), placeholder: false },
+        APIFY_API_TOKEN: { set: has(apify), placeholder: false },
+        SPORTMONKS_KEY: { set: has(sportmonks), placeholder: false },
+        THE_SPORTS_DB_KEY: { set: has(sportsDb), placeholder: sportsDb === '3' },
+      },
+      corsOrigin: process.env.CORS_ORIGIN || null,
+    };
+  }
+
   async listUsers() {
     const users = await this.prisma.user.findMany({
       select: {

@@ -9,6 +9,11 @@ import { AdminService } from './admin.service';
 export class AdminController {
   constructor(private adminService: AdminService) {}
 
+  @Get('env-status')
+  async getEnvStatus() {
+    return this.adminService.getEnvStatus();
+  }
+
   @Get('users')
   async listUsers() {
     return this.adminService.listUsers();
