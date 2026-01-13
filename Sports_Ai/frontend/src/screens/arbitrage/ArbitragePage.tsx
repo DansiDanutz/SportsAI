@@ -148,7 +148,66 @@ export function ArbitragePage() {
   const { data: arbitrageData, isLoading } = useArbitrage(isPremium);
   const unlockMutation = useUnlockArbitrage();
 
-  // Multi-sport filter state ... (keep filter state)
+  const [selectedSports, setSelectedSports] = useState<Set<string>>(new Set());
+  const [excludedLeagues, setExcludedLeagues] = useState<Set<string>>(new Set());
+  const [excludedBookmakers, setExcludedBookmakers] = useState<Set<string>>(new Set());
+  const [showSportDropdown, setShowSportDropdown] = useState(false);
+  const [showLeagueDropdown, setShowLeagueDropdown] = useState(false);
+  const [showBookmakerDropdown, setShowBookmakerDropdown] = useState(false);
+  
+  const sportDropdownRef = useRef<HTMLDivElement>(null);
+  const leagueDropdownRef = useRef<HTMLDivElement>(null);
+  const bookmakerDropdownRef = useRef<HTMLDivElement>(null);
+
+  const SPORTS_OPTIONS = ['Soccer', 'Basketball', 'Tennis', 'Baseball', 'American Football', 'Ice Hockey'];
+  const LEAGUE_OPTIONS = ['Premier League', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1', 'NBA', 'NFL', 'MLB', 'NHL'];
+  const BOOKMAKER_OPTIONS = ['Bet365', 'William Hill', 'DraftKings', 'FanDuel', 'Pinnacle', 'Stake', 'Betfair'];
+
+  const toggleSport = (sport: string) => {
+    const newSports = new Set(selectedSports);
+    if (newSports.has(sport)) newSports.delete(sport);
+    else newSports.add(sport);
+    setSelectedSports(newSports);
+  };
+
+  const clearSportFilters = () => setSelectedSports(new Set());
+
+  const toggleExcludeLeague = (league: string) => {
+    const newLeagues = new Set(excludedLeagues);
+    if (newLeagues.has(league)) newLeagues.delete(league);
+    else newLeagues.add(league);
+    setExcludedLeagues(newLeagues);
+  };
+
+  const clearLeagueExclusions = () => setExcludedLeagues(new Set());
+
+  const toggleExcludeBookmaker = (bookmaker: string) => {
+    const newBookmakers = new Set(excludedBookmakers);
+    if (newBookmakers.has(bookmaker)) newBookmakers.delete(bookmaker);
+    else newBookmakers.add(bookmaker);
+    setExcludedBookmakers(newBookmakers);
+  };
+
+  const clearBookmakerExclusions = () => setExcludedBookmakers(new Set());
+
+  const applyAllFilters = (data: ArbitrageData[]) => {
+    return data.filter(arb => {
+      // Sport filter
+      if (selectedSports.size > 0 && !selectedSports.has(arb.sport)) return false;
+      
+      // League filter
+      if (excludedLeagues.has(arb.league)) return false;
+      
+      // Bookmaker filter
+      const arbBookmakers = arb.legs.map(l => l.bookmaker);
+      if (arbBookmakers.some(b => excludedBookmakers.has(b))) return false;
+      
+      return true;
+    });
+  };
+
+  const handleBuyCredits = () => navigate('/credits');
+  const isUnlocking = unlockMutation.isPending;
 
   const opportunities = arbitrageData?.opportunities || [];
   
@@ -696,7 +755,7 @@ interface ArbitrageDetailCardProps {
   profit?: number; // Optional - will be calculated from odds
   confidence: number;
   timeLeft: string;
-  legs: Leg[];
+  legs: ArbitrageLeg[];
   isWinningTip?: boolean;
   creditCost?: number;
   isUnlocked: boolean;

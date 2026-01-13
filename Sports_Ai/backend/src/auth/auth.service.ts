@@ -76,6 +76,8 @@ export class AuthService {
     // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens(user.id, user.email);
 
+    const prefs = await this.usersService.getPreferences(user.id);
+
     return {
       accessToken,
       refreshToken,
@@ -86,6 +88,7 @@ export class AuthService {
         subscriptionTier: user.subscriptionTier,
         role: user.role,
         creditBalance: user.creditBalance,
+        hasCompletedOnboarding: prefs.hasCompletedOnboarding === true,
       },
     };
   }
@@ -151,6 +154,8 @@ export class AuthService {
       await this.deviceSessionService.createSession(user.id, refreshToken, userAgent, clientIp);
     }
 
+    const prefs = await this.usersService.getPreferences(user.id);
+
     return {
       accessToken,
       refreshToken,
@@ -162,6 +167,7 @@ export class AuthService {
         role: user.role,
         creditBalance: user.creditBalance,
         twoFactorEnabled: user.twoFactorEnabled,
+        hasCompletedOnboarding: prefs.hasCompletedOnboarding === true,
       },
     };
   }
@@ -179,6 +185,8 @@ export class AuthService {
       await this.deviceSessionService.createSession(user.id, refreshToken, userAgent, clientIp);
     }
 
+    const prefs = await this.usersService.getPreferences(user.id);
+
     return {
       accessToken,
       refreshToken,
@@ -190,6 +198,7 @@ export class AuthService {
         role: user.role,
         creditBalance: user.creditBalance,
         twoFactorEnabled: user.twoFactorEnabled,
+        hasCompletedOnboarding: prefs.hasCompletedOnboarding === true,
       },
     };
   }
