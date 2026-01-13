@@ -35,7 +35,7 @@ export function Layout({ children }: LayoutProps) {
       try {
         const response = await api.get('/v1/users/me/preferences');
         const prefs = response.data;
-        if (!prefs.hasCompletedOnboarding) {
+        if (prefs.hasCompletedOnboarding === false) {
           setShowOnboarding(true);
         }
       } catch (error) {
