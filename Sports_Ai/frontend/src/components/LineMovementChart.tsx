@@ -13,12 +13,15 @@ import { format } from 'date-fns';
 import { OddsMovement } from '../hooks/useOddsHistory';
 
 interface LineMovementChartProps {
-  movements: OddsMovement[];
+  movements?: OddsMovement[];
   title?: string;
 }
 
 export const LineMovementChart: React.FC<LineMovementChartProps> = ({ movements, title }) => {
-  if (!movements || movements.length === 0) {
+  // Defensive check: ensure movements is an array
+  const safeMovements = Array.isArray(movements) ? movements : [];
+  
+  if (!safeMovements || safeMovements.length === 0) {
     return (
       <div className="h-64 flex items-center justify-center text-gray-500 bg-gray-800/50 rounded-lg border border-gray-700">
         No movement data available
@@ -30,15 +33,45 @@ export const LineMovementChart: React.FC<LineMovementChartProps> = ({ movements,
   const dataMap: Record<string, any> = {};
   const bookmakers = new Set<string>();
 
-  movements.forEach((m) => {
-    const time = format(new Date(m.timestamp), 'HH:mm');
-    if (!dataMap[time]) {
-      dataMap[time] = { time };
+  try {
+    // Additional safety check before forEach
+    if (!Array.isArray(safeMovements)) {
+      console.warn('LineMovementChart: movements is not an array', safeMovements);
+      return (
+        <div className="h-64 flex items-center justify-center text-gray-500 bg-gray-800/50 rounded-lg border border-gray-700">
+          No movement data available
+        </div>
+      );
     }
-    const key = `${m.bookmaker} (${m.outcome})`;
-    dataMap[time][key] = m.odds;
-    bookmakers.add(key);
-  });
+
+    safeMovements.forEach((m) => {
+      try {
+        if (!m || typeof m !== 'object') {
+          return; // Skip invalid entries
+        }
+        if (!m.timestamp || !m.bookmaker || typeof m.odds !== 'number') {
+          return; // Skip invalid entries
+        }
+        const time = format(new Date(m.timestamp), 'HH:mm');
+        if (!dataMap[time]) {
+          dataMap[time] = { time };
+        }
+        const key = `${m.bookmaker} (${m.outcome || 'unknown'})`;
+        dataMap[time][key] = m.odds;
+        bookmakers.add(key);
+      } catch (entryError) {
+        // Skip individual invalid entries, don't break the whole loop
+        console.warn('LineMovementChart: Skipping invalid movement entry', entryError);
+      }
+    });
+  } catch (error) {
+    console.error('LineMovementChart: Error processing movements data:', error);
+    return (
+      <div className="h-64 flex items-center justify-center text-red-500 bg-gray-800/50 rounded-lg border border-red-700">
+        Error loading movement data
+      </div>
+    );
+  }
 
   const chartData = Object.values(dataMap).sort((a, b) => a.time.localeCompare(b.time));
   const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];

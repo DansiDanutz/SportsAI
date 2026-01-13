@@ -18,7 +18,7 @@ function LineMovementSection({ opportunities }: { opportunities: ArbitrageData[]
     opportunities.length > 0 ? opportunities[0].id : undefined
   );
   
-  const { data: historyData, isLoading } = useOddsHistory(selectedEventId);
+  const { data: historyData, isLoading, error: historyError } = useOddsHistory(selectedEventId);
 
   if (opportunities.length === 0) {
     return (
@@ -29,6 +29,23 @@ function LineMovementSection({ opportunities }: { opportunities: ArbitrageData[]
   }
 
   const selectedOpp = opportunities.find(o => o.id === selectedEventId) || opportunities[0];
+
+  // Safely extract movements with multiple fallbacks
+  const getMovements = (): any[] => {
+    try {
+      if (!historyData) return [];
+      if (!historyData.history) return [];
+      if (!Array.isArray(historyData.history)) return [];
+      if (historyData.history.length === 0) return [];
+      const firstHistory = historyData.history[0];
+      if (!firstHistory) return [];
+      if (!firstHistory.movements) return [];
+      return Array.isArray(firstHistory.movements) ? firstHistory.movements : [];
+    } catch (err) {
+      console.warn('Error extracting movements:', err);
+      return [];
+    }
+  };
 
   return (
     <div>
@@ -49,9 +66,13 @@ function LineMovementSection({ opportunities }: { opportunities: ArbitrageData[]
         <div className="h-64 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
         </div>
+      ) : historyError ? (
+        <div className="h-64 flex items-center justify-center text-red-500">
+          Error loading history data
+        </div>
       ) : (
         <LineMovementChart 
-          movements={historyData?.history[0]?.movements || []} 
+          movements={getMovements()} 
           title={`Odds Movement: ${selectedOpp.event}`}
         />
       )}

@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useScrollRestoration } from './hooks/useScrollRestoration';
 import { OfflineBanner } from './components/OfflineBanner';
 import { PWAUpdatePrompt } from './components/PWAUpdatePrompt';
+import { api } from './services/api';
 import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage, OAuthCallbackPage } from './screens/auth';
 import { HomePage } from './screens/home';
 import { ArbitragePage, ArbitrageDetailPage } from './screens/arbitrage';
@@ -28,6 +29,8 @@ import { DailyAiPage } from './screens/daily-ai';
 function App() {
   const { checkAuth, isAuthenticated, user } = useAuthStore();
   const location = useLocation();
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
 
   // Enable scroll position restoration for back/forward navigation
   useScrollRestoration();
@@ -36,9 +39,45 @@ function App() {
     checkAuth();
   }, [checkAuth]);
 
+  // Check onboarding status from preferences
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (!isAuthenticated || !user) {
+        setHasCompletedOnboarding(null);
+        return;
+      }
+
+      setIsCheckingOnboarding(true);
+      try {
+        const response = await api.get('/v1/users/me/preferences');
+        const prefs = response.data;
+        setHasCompletedOnboarding(prefs.hasCompletedOnboarding === true);
+      } catch (error) {
+        console.error('Failed to check onboarding status:', error);
+        // Default to completed if we can't check (don't block navigation)
+        setHasCompletedOnboarding(true);
+      } finally {
+        setIsCheckingOnboarding(false);
+      }
+    };
+
+    if (isAuthenticated && user) {
+      checkOnboardingStatus();
+    }
+  }, [isAuthenticated, user]);
+
   // Force setup if onboarding is not completed
-  const needsSetup = isAuthenticated && user && !user.hasCompletedOnboarding;
+  const needsSetup = isAuthenticated && user && hasCompletedOnboarding === false;
   const isAtSetup = location.pathname === '/setup';
+
+  // Show loading while checking onboarding status
+  if (isCheckingOnboarding && isAuthenticated && user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
 
   if (needsSetup && !isAtSetup) {
     return <Navigate to="/setup" replace />;

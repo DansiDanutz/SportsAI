@@ -31,12 +31,15 @@ async function bootstrap() {
     }
     
     console.log('🔧 Creating NestJS application...');
+    const adapter = new FastifyAdapter();
     const app = await NestFactory.create<NestFastifyApplication>(
       AppModule,
-      new FastifyAdapter()
+      adapter
     );
+    const fastifyInstance = adapter.getInstance();
 
     console.log('📎 Registering Fastify plugins...');
+    
     // Register multipart for file uploads
     await app.register(fastifyMultipart, {
       limits: {
@@ -57,10 +60,8 @@ async function bootstrap() {
       prefix: '/uploads/',
     });
 
-    // CORS: allow a strict list of origins (comma-separated), plus optional Vercel wildcard support.
-    // Examples:
-    // - CORS_ORIGIN="https://sports-ai-one.vercel.app,https://sportsapiai.onrender.com"
-    // - CORS_ORIGIN="https://sports-ai-one.vercel.app,https://*.vercel.app"
+    // Configure CORS using NestJS's built-in method (works with Fastify)
+    // Define CORS variables before helmet (which uses them)
     const defaultLocalOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
@@ -86,8 +87,70 @@ async function bootstrap() {
       (o) => !['*.vercel.app', '.vercel.app'].includes(o)
     );
 
-    // Register helmet for security headers including CSP
+    // Configure CORS manually for Fastify compatibility
+    fastifyInstance.addHook('onRequest', async (request: any, reply: any) => {
+      const origin = request.headers.origin;
+      
+      // Handle preflight OPTIONS requests
+      if (request.method === 'OPTIONS') {
+        let allowOrigin = false;
+        
+        if (!origin) {
+          allowOrigin = true; // Non-browser requests
+        } else if (allowedOrigins.includes(origin)) {
+          allowOrigin = true;
+        } else if (allowVercelWildcard) {
+          try {
+            const url = new URL(origin);
+            if (url.protocol === 'https:' && url.hostname.endsWith('.vercel.app')) {
+              allowOrigin = true;
+            }
+          } catch {
+            // ignore invalid origin formats
+          }
+        }
+        
+        if (allowOrigin) {
+          reply.header('Access-Control-Allow-Origin', origin || '*');
+          reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+          reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Idempotency-Key');
+          reply.header('Access-Control-Allow-Credentials', 'true');
+          reply.header('Access-Control-Max-Age', '86400');
+          return reply.code(204).send();
+        } else {
+          return reply.code(403).send({ error: 'CORS blocked origin' });
+        }
+      }
+    });
+    
+    // Add CORS headers to all responses
+    fastifyInstance.addHook('onSend', async (request: any, reply: any) => {
+      const origin = request.headers.origin;
+      
+      if (origin) {
+        let allowOrigin = false;
+        
+        if (allowedOrigins.includes(origin)) {
+          allowOrigin = true;
+        } else if (allowVercelWildcard) {
+          try {
+            const url = new URL(origin);
+            if (url.protocol === 'https:' && url.hostname.endsWith('.vercel.app')) {
+              allowOrigin = true;
+            }
+          } catch {
+            // ignore invalid origin formats
+          }
+        }
+        
+        if (allowOrigin) {
+          reply.header('Access-Control-Allow-Origin', origin);
+          reply.header('Access-Control-Allow-Credentials', 'true');
+        }
+      }
+    });
 
+    // Register helmet for security headers including CSP
     await app.register(helmet, {
       contentSecurityPolicy: {
         directives: {
@@ -125,30 +188,6 @@ async function bootstrap() {
     }));
 
     // Note: Global API rate limiting is configured via APP_GUARD in AuthModule
-
-    app.enableCors({
-      // With credentials, we must reflect the exact allowed origin (no '*').
-      origin: (origin, callback) => {
-        // Non-browser requests (curl/postman) may not send Origin
-        if (!origin) return callback(null, true);
-
-        if (allowedOrigins.includes(origin)) return callback(null, true);
-
-        if (allowVercelWildcard) {
-          try {
-            const url = new URL(origin);
-            if (url.protocol === 'https:' && url.hostname.endsWith('.vercel.app')) {
-              return callback(null, true);
-            }
-          } catch {
-            // ignore invalid origin formats
-          }
-        }
-
-        return callback(new Error(`CORS blocked origin: ${origin}`), false);
-      },
-      credentials: true,
-    });
 
     // Swagger (API docs) - enabled in production by default
     const swaggerDisabled = (process.env.DISABLE_SWAGGER || '').toLowerCase() === 'true';
