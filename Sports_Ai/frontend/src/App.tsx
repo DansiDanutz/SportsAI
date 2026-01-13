@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { useAuthStore } from './store/authStore';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useScrollRestoration } from './hooks/useScrollRestoration';
@@ -91,6 +92,9 @@ function App() {
 
       {/* PWA Update Prompt */}
       <PWAUpdatePrompt />
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
 
       <Routes>
         {/* Public Routes */}
