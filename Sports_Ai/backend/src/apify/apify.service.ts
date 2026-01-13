@@ -153,10 +153,14 @@ export class ApifyService {
       throw new ServiceUnavailableException('Apify is not configured (APIFY_API_TOKEN missing)');
     }
 
+    // Apify API expects actor ids in the form "username~actor-name".
+    // In the UI/store they’re often shown as "username/actor-name". Normalize here.
+    const normalizedActorId = actorId.includes('/') ? actorId.replace('/', '~') : actorId;
+
     try {
       // Start the actor run
       const runResponse = await fetch(
-        `${this.baseUrl}/acts/${actorId}/runs?token=${this.apiToken}`,
+        `${this.baseUrl}/acts/${normalizedActorId}/runs?token=${this.apiToken}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -165,7 +169,10 @@ export class ApifyService {
       );
 
       if (!runResponse.ok) {
-        throw new Error(`Failed to start actor: ${runResponse.statusText}`);
+        const errorText = await runResponse.text().catch(() => '');
+        throw new Error(
+          `Failed to start actor ${normalizedActorId}: ${runResponse.status} ${runResponse.statusText} ${errorText}`.trim(),
+        );
       }
 
       const runData = (await runResponse.json()) as ApifyRunResponse;
@@ -184,7 +191,7 @@ export class ApifyService {
         await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
 
         const statusResponse = await fetch(
-          `${this.baseUrl}/acts/${actorId}/runs/${runId}?token=${this.apiToken}`,
+          `${this.baseUrl}/acts/${normalizedActorId}/runs/${runId}?token=${this.apiToken}`,
         );
 
         const statusData = (await statusResponse.json()) as ApifyRunResponse;
