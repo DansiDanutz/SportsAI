@@ -693,3 +693,11 @@ export const apifyApi = {
     return response.data;
   },
 };
+
+// Chat API
+export const chatApi = {
+  sendMessage: async (message: string): Promise<{ response: string; suggestedActions: Array<{ label: string; action: string }> }> => {
+    const response = await api.post('/v1/ai/chat', { message });
+    return response.data;
+  },
+};

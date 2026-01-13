@@ -25,6 +25,7 @@ import { TermsPage, PrivacyPage } from './screens/legal';
 import { AlertsPage } from './screens/alerts';
 import { SetupPage } from './screens/setup';
 import { DailyAiPage } from './screens/daily-ai';
+import { ChatPage } from './screens/chat';
 
 function App() {
   const { checkAuth, isAuthenticated, user } = useAuthStore();
@@ -178,6 +179,11 @@ function App() {
         <Route path="/daily-ai" element={
           <ProtectedRoute>
             <DailyAiPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/chat" element={
+          <ProtectedRoute>
+            <ChatPage />
           </ProtectedRoute>
         } />
         <Route path="/bookmakers" element={
