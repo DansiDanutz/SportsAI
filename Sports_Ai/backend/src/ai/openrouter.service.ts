@@ -654,6 +654,7 @@ Provide 4-5 pieces of advice covering:
       userPreferences: any;
       relevantMatches: any[];
       recentNews: any[];
+      standings?: any[];
       languageCode: string;
     }
   ): Promise<string> {
@@ -666,6 +667,7 @@ Provide 4-5 pieces of advice covering:
     - User Preferences: ${JSON.stringify(context.userPreferences)}
     - Relevant Upcoming Matches: ${JSON.stringify(context.relevantMatches)}
     - Recent Sports News: ${JSON.stringify(context.recentNews)}
+    - League Standings/Form: ${JSON.stringify(context.standings || [])}
     
     Instructions:
     1. ALWAYS structure your response into the following sections using "## " headers:
@@ -677,9 +679,9 @@ Provide 4-5 pieces of advice covering:
     2. Format your response using Markdown. Use bold for team names and odds.
     3. **CRITICAL**: If any upcoming match or bet matches the user's AI Setup (Variable Weights: ${JSON.stringify(context.userPreferences.aiSettings?.variableWeights || {})}), you MUST underline the specific bet selection and provide a detailed explanation.
     4. Be professional, concise, and helpful.
-    3. Be professional, concise, and helpful.
-    4. ${translationInstruction}
-    5. If you don't have specific data for a player or team in the context, use your general knowledge but clearly state if it's based on historical data rather than real-time odds.
+    5. ${translationInstruction}
+    6. If you don't have specific data for a player or team in the context, use your general knowledge but clearly state if it's based on historical data rather than real-time odds.
+    7. Each section header must be on its own line followed by content.
     
     ${context.userPreferences.aiSettings ? `Note: User has configured weights for: ${JSON.stringify(context.userPreferences.aiSettings.variableWeights)}. Consider these in your "good/not good" evaluation.` : ''}`;
 

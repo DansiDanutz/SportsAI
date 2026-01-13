@@ -121,7 +121,7 @@ export class GoogleOAuthService {
   async handleCallback(
     code: string,
     state: string,
-    clientIp?: string,
+    ipAddress?: string,
     userAgent?: string,
   ): Promise<AuthResponse> {
     // Step 1: Validate state parameter (CSRF protection)
@@ -159,7 +159,7 @@ export class GoogleOAuthService {
     const user = await this.findOrCreateOAuthUser(idTokenPayload);
 
     // Step 7: Generate application tokens
-    return this.generateAuthResponse(user, clientIp, userAgent);
+    return this.generateAuthResponse(user, ipAddress, userAgent);
   }
 
   /**
@@ -351,7 +351,7 @@ export class GoogleOAuthService {
    */
   private async generateAuthResponse(
     user: { id: string; email: string; subscriptionTier: string; role: string; creditBalance: number; twoFactorEnabled: boolean | null },
-    clientIp?: string,
+    ipAddress?: string,
     userAgent?: string,
   ): Promise<AuthResponse> {
     const accessToken = this.jwtService.sign(
@@ -366,7 +366,7 @@ export class GoogleOAuthService {
 
     // Create device session
     if (userAgent) {
-      await this.deviceSessionService.createSession(user.id, refreshToken, userAgent, clientIp);
+      await this.deviceSessionService.createSession(user.id, refreshToken, userAgent, ipAddress);
     }
 
     return {

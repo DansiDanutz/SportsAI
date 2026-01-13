@@ -29,12 +29,12 @@ export class ArbitrageController {
   @Header('Cache-Control', 'private, max-age=15, stale-while-revalidate=30')
   async getOpportunities(
     @Request() req: any,
-    @Ip() clientIp: string,
+    @Ip() ipAddress: string,
     @Query('fullDetails') fullDetails?: string,
   ) {
     const user = await this.usersService.findById(req.user.id);
     const isPremium = user?.subscriptionTier === 'premium';
-    const languageCode = await this.getUserLanguage(req.user.id, clientIp);
+    const languageCode = await this.getUserLanguage(req.user.id, ipAddress);
     const unlockedIds = await this.creditsService.getUnlockedOpportunities(req.user.id);
 
     const dbOpportunities = await this.arbitrageService.findOpportunities();
@@ -155,11 +155,11 @@ export class ArbitrageController {
     };
   }
 
-  private async getUserLanguage(userId: string, clientIp: string): Promise<string> {
+  private async getUserLanguage(userId: string, ipAddress: string): Promise<string> {
     const user = await this.usersService.findById(userId);
     const preferences = JSON.parse(user?.preferences || '{}');
     if (preferences.display?.language) return preferences.display.language;
-    const ipLanguage = await this.languageService.getLanguageFromIP(clientIp);
+    const ipLanguage = await this.languageService.getLanguageFromIP(ipAddress);
     return ipLanguage.code;
   }
 }

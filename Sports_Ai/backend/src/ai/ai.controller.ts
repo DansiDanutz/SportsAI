@@ -46,12 +46,12 @@ export class AiController {
   }
 
   @Get('tickets/daily')
-  async getDailyTickets(@Request() req: any, @Ip() clientIp: string, @Query('type') type: string) {
+  async getDailyTickets(@Request() req: any, @Ip() ipAddress: string, @Query('type') type: string) {
     // Premium check
     const user = await this.usersService.findById(req.user.id);
     const isPremium = user?.subscriptionTier === 'premium';
     
-    const languageCode = await this.getUserLanguage(req.user.id, clientIp);
+    const languageCode = await this.getUserLanguage(req.user.id, ipAddress);
     const tickets = await this.dailyTipsService.getDailyTickets(req.user.id);
     
     // Add AI explanations for each match in the ticket
@@ -93,7 +93,7 @@ export class AiController {
    * Helper to get user's preferred language
    * Priority: 1. User preference, 2. IP-based detection, 3. Default (English)
    */
-  private async getUserLanguage(userId: string, clientIp: string): Promise<string> {
+  private async getUserLanguage(userId: string, ipAddress: string): Promise<string> {
     // Check user preferences first
     const user = await this.usersService.findById(userId);
     const preferences = JSON.parse(user?.preferences || '{}');
@@ -103,7 +103,7 @@ export class AiController {
     }
 
     // Fall back to IP-based detection
-    const ipLanguage = await this.languageService.getLanguageFromIP(clientIp);
+    const ipLanguage = await this.languageService.getLanguageFromIP(ipAddress);
     return ipLanguage.code;
   }
 
@@ -303,11 +303,11 @@ export class AiController {
   }
 
   @Get('advice')
-  async getAiAdvice(@Request() req: any, @Ip() clientIp: string) {
+  async getAiAdvice(@Request() req: any, @Ip() ipAddress: string) {
     const user = await this.usersService.findById(req.user.id);
 
     // Get user's language preference
-    const languageCode = await this.getUserLanguage(req.user.id, clientIp);
+    const languageCode = await this.getUserLanguage(req.user.id, ipAddress);
 
     // Get user's active AI configuration
     const activeConfig = await this.prisma.aiConfiguration.findFirst({
@@ -394,9 +394,9 @@ export class AiController {
   }
 
   @Get('news')
-  async getAiNews(@Request() req: any, @Ip() clientIp: string) {
+  async getAiNews(@Request() req: any, @Ip() ipAddress: string) {
     // Get user's language preference
-    const languageCode = await this.getUserLanguage(req.user.id, clientIp);
+    const languageCode = await this.getUserLanguage(req.user.id, ipAddress);
 
     // Get user's preferences for sport scope
     const user = await this.usersService.findById(req.user.id);
@@ -545,53 +545,78 @@ export class AiController {
   }
 
   @Get('language/detect')
-  async detectLanguageFromIP(@Ip() clientIp: string) {
-    const language = await this.languageService.getLanguageFromIP(clientIp);
+  async detectLanguageFromIP(@Ip() ipAddress: string) {
+    const language = await this.languageService.getLanguageFromIP(ipAddress);
     return {
       detectedLanguage: language,
-      clientIp: clientIp,
+      ipAddress: ipAddress,
     };
   }
 
   @Post('chat')
-  async chat(@Request() req: any, @Body() body: { message: string }, @Ip() clientIp: string) {
+  async chat(@Request() req: any, @Body() body: { message: string }, @Ip() ipAddress: string) {
     const userId = req.user.id;
     const { message } = body;
 
     // 1. Get user language
-    const languageCode = await this.getUserLanguage(userId, clientIp);
+    const languageCode = await this.getUserLanguage(userId, ipAddress);
 
     // 2. Get user preferences and AI settings
     const user = await this.usersService.findById(userId);
     const preferences = JSON.parse(user?.preferences || '{}');
 
     // 3. Extract team/player keywords (simple extraction for now, LLM will handle better)
-    const keywords = message.toLowerCase().split(' ').filter(word => word.length > 3);
+    const commonWords = ['show', 'give', 'info', 'next', 'match', 'game', 'team', 'player', 'find', 'data', 'tell'];
+    const keywords = message.toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .split(' ')
+      .filter(word => word.length >= 3 && !commonWords.includes(word));
     
     // 4. Gather context data
-    // Fetch upcoming events that might be relevant
-    const upcomingEvents = await this.prisma.event.findMany({
-      where: {
-        status: { in: ['upcoming', 'live'] },
-        OR: keywords.map(kw => ({
-          OR: [
-            { home: { name: { contains: kw, mode: 'insensitive' } } },
-            { away: { name: { contains: kw, mode: 'insensitive' } } },
-            { league: { name: { contains: kw, mode: 'insensitive' } } },
-          ],
-        })),
-      },
-      include: {
-        home: true,
-        away: true,
-        league: true,
-        oddsQuotes: {
-          orderBy: { timestamp: 'desc' },
-          take: 5,
+    let upcomingEvents = [];
+    let standings = [];
+
+    if (keywords.length > 0) {
+      // Fetch upcoming events that might be relevant
+      upcomingEvents = await this.prisma.event.findMany({
+        where: {
+          status: { in: ['upcoming', 'live'] },
+          OR: keywords.map(kw => ({
+            OR: [
+              { home: { name: { contains: kw, mode: 'insensitive' } } },
+              { away: { name: { contains: kw, mode: 'insensitive' } } },
+              { league: { name: { contains: kw, mode: 'insensitive' } } },
+            ],
+          })),
         },
-      },
-      take: 5,
-    });
+        include: {
+          home: true,
+          away: true,
+          league: true,
+          oddsQuotes: {
+            orderBy: { timestamp: 'desc' },
+            take: 10,
+          },
+        },
+        take: 5,
+      });
+
+      // Fetch standings for relevant teams
+      const teamIds = [];
+      upcomingEvents.forEach(e => {
+        if (e.homeId) teamIds.push(e.homeId);
+        if (e.awayId) teamIds.push(e.awayId);
+      });
+
+      if (teamIds.length > 0) {
+        standings = await this.prisma.standing.findMany({
+          where: { teamId: { in: teamIds } },
+          include: { team: true, league: true },
+          orderBy: { updatedAt: 'desc' },
+          take: 10,
+        });
+      }
+    }
 
     // Fetch news for relevant sports
     const news = await this.newsService.getLatestSportsNews(['soccer', 'basketball']);
@@ -607,6 +632,17 @@ export class AiController {
         odds: e.oddsQuotes.map(o => ({ bookie: o.bookmakerId, outcome: o.outcomeKey, price: o.odds })),
       })),
       recentNews: news.slice(0, 3),
+      standings: standings.map(s => ({
+        team: s.team?.name,
+        league: s.league?.name,
+        position: s.position,
+        played: s.played,
+        won: s.won,
+        drawn: s.drawn,
+        lost: s.lost,
+        points: s.points,
+        form: s.form,
+      })),
       languageCode,
     });
 
