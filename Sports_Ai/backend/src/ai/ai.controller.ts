@@ -415,11 +415,22 @@ export class AiController {
       : aiSettings.sportScope;
 
     // Try fetching from dedicated NewsAPI first if configured
-    let news = await this.newsService.getLatestSportsNews(sportKeys);
+    let news: any[] = await this.newsService.getLatestSportsNews(sportKeys);
 
     // If NewsAPI returned nothing (not configured or error), fall back to OpenRouter with Search
     if (news.length === 0) {
-      news = await this.openRouterService.generateNews(sportKeys, languageCode);
+      const aiNews = await this.openRouterService.generateNews(sportKeys, languageCode);
+      const mappedNews: any[] = aiNews.map(item => ({
+        id: item.id,
+        headline: item.headline,
+        summary: item.summary,
+        url: '#',
+        source: 'AI-Search',
+        sport: item.sport,
+        publishedAt: item.createdAt,
+        impact: item.impact,
+      }));
+      news = mappedNews;
     }
 
     return {
@@ -432,7 +443,7 @@ export class AiController {
   }
 
   @Get('daily-tips')
-  async getDailyTips(@Request() req: any) {
+  async getDailyTipsList(@Request() req: any) {
     const tickets = await this.dailyTipsService.getDailyTickets(req.user.id);
 
     return {
@@ -445,6 +456,7 @@ export class AiController {
   async getCustomTicket(
     @Request() req: any,
     @Body() body: { targetOdds: number; sportKey?: string; maxMatches?: number; riskLevel?: string },
+    @Ip() ipAddress: string,
   ) {
     // Check if user is premium
     const user = await this.usersService.findById(req.user.id);
@@ -475,7 +487,7 @@ export class AiController {
       riskLevel: (body.riskLevel as 'low' | 'medium' | 'high') || 'medium',
     });
 
-    const languageCode = await this.getUserLanguage(req.user.id, clientIp);
+    const languageCode = await this.getUserLanguage(req.user.id, ipAddress);
 
     // Add AI explanations for each match in the custom ticket
     for (const match of ticket.matches) {
@@ -537,6 +549,72 @@ export class AiController {
     return {
       detectedLanguage: language,
       clientIp: clientIp,
+    };
+  }
+
+  @Post('chat')
+  async chat(@Request() req: any, @Body() body: { message: string }, @Ip() clientIp: string) {
+    const userId = req.user.id;
+    const { message } = body;
+
+    // 1. Get user language
+    const languageCode = await this.getUserLanguage(userId, clientIp);
+
+    // 2. Get user preferences and AI settings
+    const user = await this.usersService.findById(userId);
+    const preferences = JSON.parse(user?.preferences || '{}');
+
+    // 3. Extract team/player keywords (simple extraction for now, LLM will handle better)
+    const keywords = message.toLowerCase().split(' ').filter(word => word.length > 3);
+    
+    // 4. Gather context data
+    // Fetch upcoming events that might be relevant
+    const upcomingEvents = await this.prisma.event.findMany({
+      where: {
+        status: { in: ['upcoming', 'live'] },
+        OR: keywords.map(kw => ({
+          OR: [
+            { home: { name: { contains: kw, mode: 'insensitive' } } },
+            { away: { name: { contains: kw, mode: 'insensitive' } } },
+            { league: { name: { contains: kw, mode: 'insensitive' } } },
+          ],
+        })),
+      },
+      include: {
+        home: true,
+        away: true,
+        league: true,
+        oddsQuotes: {
+          orderBy: { timestamp: 'desc' },
+          take: 5,
+        },
+      },
+      take: 5,
+    });
+
+    // Fetch news for relevant sports
+    const news = await this.newsService.getLatestSportsNews(['soccer', 'basketball']);
+
+    // 5. Call OpenRouter chat
+    const response = await this.openRouterService.chat(message, {
+      userPreferences: preferences,
+      relevantMatches: upcomingEvents.map(e => ({
+        home: e.home?.name,
+        away: e.away?.name,
+        league: e.league?.name,
+        time: e.startTimeUtc,
+        odds: e.oddsQuotes.map(o => ({ bookie: o.bookmakerId, outcome: o.outcomeKey, price: o.odds })),
+      })),
+      recentNews: news.slice(0, 3),
+      languageCode,
+    });
+
+    return {
+      response,
+      suggestedActions: [
+        { label: 'View Next Match', action: upcomingEvents[0] ? `/event/${upcomingEvents[0].id}` : '/sports' },
+        { label: 'Check Arbitrage', action: '/arbitrage' },
+      ],
     };
   }
 }

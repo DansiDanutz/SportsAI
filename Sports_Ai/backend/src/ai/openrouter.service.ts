@@ -41,6 +41,9 @@ interface AiNewsItem {
   sport: string;
   impact: 'high' | 'medium' | 'low';
   createdAt: string;
+  url?: string;
+  source?: string;
+  publishedAt?: string;
 }
 
 @Injectable()
@@ -640,5 +643,71 @@ Provide 4-5 pieces of advice covering:
       esports: 'eSports',
     };
     return sportNames[sportKey] || 'Sports';
+  }
+
+  /**
+   * General chat/concierge method for sports queries
+   */
+  async chat(
+    message: string,
+    context: {
+      userPreferences: any;
+      relevantMatches: any[];
+      recentNews: any[];
+      languageCode: string;
+    }
+  ): Promise<string> {
+    const translationInstruction = this.languageService.getTranslationInstruction(context.languageCode);
+    
+    const systemPrompt = `You are the SportsAI Concierge, a highly knowledgeable sports betting assistant.
+    Your goal is to provide accurate, real-time information about teams, players, and betting opportunities.
+    
+    Context provided:
+    - User Preferences: ${JSON.stringify(context.userPreferences)}
+    - Relevant Upcoming Matches: ${JSON.stringify(context.relevantMatches)}
+    - Recent Sports News: ${JSON.stringify(context.recentNews)}
+    
+    Instructions:
+    1. ALWAYS structure your response into the following sections using "## " headers:
+       - ## Intelligence Summary: A quick overview of the team or player.
+       - ## Next Match: Details about the upcoming game (Date, Time, Opponent, Venue).
+       - ## Betting Analysis: Best odds from different platforms. Use __underlined text__ for the best value bet and explain if it's "Good" or "Not Good" based on the user's setup.
+       - ## Recent Performance: Statistics history and current form.
+       - ## Live Data: Any real-time updates available.
+    2. Format your response using Markdown. Use bold for team names and odds.
+    3. **CRITICAL**: If any upcoming match or bet matches the user's AI Setup (Variable Weights: ${JSON.stringify(context.userPreferences.aiSettings?.variableWeights || {})}), you MUST underline the specific bet selection and provide a detailed explanation.
+    4. Be professional, concise, and helpful.
+    3. Be professional, concise, and helpful.
+    4. ${translationInstruction}
+    5. If you don't have specific data for a player or team in the context, use your general knowledge but clearly state if it's based on historical data rather than real-time odds.
+    
+    ${context.userPreferences.aiSettings ? `Note: User has configured weights for: ${JSON.stringify(context.userPreferences.aiSettings.variableWeights)}. Consider these in your "good/not good" evaluation.` : ''}`;
+
+    try {
+      const response = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://sportsai.com',
+          'X-Title': 'SportsAI Platform',
+        },
+        body: JSON.stringify({
+          model: this.freeModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message },
+          ],
+          temperature: 0.7,
+          max_tokens: 1500,
+        }),
+      });
+
+      const data = await response.json() as any;
+      return data.choices?.[0]?.message?.content || "I'm sorry, I couldn't process that request right now.";
+    } catch (error) {
+      this.logger.error(`Chat error: ${error}`);
+      return "The AI service is temporarily unavailable. Please try again later.";
+    }
   }
 }
