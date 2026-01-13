@@ -14,12 +14,14 @@ import { TwoFactorService } from './two-factor.service';
 import { DeviceSessionService } from './device-session.service';
 import { UsersModule } from '../users/users.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { AiModule } from '../ai/ai.module';
 
 @Global()
 @Module({
   imports: [
     UsersModule,
     PrismaModule,
+    AiModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'sportsai-secret-key-change-in-production',

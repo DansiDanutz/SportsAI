@@ -24,6 +24,7 @@ export interface AuthResponse {
     role: string;
     creditBalance: number;
     twoFactorEnabled?: boolean;
+    hasCompletedOnboarding?: boolean;
   };
 }
 
@@ -39,6 +40,8 @@ const REFRESH_TOKEN_EXPIRY = '7d'; // 7 days for refresh token
 const ACCESS_TOKEN_EXPIRY_SECONDS = 900; // 15 minutes in seconds
 const PASSWORD_RESET_EXPIRY_HOURS = 1; // Password reset token expires in 1 hour
 
+import { LanguageService } from '../ai/language.service';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -47,6 +50,7 @@ export class AuthService {
     private prisma: PrismaService,
     private rateLimiter: RateLimiterService,
     private deviceSessionService: DeviceSessionService,
+    private languageService: LanguageService,
   ) {}
 
   private generateTokens(userId: string, email: string) {
@@ -59,7 +63,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async signup(email: string, password: string): Promise<AuthResponse> {
+  async signup(email: string, password: string, clientIp?: string): Promise<AuthResponse> {
     // Check if user already exists
     const existingUser = await this.usersService.findByEmail(email);
     if (existingUser) {
@@ -75,6 +79,16 @@ export class AuthService {
 
     // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens(user.id, user.email);
+
+    // Auto-detect language if not set
+    try {
+      const detected = await this.languageService.getLanguageFromIP(clientIp || '');
+      await this.usersService.updatePreferences(user.id, {
+        display: { language: detected.code }
+      });
+    } catch (e) {
+      // Ignore errors in auto-detection
+    }
 
     const prefs = await this.usersService.getPreferences(user.id);
 
@@ -154,6 +168,19 @@ export class AuthService {
       await this.deviceSessionService.createSession(user.id, refreshToken, userAgent, clientIp);
     }
 
+    // Auto-detect language if not set
+    try {
+      const currentPrefs = await this.usersService.getPreferences(user.id);
+      if (!(currentPrefs as any).display?.language) {
+        const detected = await this.languageService.getLanguageFromIP(clientIp || '');
+        await this.usersService.updatePreferences(user.id, {
+          display: { ...((currentPrefs as any).display || {}), language: detected.code }
+        });
+      }
+    } catch (e) {
+      // Ignore
+    }
+
     const prefs = await this.usersService.getPreferences(user.id);
 
     return {
@@ -167,7 +194,7 @@ export class AuthService {
         role: user.role,
         creditBalance: user.creditBalance,
         twoFactorEnabled: user.twoFactorEnabled,
-        hasCompletedOnboarding: prefs.hasCompletedOnboarding === true,
+        hasCompletedOnboarding: (prefs as any).hasCompletedOnboarding === true,
       },
     };
   }
@@ -185,6 +212,19 @@ export class AuthService {
       await this.deviceSessionService.createSession(user.id, refreshToken, userAgent, clientIp);
     }
 
+    // Auto-detect language if not set
+    try {
+      const currentPrefs = await this.usersService.getPreferences(user.id);
+      if (!(currentPrefs as any).display?.language) {
+        const detected = await this.languageService.getLanguageFromIP(clientIp || '');
+        await this.usersService.updatePreferences(user.id, {
+          display: { ...((currentPrefs as any).display || {}), language: detected.code }
+        });
+      }
+    } catch (e) {
+      // Ignore
+    }
+
     const prefs = await this.usersService.getPreferences(user.id);
 
     return {
@@ -198,7 +238,7 @@ export class AuthService {
         role: user.role,
         creditBalance: user.creditBalance,
         twoFactorEnabled: user.twoFactorEnabled,
-        hasCompletedOnboarding: prefs.hasCompletedOnboarding === true,
+        hasCompletedOnboarding: (prefs as any).hasCompletedOnboarding === true,
       },
     };
   }

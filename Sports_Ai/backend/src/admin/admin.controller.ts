@@ -41,4 +41,10 @@ export class AdminController {
   ) {
     return this.adminService.updateUserSubscription(userId, body.tier);
   }
+
+  @Post('seed-data')
+  @HttpCode(HttpStatus.OK)
+  async seedData() {
+    return this.adminService.seedDemoData();
+  }
 }

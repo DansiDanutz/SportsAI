@@ -31,7 +31,7 @@ async function bootstrap() {
     }
     
     console.log('🔧 Creating NestJS application...');
-    const adapter = new FastifyAdapter();
+    const adapter = new FastifyAdapter({ trustProxy: true });
     const app = await NestFactory.create<NestFastifyApplication>(
       AppModule,
       adapter

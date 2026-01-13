@@ -2175,6 +2175,69 @@ async function main() {
   }
   console.log(`Created ${bookmakerData.length} bookmakers`);
 
+  // Create Markets
+  const matchWinnerMarket = await prisma.market.upsert({
+    where: { sportId_marketKey: { sportId: soccer.id, marketKey: '1X2' } },
+    update: {},
+    create: {
+      sportId: soccer.id,
+      marketKey: '1X2',
+      name: 'Match Winner (1X2)',
+    },
+  });
+
+  const moneylineMarket = await prisma.market.upsert({
+    where: { sportId_marketKey: { sportId: basketball.id, marketKey: 'h2h' } },
+    update: {},
+    create: {
+      sportId: basketball.id,
+      marketKey: 'h2h',
+      name: 'Moneyline',
+    },
+  });
+
+  console.log('Created markets');
+
+  // Create Arbitrage Opportunities
+  const arb1 = await prisma.arbitrageOpportunity.upsert({
+    where: { id: '550e8400-e29b-41d4-a716-446655440000' },
+    update: {},
+    create: {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      eventId: 'event-real-barca',
+      marketId: matchWinnerMarket.id,
+      profitMargin: 2.8,
+      confidenceScore: 0.96,
+      isWinningTip: true,
+      creditCost: 10,
+      bookmakerLegs: JSON.stringify([
+        { outcome: 'Real Madrid', odds: 2.45, bookmaker: 'Bet365' },
+        { outcome: 'Draw', odds: 3.60, bookmaker: 'Betano' },
+        { outcome: 'Barcelona', odds: 2.90, bookmaker: 'Unibet' },
+      ]),
+    },
+  });
+
+  const arb2 = await prisma.arbitrageOpportunity.upsert({
+    where: { id: '550e8400-e29b-41d4-a716-446655440001' },
+    update: {},
+    create: {
+      id: '550e8400-e29b-41d4-a716-446655440001',
+      eventId: 'event-lakers-warriors',
+      marketId: moneylineMarket.id,
+      profitMargin: 1.9,
+      confidenceScore: 0.92,
+      isWinningTip: false,
+      creditCost: 10,
+      bookmakerLegs: JSON.stringify([
+        { outcome: 'Lakers', odds: 2.15, bookmaker: 'Stake' },
+        { outcome: 'Warriors', odds: 1.95, bookmaker: 'William Hill' },
+      ]),
+    },
+  });
+
+  console.log('Created arbitrage opportunities');
+
   console.log('Seeding complete!');
 }
 

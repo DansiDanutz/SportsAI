@@ -22,7 +22,7 @@ export class ArbitrageService {
   /**
    * Generates an AI explanation for an arbitrage opportunity.
    */
-  async generateAiExplanation(opportunityId: string) {
+  async generateAiExplanation(opportunityId: string, languageCode: string = 'en') {
     const arb = await this.prisma.arbitrageOpportunity.findUnique({
       where: { id: opportunityId },
       include: {
@@ -49,7 +49,8 @@ export class ArbitrageService {
         league: arb.event.league.name,
         startTime: arb.event.startTimeUtc.toISOString(),
         odds: { home: 2.0, away: 2.0 }, // Dummy for the service method structure
-      }]
+      }],
+      languageCode
     );
 
     return advice[0]?.content || "This arbitrage opportunity arises from market inefficiency between bookmakers.";

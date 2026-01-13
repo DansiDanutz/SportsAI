@@ -95,8 +95,8 @@ export class AuthController {
   ) {}
 
   @Post('signup')
-  async signup(@Body() dto: SignupDto): Promise<AuthResponse> {
-    return this.authService.signup(dto.email, dto.password);
+  async signup(@Body() dto: SignupDto, @Ip() ip: string): Promise<AuthResponse> {
+    return this.authService.signup(dto.email, dto.password, ip);
   }
 
   @Post('login')

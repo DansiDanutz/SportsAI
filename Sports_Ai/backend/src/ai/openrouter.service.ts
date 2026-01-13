@@ -49,6 +49,8 @@ export class OpenRouterService {
   private readonly apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
   // Free model that doesn't require credits
   private readonly freeModel = 'meta-llama/llama-3.2-3b-instruct:free';
+  // Search model for real-time news (Perplexity or similar)
+  private readonly searchModel = process.env.OPENROUTER_SEARCH_MODEL || 'perplexity/llama-3.1-sonar-small-128k-online';
   private readonly allowMockData: boolean;
 
   constructor(private languageService: LanguageService) {
@@ -186,7 +188,12 @@ Only return the JSON array, no other text.`;
 
     const translationInstruction = this.languageService.getTranslationInstruction(languageCode);
 
-    const systemPrompt = `You are a sports news AI that provides relevant updates for sports bettors. Generate news items about injuries, team form, weather impacts, and other factors that affect betting markets.
+    const useSearch = !!process.env.OPENROUTER_SEARCH_MODEL || this.searchModel.includes('perplexity');
+    const model = useSearch ? this.searchModel : this.freeModel;
+
+    const systemPrompt = `You are a sports news AI that provides REAL-TIME updates for sports bettors. 
+${useSearch ? 'You MUST search the web for the latest sports news from the last 24-48 hours.' : ''}
+Generate news items about actual recent injuries, team form, weather impacts, and other factors that affect betting markets.
 
 ${translationInstruction}
 
@@ -202,12 +209,12 @@ Format your response as a JSON array of news objects with this structure:
 
 Only return the JSON array, no other text.`;
 
-    const userPrompt = `Generate 5 relevant sports news items for betting analysis. Focus on these sports: ${sportKeys.join(', ')}. Include updates about:
-- Key player injuries or returns
-- Team form and momentum
-- Weather or venue factors
-- Market movements and sharp action
-- Historical matchup insights`;
+    const userPrompt = `Search for and generate 5 REAL recent sports news items (from today or yesterday) for betting analysis. Focus on these sports: ${sportKeys.join(', ')}. Include actual updates about:
+- Current key player injuries or returns
+- Recent team form and momentum from the last matches
+- Upcoming weather or venue factors for this week's games
+- Real market movements and sharp action
+- Historical matchup insights relevant to games happening NOW or tomorrow.`;
 
     try {
       const response = await fetch(this.apiUrl, {
@@ -219,12 +226,12 @@ Only return the JSON array, no other text.`;
           'X-Title': 'SportsAI Platform',
         },
         body: JSON.stringify({
-          model: this.freeModel,
+          model: model,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ] as OpenRouterMessage[],
-          temperature: 0.8,
+          temperature: 0.6, // Lower temperature for more factual news
           max_tokens: 1000,
         }),
       });

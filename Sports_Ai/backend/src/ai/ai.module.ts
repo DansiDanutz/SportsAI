@@ -8,9 +8,10 @@ import { StrangeBetsService } from './strange-bets.service';
 import { TicketGeneratorService } from './ticket-generator.service';
 import { LanguageService } from './language.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { IntegrationsModule } from '../integrations/integrations.module';
 
 @Module({
-  imports: [UsersModule, PrismaModule],
+  imports: [UsersModule, PrismaModule, IntegrationsModule],
   controllers: [AiController],
   providers: [
     OpenRouterService,

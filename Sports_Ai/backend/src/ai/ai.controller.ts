@@ -6,6 +6,7 @@ import { DailyTipsService } from './daily-tips.service';
 import { SharpMoneyService } from './sharp-money.service';
 import { StrangeBetsService } from './strange-bets.service';
 import { TicketGeneratorService } from './ticket-generator.service';
+import { NewsService } from '../integrations/news.service';
 import { LanguageService, SUPPORTED_LANGUAGES } from './language.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -34,6 +35,7 @@ export class AiController {
     private strangeBetsService: StrangeBetsService,
     private ticketGeneratorService: TicketGeneratorService,
     private languageService: LanguageService,
+    private newsService: NewsService,
     private prisma: PrismaService,
   ) {}
 
@@ -43,18 +45,19 @@ export class AiController {
   }
 
   @Get('tickets/daily')
-  async getDailyTickets(@Request() req: any, @Query('type') type: string) {
+  async getDailyTickets(@Request() req: any, @Ip() clientIp: string, @Query('type') type: string) {
     // Premium check
     const user = await this.usersService.findById(req.user.id);
     const isPremium = user?.subscriptionTier === 'premium';
     
+    const languageCode = await this.getUserLanguage(req.user.id, clientIp);
     const tickets = await this.dailyTipsService.getDailyTickets(req.user.id);
     
     // Add AI explanations for each match in the ticket
     for (const ticket of tickets) {
       for (const match of ticket.matches) {
         if (isPremium) {
-          match.analysis.summary = await this.generateExplanation(match);
+          match.analysis.summary = await this.generateExplanation(match, languageCode);
         }
       }
     }
@@ -62,7 +65,7 @@ export class AiController {
     return tickets;
   }
 
-  private async generateExplanation(match: any) {
+  private async generateExplanation(match: any, languageCode: string = 'en') {
     const prompt = `Provide a professional betting analysis for ${match.homeTeam} vs ${match.awayTeam}. 
     Prediction: ${match.prediction}. Confidence: ${match.confidence}%.
     Focus on form and statistical trends. Keep it to 2 concise sentences.`;
@@ -76,7 +79,8 @@ export class AiController {
           league: match.league,
           startTime: match.startTime,
           odds: { home: match.odds, away: 2.0 },
-        }]
+        }],
+        languageCode
       );
       return advice[0]?.content || match.analysis.summary;
     } catch (e) {
@@ -410,13 +414,20 @@ export class AiController {
       ? [activeConfig.sportKey, ...aiSettings.sportScope.filter((s: string) => s !== activeConfig.sportKey)]
       : aiSettings.sportScope;
 
-    const news = await this.openRouterService.generateNews(sportKeys, languageCode);
+    // Try fetching from dedicated NewsAPI first if configured
+    let news = await this.newsService.getLatestSportsNews(sportKeys);
+
+    // If NewsAPI returned nothing (not configured or error), fall back to OpenRouter with Search
+    if (news.length === 0) {
+      news = await this.openRouterService.generateNews(sportKeys, languageCode);
+    }
 
     return {
       news,
       sportScope: sportKeys,
       refreshedAt: new Date().toISOString(),
       language: languageCode,
+      source: news[0]?.id?.startsWith('newsapi') ? 'NewsAPI' : 'AI-Search',
     };
   }
 
@@ -463,6 +474,15 @@ export class AiController {
       maxMatches: body.maxMatches || 5,
       riskLevel: (body.riskLevel as 'low' | 'medium' | 'high') || 'medium',
     });
+
+    const languageCode = await this.getUserLanguage(req.user.id, clientIp);
+
+    // Add AI explanations for each match in the custom ticket
+    for (const match of ticket.matches) {
+      if (isPremium) {
+        match.analysis.summary = await this.generateExplanation(match, languageCode);
+      }
+    }
 
     return {
       ticket,

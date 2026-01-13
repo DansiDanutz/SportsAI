@@ -577,6 +577,7 @@ export function ArbitragePage() {
                       {...arb}
                       isUnlocked={true}
                       showFullDetails={true}
+                      aiInsight={(arb as any).aiInsight}
                       onUnlock={() => {}}
                     />
                   ))
@@ -605,6 +606,7 @@ export function ArbitragePage() {
                         {...arb}
                         isUnlocked={isUnlocked}
                         showFullDetails={isUnlocked}
+                        aiInsight={(arb as any).aiInsight}
                         onUnlock={() => handleUnlockClick(arb)}
                       />
                     );
@@ -626,6 +628,7 @@ export function ArbitragePage() {
                   {...arb}
                   isUnlocked={false}
                   showFullDetails={false}
+                  aiInsight={(arb as any).aiInsight}
                   onUnlock={() => {}}
                 />
               ))}
@@ -713,10 +716,12 @@ export function ArbitragePage() {
                   <span className="text-gray-400">Your balance:</span>
                   <span className="text-red-400 font-medium">{unlockError.available}</span>
                 </div>
-                <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
-                  <span className="text-gray-400">Credits needed:</span>
-                  <span className="text-yellow-400 font-medium">{unlockError.required - unlockError.available}</span>
-                </div>
+                {unlockError.required - unlockError.available > 0 && (
+                  <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                    <span className="text-gray-400">Credits needed:</span>
+                    <span className="text-yellow-400 font-medium">{unlockError.required - unlockError.available}</span>
+                  </div>
+                )}
               </div>
             </div>
           ) : selectedTip ? (
@@ -760,6 +765,7 @@ interface ArbitrageDetailCardProps {
   creditCost?: number;
   isUnlocked: boolean;
   showFullDetails: boolean;
+  aiInsight?: string;
   onUnlock: () => void;
 }
 
@@ -775,6 +781,7 @@ function ArbitrageDetailCard({
   creditCost = 10,
   isUnlocked,
   showFullDetails,
+  aiInsight,
   onUnlock,
 }: ArbitrageDetailCardProps) {
   // Calculate actual profit from odds using the arbitrage formula
@@ -820,6 +827,11 @@ function ArbitrageDetailCard({
           </div>
           <h3 className="text-xl font-semibold text-white">{event}</h3>
           <p className="text-gray-400 mt-1">{market}</p>
+          {aiInsight && (
+            <p className="text-gray-400 mt-3 text-sm italic border-l-2 border-green-500/50 pl-3">
+              "{aiInsight}"
+            </p>
+          )}
         </div>
         <div className="text-right">
           <div className="text-2xl font-bold text-green-500" data-testid="profit-percentage">+{calculatedProfit.toFixed(2)}%</div>

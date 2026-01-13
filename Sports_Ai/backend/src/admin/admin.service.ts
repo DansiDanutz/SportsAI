@@ -148,4 +148,165 @@ export class AdminService {
       user: updated,
     };
   }
+
+  /**
+   * Seeds basic demo data into the database if it doesn't already exist.
+   */
+  async seedDemoData() {
+    try {
+      // 1. Create Sports
+      const soccer = await this.prisma.sport.upsert({
+        where: { key: 'soccer' },
+        update: {},
+        create: { key: 'soccer', name: 'Soccer', icon: 'soccer-ball' },
+      });
+
+      const basketball = await this.prisma.sport.upsert({
+        where: { key: 'basketball' },
+        update: {},
+        create: { key: 'basketball', name: 'Basketball', icon: 'basketball' },
+      });
+
+      // 2. Create Leagues
+      const laLiga = await this.prisma.league.upsert({
+        where: { id: 'la-liga' },
+        update: {},
+        create: {
+          id: 'la-liga',
+          sportId: soccer.id,
+          name: 'La Liga',
+          country: 'Spain',
+          tier: 1,
+        },
+      });
+
+      const nba = await this.prisma.league.upsert({
+        where: { id: 'nba' },
+        update: {},
+        create: {
+          id: 'nba',
+          sportId: basketball.id,
+          name: 'NBA',
+          country: 'USA',
+          tier: 1,
+        },
+      });
+
+      // 3. Create Teams
+      await this.prisma.team.upsert({
+        where: { id: 'real-madrid' },
+        update: {},
+        create: { id: 'real-madrid', leagueId: laLiga.id, name: 'Real Madrid', shortName: 'RMA' },
+      });
+
+      await this.prisma.team.upsert({
+        where: { id: 'barcelona' },
+        update: {},
+        create: { id: 'barcelona', leagueId: laLiga.id, name: 'FC Barcelona', shortName: 'BAR' },
+      });
+
+      await this.prisma.team.upsert({
+        where: { id: 'lakers' },
+        update: {},
+        create: { id: 'lakers', leagueId: nba.id, name: 'Los Angeles Lakers', shortName: 'LAL' },
+      });
+
+      await this.prisma.team.upsert({
+        where: { id: 'warriors' },
+        update: {},
+        create: { id: 'warriors', leagueId: nba.id, name: 'Golden State Warriors', shortName: 'GSW' },
+      });
+
+      // 4. Create Events
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      await this.prisma.event.upsert({
+        where: { id: 'event-real-barca' },
+        update: {},
+        create: {
+          id: 'event-real-barca',
+          sportId: soccer.id,
+          leagueId: laLiga.id,
+          homeId: 'real-madrid',
+          awayId: 'barcelona',
+          startTimeUtc: tomorrow,
+          status: 'upcoming',
+        },
+      });
+
+      await this.prisma.event.upsert({
+        where: { id: 'event-lakers-warriors' },
+        update: {},
+        create: {
+          id: 'event-lakers-warriors',
+          sportId: basketball.id,
+          leagueId: nba.id,
+          homeId: 'lakers',
+          awayId: 'warriors',
+          startTimeUtc: tomorrow,
+          status: 'upcoming',
+        },
+      });
+
+      // 5. Create Markets
+      const matchWinnerMarket = await this.prisma.market.upsert({
+        where: { sportId_marketKey: { sportId: soccer.id, marketKey: '1X2' } },
+        update: {},
+        create: { sportId: soccer.id, marketKey: '1X2', name: 'Match Winner (1X2)' },
+      });
+
+      const moneylineMarket = await this.prisma.market.upsert({
+        where: { sportId_marketKey: { sportId: basketball.id, marketKey: 'h2h' } },
+        update: {},
+        create: { sportId: basketball.id, marketKey: 'h2h', name: 'Moneyline' },
+      });
+
+      // 6. Create Arbitrage Opportunities
+      await this.prisma.arbitrageOpportunity.upsert({
+        where: { id: '550e8400-e29b-41d4-a716-446655440000' },
+        update: {},
+        create: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          eventId: 'event-real-barca',
+          marketId: matchWinnerMarket.id,
+          profitMargin: 2.8,
+          confidenceScore: 0.96,
+          isWinningTip: true,
+          creditCost: 10,
+          bookmakerLegs: JSON.stringify([
+            { outcome: 'Real Madrid', odds: 2.45, bookmaker: 'Bet365' },
+            { outcome: 'Draw', odds: 3.60, bookmaker: 'Betano' },
+            { outcome: 'Barcelona', odds: 2.90, bookmaker: 'Unibet' },
+          ]),
+        },
+      });
+
+      await this.prisma.arbitrageOpportunity.upsert({
+        where: { id: '550e8400-e29b-41d4-a716-446655440001' },
+        update: {},
+        create: {
+          id: '550e8400-e29b-41d4-a716-446655440001',
+          eventId: 'event-lakers-warriors',
+          marketId: moneylineMarket.id,
+          profitMargin: 1.9,
+          confidenceScore: 0.92,
+          isWinningTip: false,
+          creditCost: 10,
+          bookmakerLegs: JSON.stringify([
+            { outcome: 'Lakers', odds: 2.15, bookmaker: 'Stake' },
+            { outcome: 'Warriors', odds: 1.95, bookmaker: 'William Hill' },
+          ]),
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Demo data seeded successfully',
+      };
+    } catch (error: any) {
+      console.error('Seed error:', error);
+      throw new BadRequestException('Failed to seed demo data: ' + error.message);
+    }
+  }
 }

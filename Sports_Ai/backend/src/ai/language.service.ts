@@ -114,11 +114,15 @@ export class LanguageService {
    */
   async getLanguageFromIP(ip: string): Promise<{ code: string; name: string; nativeName: string }> {
     try {
+      this.logger.log(`Detecting language for IP: ${ip}`);
       const geoData = await this.getGeoLocation(ip);
       const countryCode = geoData?.countryCode?.toUpperCase();
+      this.logger.log(`Country detected: ${countryCode || 'unknown'}`);
 
       if (countryCode && COUNTRY_LANGUAGE_MAP[countryCode]) {
-        return COUNTRY_LANGUAGE_MAP[countryCode];
+        const lang = COUNTRY_LANGUAGE_MAP[countryCode];
+        this.logger.log(`Language matched: ${lang.name}`);
+        return lang;
       }
 
       // Default to English
@@ -144,36 +148,51 @@ export class LanguageService {
     }
 
     try {
-      // Use ip-api.com free service (no API key needed for basic usage)
+      // Primary: ip-api.com (Free, no key, 45 req/min)
       const response = await fetch(`http://ip-api.com/json/${ip}?fields=countryCode,country,city,regionName,status,message`);
 
-      if (!response.ok) {
-        this.logger.warn(`IP geolocation API returned ${response.status}`);
-        return null;
+      if (response.ok) {
+        const data = await response.json() as any;
+        if (data.status === 'success') {
+          return {
+            countryCode: data.countryCode || '',
+            country: data.country || '',
+            city: data.city,
+            region: data.regionName,
+          };
+        }
       }
 
-      interface IpApiResponse {
-        status?: string;
-        message?: string;
-        countryCode?: string;
-        country?: string;
-        city?: string;
-        regionName?: string;
+      // Fallback 1: ipwho.is (Free, no key, 10,000 req/month)
+      const fb1Response = await fetch(`https://ipwho.is/${ip}`);
+      if (fb1Response.ok) {
+        const data = await fb1Response.json() as any;
+        if (data.success) {
+          return {
+            countryCode: data.country_code || '',
+            country: data.country || '',
+            city: data.city,
+            region: data.region,
+          };
+        }
       }
 
-      const data = await response.json() as IpApiResponse;
-
-      if (data.status === 'fail') {
-        this.logger.warn(`IP geolocation failed: ${data.message}`);
-        return null;
+      // Fallback 2: ipapi.co (Free, no key, 1,000 req/day)
+      const fb2Response = await fetch(`https://ipapi.co/${ip}/json/`);
+      if (fb2Response.ok) {
+        const data = await fb2Response.json() as any;
+        if (!data.error) {
+          return {
+            countryCode: data.country_code || '',
+            country: data.country_name || '',
+            city: data.city,
+            region: data.region,
+          };
+        }
       }
 
-      return {
-        countryCode: data.countryCode || '',
-        country: data.country || '',
-        city: data.city,
-        region: data.regionName,
-      };
+      this.logger.warn(`All geolocation fallbacks failed for IP: ${ip}`);
+      return null;
     } catch (error) {
       this.logger.error(`Failed to fetch geolocation: ${error}`);
       return null;

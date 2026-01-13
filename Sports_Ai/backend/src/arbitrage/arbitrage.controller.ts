@@ -1,8 +1,9 @@
-import { Controller, Get, UseGuards, Request, Query, Header } from '@nestjs/common';
+import { Controller, Get, Post, Param, UseGuards, Request, Query, Header, Ip } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
 import { ArbitrageService } from './arbitrage.service';
 import { CreditsService } from '../credits/credits.service';
+import { LanguageService } from '../ai/language.service';
 
 @Controller('v1/arbitrage')
 @UseGuards(JwtAuthGuard)
@@ -11,16 +12,28 @@ export class ArbitrageController {
     private usersService: UsersService,
     private arbitrageService: ArbitrageService,
     private creditsService: CreditsService,
+    private languageService: LanguageService,
   ) {}
+
+  @Post('opportunities/:id/unlock')
+  async unlockOpportunity(
+    @Request() req: any,
+    @Param('id') id: string,
+  ) {
+    // Standard cost is 10 credits
+    return this.creditsService.unlockOpportunity(req.user.id, id, 10);
+  }
 
   @Get('opportunities')
   @Header('Cache-Control', 'private, max-age=15, stale-while-revalidate=30')
   async getOpportunities(
     @Request() req: any,
+    @Ip() clientIp: string,
     @Query('fullDetails') fullDetails?: string,
   ) {
     const user = await this.usersService.findById(req.user.id);
     const isPremium = user?.subscriptionTier === 'premium';
+    const languageCode = await this.getUserLanguage(req.user.id, clientIp);
     const unlockedIds = await this.creditsService.getUnlockedOpportunities(req.user.id);
 
     const dbOpportunities = await this.arbitrageService.findOpportunities();
@@ -42,7 +55,7 @@ export class ArbitrageController {
         }))
       : [
           {
-            id: '1',
+            id: '550e8400-e29b-41d4-a716-446655440000', // Mock UUID
             sport: 'Soccer',
             event: 'Real Madrid vs Barcelona',
             league: 'La Liga',
@@ -59,7 +72,7 @@ export class ArbitrageController {
             ],
           },
           {
-            id: '2',
+            id: '550e8400-e29b-41d4-a716-446655440001', // Mock UUID
             sport: 'Basketball',
             event: 'Lakers vs Warriors',
             league: 'NBA',
@@ -77,17 +90,25 @@ export class ArbitrageController {
         ];
 
     // Map opportunities to hide legs for locked Winning Tips
-    const opportunities = rawOpportunities.map(o => {
+    const opportunities = await Promise.all(rawOpportunities.map(async o => {
       const isUnlocked = unlockedIds.includes(o.id);
       // Even premium users need to unlock Winning Tips (confidence >= 0.95)
       const needsUnlock = o.isWinningTip && !isUnlocked;
       
+      let aiInsight = undefined;
+      if (isUnlocked || !o.isWinningTip) {
+        // Only generate AI insight for unlocked or low-confidence arbs if requested
+        // For demo, we'll provide a default if not already generated
+        aiInsight = "Market inefficiency detected between " + o.legs.map(l => l.bookmaker).join(' and ') + ".";
+      }
+
       return {
         ...o,
         legs: needsUnlock ? [] : o.legs,
         isUnlocked,
+        aiInsight,
       };
-    });
+    }));
 
     // If free user requests full details, return tier-restricted response
     if (fullDetails === 'true' && !isPremium) {
@@ -131,5 +152,13 @@ export class ArbitrageController {
       },
       message: 'Upgrade to Premium for full arbitrage details',
     };
+  }
+
+  private async getUserLanguage(userId: string, clientIp: string): Promise<string> {
+    const user = await this.usersService.findById(userId);
+    const preferences = JSON.parse(user?.preferences || '{}');
+    if (preferences.display?.language) return preferences.display.language;
+    const ipLanguage = await this.languageService.getLanguageFromIP(clientIp);
+    return ipLanguage.code;
   }
 }
