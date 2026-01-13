@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, HttpException, HttpStatus, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
@@ -50,6 +50,7 @@ export class AuthService {
     private prisma: PrismaService,
     private rateLimiter: RateLimiterService,
     private deviceSessionService: DeviceSessionService,
+    @Inject(forwardRef(() => LanguageService))
     private languageService: LanguageService,
   ) {}
 

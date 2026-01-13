@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, UseGuards, Request, Query, Header, Ip } from '@nestjs/common';
+import { Controller, Get, Post, Param, UseGuards, Request, Query, Header, Ip, Inject, forwardRef } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
 import { ArbitrageService } from './arbitrage.service';
@@ -12,6 +12,7 @@ export class ArbitrageController {
     private usersService: UsersService,
     private arbitrageService: ArbitrageService,
     private creditsService: CreditsService,
+    @Inject(forwardRef(() => LanguageService))
     private languageService: LanguageService,
   ) {}
 

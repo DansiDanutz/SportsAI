@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OpenRouterService } from '../ai/openrouter.service';
 
@@ -8,6 +8,7 @@ export class ArbitrageService {
 
   constructor(
     private prisma: PrismaService,
+    @Inject(forwardRef(() => OpenRouterService))
     private openRouter: OpenRouterService,
   ) {}
 

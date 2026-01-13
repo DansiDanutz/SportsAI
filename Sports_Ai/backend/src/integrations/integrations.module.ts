@@ -9,14 +9,12 @@ import { NewsService } from './news.service';
 import { SyncService } from './sync.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
-import { ArbitrageModule } from '../arbitrage/arbitrage.module';
 
 @Global()
 @Module({
   imports: [
     PrismaModule,
     ConfigModule,
-    ArbitrageModule,
     ScheduleModule.forRoot(),
   ],
   providers: [

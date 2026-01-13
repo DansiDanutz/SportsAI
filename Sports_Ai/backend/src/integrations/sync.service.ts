@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { MappingService } from './mapping.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,6 +11,7 @@ export class SyncService implements OnModuleInit {
   constructor(
     private mappingService: MappingService,
     private prisma: PrismaService,
+    @Inject(forwardRef(() => ArbitrageService))
     private arbitrageService: ArbitrageService,
   ) {}
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, UseGuards, ForbiddenException, Request, Ip, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, ForbiddenException, Request, Ip, Query, Inject, forwardRef } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
 import { OpenRouterService } from './openrouter.service';
@@ -35,6 +35,7 @@ export class AiController {
     private strangeBetsService: StrangeBetsService,
     private ticketGeneratorService: TicketGeneratorService,
     private languageService: LanguageService,
+    @Inject(forwardRef(() => NewsService))
     private newsService: NewsService,
     private prisma: PrismaService,
   ) {}
