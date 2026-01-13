@@ -13,6 +13,9 @@ export class AdminService {
     const oddsApi = process.env.THE_ODDS_API_KEY;
     const openRouter = process.env.OPENROUTER_API_KEY;
     const apify = process.env.APIFY_API_TOKEN;
+    const apifyOddsActor = process.env.APIFY_ACTOR_ODDS_API;
+    const apifySofaActor = process.env.APIFY_ACTOR_SOFASCORE;
+    const apifyPredActor = process.env.APIFY_ACTOR_PREDICTIONS;
     const sportmonks = process.env.SPORTMONKS_KEY;
     const sportsDb = process.env.THE_SPORTS_DB_KEY;
 
@@ -24,6 +27,9 @@ export class AdminService {
         THE_ODDS_API_KEY: { set: has(oddsApi), placeholder: isPlaceholder(oddsApi) },
         OPENROUTER_API_KEY: { set: has(openRouter), placeholder: false },
         APIFY_API_TOKEN: { set: has(apify), placeholder: false },
+        APIFY_ACTOR_ODDS_API: { set: has(apifyOddsActor), placeholder: false },
+        APIFY_ACTOR_SOFASCORE: { set: has(apifySofaActor), placeholder: false },
+        APIFY_ACTOR_PREDICTIONS: { set: has(apifyPredActor), placeholder: false },
         SPORTMONKS_KEY: { set: has(sportmonks), placeholder: false },
         THE_SPORTS_DB_KEY: { set: has(sportsDb), placeholder: sportsDb === '3' },
       },

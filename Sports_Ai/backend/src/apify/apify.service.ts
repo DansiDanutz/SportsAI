@@ -87,16 +87,13 @@ export class ApifyService {
   private readonly allowMockData: boolean;
   private readonly baseUrl = 'https://api.apify.com/v2';
 
-  // Apify Actor IDs from the store
+  // Apify Actor IDs must be provided via environment variables (your Apify account actors).
+  // Format accepted: "username/actor-name" or "username~actor-name" (we normalize).
   private readonly actors = {
-    // Odds API - Scrapes odds from BetMGM, Caesars, DraftKings, FanDuel, Bet365
-    oddsApi: 'api/odds-api',
-    // SofaScore Scraper PRO - Match stats, live scores, players, teams
-    sofaScore: 'azzouzana/sofascore-scraper-pro',
-    // Daily Bet Prediction Scraper
-    predictions: 'rikunk/bet-prediction-scraper',
-    // Sportsbook Odds Scraper (alternative)
-    sportsbookOdds: 'harvest/sportsbook-odds-scraper',
+    oddsApi: process.env.APIFY_ACTOR_ODDS_API || '',
+    sofaScore: process.env.APIFY_ACTOR_SOFASCORE || '',
+    predictions: process.env.APIFY_ACTOR_PREDICTIONS || '',
+    sportsbookOdds: process.env.APIFY_ACTOR_SPORTSBOOK_ODDS || '',
   };
 
   constructor(private prisma: PrismaService) {
@@ -129,11 +126,13 @@ export class ApifyService {
     configured: boolean;
     apiToken: string;
     availableActors: string[];
+    actorIds: Record<string, string>;
   } {
     return {
       configured: this.isConfigured(),
       apiToken: this.apiToken ? `${this.apiToken.slice(0, 8)}...` : 'Not set',
       availableActors: Object.keys(this.actors),
+      actorIds: this.actors,
     };
   }
 
@@ -151,6 +150,12 @@ export class ApifyService {
         return this.getMockData(actorId) as T[];
       }
       throw new ServiceUnavailableException('Apify is not configured (APIFY_API_TOKEN missing)');
+    }
+
+    if (!actorId || actorId.trim().length === 0) {
+      throw new ServiceUnavailableException(
+        'Apify actor id is not configured. Set APIFY_ACTOR_ODDS_API / APIFY_ACTOR_SOFASCORE / APIFY_ACTOR_PREDICTIONS in Render env vars.',
+      );
     }
 
     // Apify API expects actor ids in the form "username~actor-name".
