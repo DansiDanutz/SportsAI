@@ -441,31 +441,45 @@ export class AiController {
       ? [activeConfig.sportKey, ...aiSettings.sportScope.filter((s: string) => s !== activeConfig.sportKey)]
       : aiSettings.sportScope;
 
+    // Keep this endpoint responsive: cap the scope to a small set.
+    const cappedSportKeys: string[] = Array.from(
+      new Set(
+        (Array.isArray(sportKeys) ? sportKeys : [])
+          .map((s: any) => String(s || '').trim())
+          .filter(Boolean)
+      )
+    ).slice(0, 4);
+
     // Try fetching from dedicated NewsAPI first if configured
-    let news: any[] = await this.newsService.getLatestSportsNews(sportKeys);
+    let news: any[] = await this.newsService.getLatestSportsNews(cappedSportKeys);
 
     // If NewsAPI returned nothing (not configured or error), fall back to OpenRouter with Search
     if (news.length === 0) {
-      const aiNews = await this.openRouterService.generateNews(sportKeys, languageCode);
-      const mappedNews: any[] = aiNews.map(item => ({
-        id: item.id,
-        headline: item.headline,
-        summary: item.summary,
-        url: '#',
-        source: 'AI-Search',
-        sport: item.sport,
-        publishedAt: item.createdAt,
-        impact: item.impact,
-      }));
-      news = mappedNews;
+      try {
+        const aiNews = await this.openRouterService.generateNews(cappedSportKeys, languageCode);
+        const mappedNews: any[] = aiNews.map((item) => ({
+          id: item.id,
+          headline: item.headline,
+          summary: item.summary,
+          url: '#',
+          source: 'AI-Search',
+          sport: item.sport,
+          publishedAt: item.createdAt,
+          impact: item.impact,
+        }));
+        news = mappedNews;
+      } catch {
+        // Never fail the entire endpoint on external AI/provider issues.
+        news = [];
+      }
     }
 
     return {
       news,
-      sportScope: sportKeys,
+      sportScope: cappedSportKeys,
       refreshedAt: new Date().toISOString(),
       language: languageCode,
-      source: news[0]?.id?.startsWith('newsapi') ? 'NewsAPI' : 'AI-Search',
+      source: news[0]?.id?.startsWith('newsapi') ? 'NewsAPI' : (news.length ? 'AI-Search' : 'unavailable'),
     };
   }
 

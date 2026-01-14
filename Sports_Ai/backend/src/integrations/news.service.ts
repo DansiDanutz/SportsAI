@@ -19,6 +19,12 @@ export class NewsService implements OnModuleInit {
   private client: AxiosInstance;
   private apiKey: string;
   private readonly baseUrl = 'https://newsapi.org/v2';
+  private readonly timeoutMs = Number(process.env.NEWS_API_TIMEOUT_MS || 8000);
+
+  // Simple in-memory cache to avoid slow upstream calls on every page load.
+  // Keyed by normalized sport list. TTL is intentionally short.
+  private cache = new Map<string, { fetchedAt: number; items: NewsArticle[] }>();
+  private readonly cacheTtlMs = Number(process.env.NEWS_CACHE_TTL_MS || 5 * 60 * 1000);
 
   constructor(private configService: ConfigService) {
     this.apiKey = this.configService.get<string>('NEWS_API_KEY') || '';
@@ -31,8 +37,17 @@ export class NewsService implements OnModuleInit {
         headers: {
           'X-Api-Key': this.apiKey,
         },
+        timeout: this.timeoutMs,
       });
     }
+  }
+
+  private cacheKey(sports: string[]): string {
+    return (sports || [])
+      .map((s) => String(s || '').trim().toLowerCase())
+      .filter(Boolean)
+      .sort()
+      .join(',');
   }
 
   /**
@@ -42,6 +57,13 @@ export class NewsService implements OnModuleInit {
     if (!this.apiKey) {
       this.logger.warn('NEWS_API_KEY not configured, returning empty news array');
       return [];
+    }
+
+    const key = this.cacheKey(sports);
+    const cached = this.cache.get(key);
+    const now = Date.now();
+    if (cached && now - cached.fetchedAt <= this.cacheTtlMs) {
+      return cached.items;
     }
 
     try {
@@ -56,7 +78,7 @@ export class NewsService implements OnModuleInit {
         },
       });
 
-      return response.data.articles.map((article: any, index: number) => ({
+      const items: NewsArticle[] = response.data.articles.map((article: any, index: number) => ({
         id: `newsapi-${Date.now()}-${index}`,
         headline: article.title,
         summary: article.description,
@@ -66,8 +88,15 @@ export class NewsService implements OnModuleInit {
         publishedAt: article.publishedAt,
         impact: this.detectImpact(article.title + ' ' + article.description),
       }));
+
+      this.cache.set(key, { fetchedAt: now, items });
+      return items;
     } catch (error: any) {
       this.logger.error(`Failed to fetch news from NewsAPI: ${error?.message || String(error)}`);
+      // If upstream fails, serve stale cache if we have it.
+      if (cached?.items?.length) {
+        return cached.items;
+      }
       return [];
     }
   }

@@ -58,6 +58,16 @@ export class OpenRouterService {
     // No fallback content: never fabricate responses.
   }
 
+  private async fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
   async generateAdvice(
     configuration: {
       sportKey: string;
@@ -108,7 +118,8 @@ Only return the JSON array, no other text.`;
     const userPrompt = this.buildUserPrompt(configuration, matches);
 
     try {
-      const response = await fetch(this.apiUrl, {
+      const timeoutMs = Number(process.env.OPENROUTER_TIMEOUT_MS || 12000);
+      const response = await this.fetchWithTimeout(this.apiUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -125,7 +136,7 @@ Only return the JSON array, no other text.`;
           temperature: 0.7,
           max_tokens: 1500,
         }),
-      });
+      }, timeoutMs);
 
       if (!response.ok) {
         const error = await response.text();
@@ -194,7 +205,8 @@ Only return the JSON array, no other text.`;
 - Historical matchup insights`;
 
     try {
-      const response = await fetch(this.apiUrl, {
+      const timeoutMs = Number(process.env.OPENROUTER_TIMEOUT_MS || 12000);
+      const response = await this.fetchWithTimeout(this.apiUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -211,7 +223,7 @@ Only return the JSON array, no other text.`;
           temperature: 0.8,
           max_tokens: 1000,
         }),
-      });
+      }, timeoutMs);
 
       if (!response.ok) {
         const error = await response.text();
@@ -237,7 +249,8 @@ Only return the JSON array, no other text.`;
         throw new BadGatewayException('Failed to parse AI news response from OpenRouter');
       }
     } catch (error) {
-      this.logger.error(`OpenRouter news request failed: ${error}`);
+      const msg = (error as any)?.name === 'AbortError' ? 'timeout' : String(error);
+      this.logger.error(`OpenRouter news request failed: ${msg}`);
       throw new BadGatewayException('OpenRouter news request failed');
     }
   }
@@ -274,7 +287,8 @@ Context:
 ${translationInstruction}`;
 
     try {
-      const response = await fetch(this.apiUrl, {
+      const timeoutMs = Number(process.env.OPENROUTER_TIMEOUT_MS || 12000);
+      const response = await this.fetchWithTimeout(this.apiUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -291,7 +305,7 @@ ${translationInstruction}`;
           temperature: 0.6,
           max_tokens: 1200,
         }),
-      });
+      }, timeoutMs);
 
       if (!response.ok) {
         const error = await response.text();
