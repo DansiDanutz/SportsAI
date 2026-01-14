@@ -110,17 +110,6 @@ export class AiController {
   @Get('settings')
   async getAiSettings(@Request() req: any) {
     const user = await this.usersService.findById(req.user.id);
-    const isPremium = user?.subscriptionTier === 'premium';
-
-    if (!isPremium) {
-      throw new ForbiddenException({
-        statusCode: 403,
-        error: 'Forbidden',
-        message: 'AI settings require Premium subscription',
-        requiredTier: 'premium',
-        currentTier: user?.subscriptionTier || 'free',
-      });
-    }
 
     // Get AI settings from user preferences or return defaults
     const preferences = JSON.parse(user?.preferences || '{}');
@@ -144,17 +133,6 @@ export class AiController {
   @Patch('settings')
   async updateAiSettings(@Request() req: any, @Body() settings: Partial<AiSettings>) {
     const user = await this.usersService.findById(req.user.id);
-    const isPremium = user?.subscriptionTier === 'premium';
-
-    if (!isPremium) {
-      throw new ForbiddenException({
-        statusCode: 403,
-        error: 'Forbidden',
-        message: 'AI settings require Premium subscription',
-        requiredTier: 'premium',
-        currentTier: user?.subscriptionTier || 'free',
-      });
-    }
 
     // Get current preferences and merge AI settings
     const preferences = JSON.parse(user?.preferences || '{}');
@@ -182,17 +160,6 @@ export class AiController {
   @Get('tips')
   async getAiTips(@Request() req: any) {
     const user = await this.usersService.findById(req.user.id);
-    const isPremium = user?.subscriptionTier === 'premium';
-
-    if (!isPremium) {
-      throw new ForbiddenException({
-        statusCode: 403,
-        error: 'Forbidden',
-        message: 'AI-powered betting tips require Premium subscription',
-        requiredTier: 'premium',
-        currentTier: user?.subscriptionTier || 'free',
-      });
-    }
 
     // Get user's AI settings for filtering
     const preferences = JSON.parse(user?.preferences || '{}');
@@ -202,15 +169,131 @@ export class AiController {
       riskProfile: 'balanced',
     };
 
+    // Get ALL configurations so we can generate tips for each one.
+    const configs = await this.prisma.aiConfiguration.findMany({
+      where: { userId: req.user.id },
+      orderBy: [{ isActive: 'desc' }, { updatedAt: 'desc' }],
+    });
+
+    const sportScope = Array.isArray(aiSettings.sportScope) ? aiSettings.sportScope : [];
+    const confidenceThreshold = Number(aiSettings.confidenceThreshold) || 70;
+
+    // Helper: build tips from odds (no fabrication). "expectedRoi" is derived from best vs avg odds across bookmakers.
+    const tips: any[] = [];
+    const takePerConfig = 5;
+
+    for (const cfg of configs.length > 0 ? configs : ([{ id: 'default', name: 'Default', sportKey: 'soccer', leagues: '[]', countries: '[]', markets: '[]', isActive: true }] as any[])) {
+      const sportKey = cfg.sportKey || 'soccer';
+      if (sportScope.length > 0 && !sportScope.includes(sportKey)) continue;
+
+      const leagues = cfg.leagues ? JSON.parse(cfg.leagues || '[]') : [];
+      const countries = cfg.countries ? JSON.parse(cfg.countries || '[]') : [];
+      const markets = cfg.markets ? JSON.parse(cfg.markets || '[]') : [];
+
+      // Only H2H / 1X2 supported with current ingestion.
+      const requiresUnsupportedMarket = markets.some((m: string) => ['btts', 'BTTS', 'over_under', 'totals', 'spread'].includes(m));
+      if (requiresUnsupportedMarket) {
+        continue;
+      }
+
+      const events = await this.prisma.event.findMany({
+        where: {
+          sport: { key: sportKey },
+          status: { in: ['upcoming', 'live'] },
+          startTimeUtc: { gte: new Date() },
+          ...(leagues.length > 0 && {
+            league: { OR: [{ name: { in: leagues } }, { id: { in: leagues } }] },
+          }),
+          ...(countries.length > 0 && {
+            league: { country: { in: countries } },
+          }),
+        },
+        include: {
+          home: true,
+          away: true,
+          league: true,
+          sport: true,
+          oddsQuotes: {
+            include: { bookmaker: true, market: true },
+            where: { market: { marketKey: 'h2h' } },
+            orderBy: { timestamp: 'desc' },
+            take: 200,
+          },
+        },
+        orderBy: { startTimeUtc: 'asc' },
+        take: 25,
+      });
+
+      for (const e of events) {
+        // Group latest odds per bookmaker+outcomeKey
+        const latestByBookOutcome = new Map<string, number>();
+        const byOutcome: Record<string, number[]> = { home: [], away: [], draw: [] };
+
+        for (const q of e.oddsQuotes || []) {
+          const ok = q.outcomeKey;
+          if (!['home', 'away', 'draw'].includes(ok)) continue;
+          const k = `${q.bookmakerId}:${ok}`;
+          if (latestByBookOutcome.has(k)) continue;
+          latestByBookOutcome.set(k, q.odds);
+          byOutcome[ok].push(q.odds);
+        }
+
+        // Need at least home+away odds from >=1 bookmaker.
+        if (byOutcome.home.length === 0 || byOutcome.away.length === 0) continue;
+
+        const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / Math.max(1, arr.length);
+        const best = (arr: number[]) => Math.max(...arr);
+        const bestHome = best(byOutcome.home);
+        const bestAway = best(byOutcome.away);
+        const bestDraw = byOutcome.draw.length ? best(byOutcome.draw) : null;
+
+        const avgHome = avg(byOutcome.home);
+        const avgAway = avg(byOutcome.away);
+        const avgDraw = byOutcome.draw.length ? avg(byOutcome.draw) : null;
+
+        const candidates: Array<{ key: 'home'|'away'|'draw'; best: number; avg: number | null }> = [
+          { key: 'home', best: bestHome, avg: avgHome },
+          { key: 'away', best: bestAway, avg: avgAway },
+          ...(bestDraw && avgDraw ? [{ key: 'draw' as const, best: bestDraw, avg: avgDraw }] : []),
+        ];
+
+        // Choose the candidate with largest best-vs-avg uplift (data-derived).
+        candidates.sort((a, b) => ((b.avg ? b.best / b.avg : 0) - (a.avg ? a.best / a.avg : 0)));
+        const pick = candidates[0];
+
+        const impliedProb = Math.round((1 / pick.best) * 100);
+        if (impliedProb < confidenceThreshold) continue;
+
+        const expectedRoi = pick.avg ? Math.round(((pick.best / pick.avg) - 1) * 1000) / 10 : 0;
+
+        tips.push({
+          id: `tip-${cfg.id}-${e.id}-${pick.key}`,
+          type: 'value_bet',
+          sport: e.sport?.name || sportKey,
+          sportKey,
+          confidence: impliedProb,
+          insight: `Best price vs market average for ${pick.key.toUpperCase()} is ${pick.best.toFixed(2)} (avg ${pick.avg?.toFixed(2)}). Derived from live bookmaker odds only.`,
+          game: `${e.home?.name || 'TBD'} vs ${e.away?.name || 'TBD'}`,
+          pick: `${pick.key.toUpperCase()} @ ${pick.best.toFixed(2)}`,
+          expectedRoi,
+          relatedEvents: [e.id],
+          createdAt: new Date().toISOString(),
+          configurationId: cfg.id,
+          configurationName: cfg.name || 'Default',
+        });
+
+        if (tips.filter((t) => t.configurationId === cfg.id).length >= takePerConfig) break;
+      }
+    }
+
     return {
-      tips: [],
-      total: 0,
+      tips,
+      total: tips.length,
       appliedSettings: {
         sportScope: aiSettings.sportScope,
         confidenceThreshold: aiSettings.confidenceThreshold,
         riskProfile: aiSettings.riskProfile,
       },
-      message: 'No AI tips available yet.',
     };
   }
 

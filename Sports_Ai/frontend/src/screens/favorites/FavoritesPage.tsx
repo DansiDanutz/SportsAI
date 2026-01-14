@@ -194,9 +194,11 @@ export function FavoritesPage() {
     setIsAdding(true);
     try {
       // For teams, use the selected team's ID; for others, use the text input
-      const entityId = addModalType === 'team' && selectedTeam
-        ? `team-${selectedTeam.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`
-        : newEntityId.trim().toLowerCase();
+      const entityId =
+        addModalType === 'team' && selectedTeam
+          // IMPORTANT: store the real Team ID from the DB so filtering works
+          ? selectedTeam.id
+          : newEntityId.trim().toLowerCase();
 
       const response = await api.post('/v1/favorites', {
         entityType: addModalType,
