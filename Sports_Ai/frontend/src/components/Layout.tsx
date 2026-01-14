@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { PremiumBadge } from './PremiumGate';
 import { NotificationDropdown } from './NotificationDropdown';
 import { OnboardingWizard } from './OnboardingWizard';
 import { api } from '../services/api';
+import { formatRelativeTime, useDataFreshnessStore } from '../store/dataFreshnessStore';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,6 +26,9 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { inFlight, lastSuccessfulAt } = useDataFreshnessStore();
+
+  const lastUpdatedLabel = useMemo(() => formatRelativeTime(lastSuccessfulAt), [lastSuccessfulAt]);
 
   const isPremium = user?.subscriptionTier === 'premium';
   const isAdmin = user?.role === 'admin';
@@ -256,6 +260,22 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main Content */}
       <main id="main-content" className="flex-1 overflow-auto lg:mt-0 mt-14" tabIndex={-1}>
+        {/* Global "Updated" timestamp (real data only) */}
+        {user && (
+          <div className="fixed top-[72px] right-4 lg:top-4 z-40">
+            <div className="bg-gray-800/90 backdrop-blur border border-gray-700 text-gray-200 px-3 py-2 rounded-lg shadow-lg flex items-center gap-2">
+              <span className="text-xs font-medium">
+                Updated {lastUpdatedLabel}
+              </span>
+              {inFlight > 0 && (
+                <span className="text-xs text-gray-400 flex items-center gap-2">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  refreshing…
+                </span>
+              )}
+            </div>
+          </div>
+        )}
         {children}
       </main>
 

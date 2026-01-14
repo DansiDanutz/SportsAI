@@ -5,6 +5,7 @@ import {
   createRequestSignature,
   shouldUseIdempotencyKey,
 } from '../utils/idempotencyUtils';
+import { useDataFreshnessStore } from '../store/dataFreshnessStore';
 
 // Prefer explicit Vercel env var, but default production to the known Render backend
 // so the app works even if `VITE_API_URL` wasn't set in Vercel project settings.
@@ -27,6 +28,13 @@ export const api = axios.create({
 // Request interceptor to add auth token and idempotency keys
 api.interceptors.request.use(
   (config) => {
+    // Track in-flight requests globally for "refreshing" UI
+    try {
+      useDataFreshnessStore.getState().requestStarted();
+    } catch {
+      // ignore
+    }
+
     // Check if offline and reject write operations early
     if (!navigator.onLine) {
       const method = config.method?.toUpperCase() || 'GET';
@@ -75,7 +83,14 @@ api.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    try {
+      useDataFreshnessStore.getState().requestFinished();
+    } catch {
+      // ignore
+    }
+    return Promise.reject(error);
+  }
 );
 
 // Response interceptor to capture cache headers, handle errors, and cleanup idempotency keys
@@ -96,9 +111,31 @@ api.interceptors.response.use(
       idempotencyKeyStore.clear(signature);
     }
 
+    // Track last successful API refresh (for "Updated X ago" in UI)
+    try {
+      const url = String(response.config?.url || '');
+      if (url && !url.startsWith('/v1/auth/')) {
+        useDataFreshnessStore.getState().markSuccess(url);
+      }
+    } catch {
+      // ignore
+    } finally {
+      try {
+        useDataFreshnessStore.getState().requestFinished();
+      } catch {
+        // ignore
+      }
+    }
+
     return response;
   },
   (error: AxiosError) => {
+    try {
+      useDataFreshnessStore.getState().requestFinished();
+    } catch {
+      // ignore
+    }
+
     // Handle authentication errors
     if (error.response?.status === 401) {
       const url = String(error.config?.url || '');
