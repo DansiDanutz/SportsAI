@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OpenRouterService } from './openrouter.service';
+import { SyncService } from '../integrations/sync.service';
 
 interface MatchAnalysis {
   eventId: string;
@@ -54,27 +55,58 @@ export class DailyTipsService {
   constructor(
     private prisma: PrismaService,
     private openRouterService: OpenRouterService,
+    private syncService: SyncService,
   ) {}
 
   async getDailyTickets(userId: string): Promise<DailyTicket[]> {
-    // Get user's active configuration for sport preference
-    const activeConfig = await this.prisma.aiConfiguration.findFirst({
-      where: { userId, isActive: true },
+    // If the user has multiple configurations, generate tickets for ALL of them.
+    // This matches the UI expectation: "if I configured 10 things, show for all."
+    const configs = await this.prisma.aiConfiguration.findMany({
+      where: { userId },
+      orderBy: [{ isActive: 'desc' }, { updatedAt: 'desc' }],
     });
 
-    const sportKey = activeConfig?.sportKey || 'soccer';
+    const effectiveConfigs =
+      configs.length > 0
+        ? configs
+        : [
+            {
+              id: 'default',
+              name: 'Default',
+              sportKey: 'soccer',
+              leagues: '[]',
+              countries: '[]',
+              markets: '[]',
+              isActive: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              userId,
+            } as any,
+          ];
 
-    // Get upcoming matches
-    const events = await this.getUpcomingEvents(sportKey);
+    const tickets: DailyTicket[] = [];
+    for (const cfg of effectiveConfigs) {
+      const sportKey = cfg.sportKey || 'soccer';
 
-    // Generate analyzed matches
-    const analyzedMatches = await this.analyzeMatches(events);
+      // Ensure there is recent data for this sport; if DB is empty, trigger an on-demand sync.
+      await this.ensureUpcomingData(sportKey);
 
-    // Create two standard tickets: odds ~2.0 and odds ~3.0
-    const ticket2 = this.createTicket(analyzedMatches, 2.0, 'Daily Double', false);
-    const ticket3 = this.createTicket(analyzedMatches, 3.0, 'Daily Triple', false);
+      // Get upcoming matches (filtered by favorites if user selected teams)
+      const events = await this.getUpcomingEvents(sportKey, userId, cfg);
+      const analyzedMatches = await this.analyzeMatches(events);
 
-    return [ticket2, ticket3].filter(t => t.matches.length > 0);
+      const baseName = cfg.name ? `${cfg.name}` : sportKey;
+      const ticket2 = this.createTicket(analyzedMatches, 2.0, `${baseName} • Daily Double`, false);
+      const ticket3 = this.createTicket(analyzedMatches, 3.0, `${baseName} • Daily Triple`, false);
+      for (const t of [ticket2, ticket3]) {
+        if (t.matches.length > 0) {
+          t.id = `${cfg.id}-${t.targetOdds.toFixed(2)}`;
+          tickets.push(t);
+        }
+      }
+    }
+
+    return tickets;
   }
 
   async getCustomTicket(userId: string, request: CustomTicketRequest): Promise<DailyTicket> {
@@ -95,15 +127,77 @@ export class DailyTipsService {
     );
   }
 
-  private async getUpcomingEvents(sportKey: string) {
+  private providerKeysForSport(sportKey: string): string[] {
+    // Map internal sport keys to The Odds API keys we sync.
+    // We keep this list focused on popular leagues for now.
+    if (sportKey === 'soccer') {
+      return ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a'];
+    }
+    if (sportKey === 'basketball') {
+      return ['basketball_nba'];
+    }
+    return [];
+  }
+
+  private async ensureUpcomingData(sportKey: string) {
+    try {
+      const count = await this.prisma.event.count({
+        where: {
+          sport: { key: sportKey },
+          status: { in: ['upcoming', 'live'] },
+          startTimeUtc: { gte: new Date() },
+        },
+      });
+      if (count > 0) return;
+
+      const providerKeys = this.providerKeysForSport(sportKey);
+      if (providerKeys.length === 0) return;
+
+      this.logger.log(`No events found for ${sportKey}. Triggering on-demand odds sync...`);
+      await this.syncService.syncOddsForSports(providerKeys);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      this.logger.warn(`ensureUpcomingData(${sportKey}) failed: ${msg}`);
+    }
+  }
+
+  private async getUpcomingEvents(
+    sportKey: string,
+    userId?: string,
+    config?: any,
+  ) {
+    // If the user selected favorite teams, filter to those teams.
+    const favoritesOnly = true;
+    let favoriteTeamIds: string[] = [];
+    if (userId) {
+      const favorites = await this.prisma.favorite.findMany({
+        where: { userId, entityType: 'team' },
+        select: { entityId: true },
+      });
+      favoriteTeamIds = favorites.map((f) => f.entityId);
+    }
+
+    const leagues = config?.leagues ? JSON.parse(config.leagues || '[]') : [];
+
     return this.prisma.event.findMany({
       where: {
         sport: { key: sportKey },
-        status: 'upcoming',
+        status: { in: ['upcoming', 'live'] },
         startTimeUtc: {
           gte: new Date(),
           lte: new Date(Date.now() + 48 * 60 * 60 * 1000), // Next 48 hours
         },
+        ...(leagues.length > 0 && {
+          league: {
+            OR: [
+              { name: { in: leagues } },
+              { id: { in: leagues } },
+            ],
+          },
+        }),
+        ...(favoritesOnly && favoriteTeamIds.length > 0 && {
+          OR: [{ homeId: { in: favoriteTeamIds } }, { awayId: { in: favoriteTeamIds } }],
+        }),
       },
       include: {
         home: true,

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Body, UseGuards, ForbiddenException, Request, Ip, Query, Inject, forwardRef } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
-import { OpenRouterService } from './openrouter.service';
+import { OpenRouterService, AiAdvice } from './openrouter.service';
 import { DailyTipsService } from './daily-tips.service';
 import { SharpMoneyService } from './sharp-money.service';
 import { StrangeBetsService } from './strange-bets.service';
@@ -286,7 +286,38 @@ export class AiController {
       };
     });
 
-    const advice = await this.openRouterService.generateAdvice(configuration, matches, languageCode);
+    let advice: AiAdvice[] = [];
+    try {
+      advice = await this.openRouterService.generateAdvice(configuration, matches, languageCode);
+    } catch (e) {
+      // Fallback: deterministic, odds-derived advice (no fabricated content).
+      advice = matches
+        .slice(0, 10)
+        .map((m, idx) => {
+          const outcomes: Array<{ key: string; odds: number }> = [
+            { key: 'home', odds: m.odds.home },
+            ...(typeof m.odds.draw === 'number' ? [{ key: 'draw', odds: m.odds.draw }] : []),
+            { key: 'away', odds: m.odds.away },
+          ].filter((o) => Number.isFinite(o.odds) && o.odds > 1);
+
+          // Choose the lowest odds as the market's highest implied probability.
+          outcomes.sort((a, b) => a.odds - b.odds);
+          const best = outcomes[0];
+          const title = `Market pick: ${best.key.toUpperCase()} @ ${best.odds.toFixed(2)}`;
+          const content = `Based on current odds for ${m.homeTeam} vs ${m.awayTeam}, the market-implied strongest outcome is ${best.key.toUpperCase()} at ${best.odds.toFixed(2)}. This is derived from live bookmaker prices (no simulated stats).`;
+          const confidence = Math.max(55, Math.min(90, Math.round((1 / best.odds) * 100)));
+          return {
+            id: `odds-${idx}-${Date.now()}`,
+            title,
+            content,
+            category: 'insight' as const,
+            confidence,
+            sport: configuration.sportKey,
+            relatedMatch: `${m.homeTeam} vs ${m.awayTeam}`,
+            createdAt: new Date().toISOString(),
+          };
+        });
+    }
 
     return {
       advice,

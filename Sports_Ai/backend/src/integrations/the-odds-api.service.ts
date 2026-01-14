@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 import { ConfigService } from '@nestjs/config';
 
@@ -10,10 +10,13 @@ export class TheOddsApiService implements OnModuleInit {
   private readonly baseUrl = 'https://api.the-odds-api.com/v4/sports';
 
   constructor(private configService: ConfigService) {
-    this.apiKey = this.configService.get<string>('THE_ODDS_API_KEY') || 'YOUR_API_KEY';
+    this.apiKey = this.configService.get<string>('THE_ODDS_API_KEY') || '';
   }
 
   onModuleInit() {
+    if (!this.apiKey) {
+      this.logger.warn('THE_ODDS_API_KEY not set. The Odds API integration is disabled.');
+    }
     this.client = axios.create({
       baseURL: this.baseUrl,
       params: {
@@ -22,10 +25,17 @@ export class TheOddsApiService implements OnModuleInit {
     });
   }
 
+  private assertConfigured() {
+    if (!this.apiKey) {
+      throw new ServiceUnavailableException('THE_ODDS_API_KEY not configured');
+    }
+  }
+
   /**
    * Fetches upcoming sports.
    */
   async getSports() {
+    this.assertConfigured();
     try {
       const response = await this.client.get('');
       return response.data;
@@ -43,6 +53,7 @@ export class TheOddsApiService implements OnModuleInit {
    * @param markets e.g., 'h2h,spreads,totals'
    */
   async getOdds(sportKey: string, regions: string = 'eu', markets: string = 'h2h') {
+    this.assertConfigured();
     try {
       const response = await this.client.get(`/${sportKey}/odds`, {
         params: {
@@ -63,6 +74,7 @@ export class TheOddsApiService implements OnModuleInit {
    * Fetches scores for a specific sport.
    */
   async getScores(sportKey: string, daysFrom: number = 3) {
+    this.assertConfigured();
     try {
       const response = await this.client.get(`/${sportKey}/scores`, {
         params: {
