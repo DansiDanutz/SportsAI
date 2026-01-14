@@ -8,7 +8,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'robots.txt', 'apple-touch-icon.png'],
+      // Keep this list aligned with actual files in /public
+      includeAssets: ['favicon.svg', 'robots.txt'],
       manifest: {
         name: 'SportsAI - Smart Sports Intelligence',
         short_name: 'SportsAI',

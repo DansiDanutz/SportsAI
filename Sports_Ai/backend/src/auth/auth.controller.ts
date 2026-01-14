@@ -1,11 +1,34 @@
 import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, HttpStatus, Inject, UnauthorizedException, Param, Headers, Ip, Query, Res } from '@nestjs/common';
-import { Response } from 'express';
-import { AuthService, AuthResponse, TwoFactorRequiredResponse } from './auth.service';
+import type { FastifyReply } from 'fastify';
+import { AuthService, AuthResponse, TwoFactorRequiredResponse, AuthSessionResponse } from './auth.service';
 import { GoogleOAuthService } from './google-oauth.service';
 import { TwoFactorService } from './two-factor.service';
 import { DeviceSessionService, SessionResponse } from './device-session.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { IsEmail, IsString, MinLength, Matches, ValidatorConstraint, ValidatorConstraintInterface, Validate } from 'class-validator';
+import { IsEmail, IsString, IsOptional, IsBoolean, ValidatorConstraint, ValidatorConstraintInterface, Validate } from 'class-validator';
+
+const ACCESS_TOKEN_COOKIE = 'sportsai_access_token';
+const REFRESH_TOKEN_COOKIE = 'sportsai_refresh_token';
+
+function isTwoFactorRequiredResponse(
+  response: AuthResponse | TwoFactorRequiredResponse,
+): response is TwoFactorRequiredResponse {
+  return (response as any)?.requiresTwoFactor === true;
+}
+
+function isProd(): boolean {
+  return (process.env.NODE_ENV || '').toLowerCase() === 'production';
+}
+
+function getCookieOptions(overrides?: Partial<Record<string, unknown>>) {
+  return {
+    httpOnly: true,
+    secure: isProd(),
+    sameSite: 'lax',
+    path: '/',
+    ...overrides,
+  } as const;
+}
 
 // Custom password validator that matches client-side validation exactly
 // Requirements: 8+ chars, uppercase, lowercase, number, special character
@@ -40,6 +63,10 @@ class LoginDto {
 
   @IsString()
   password!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  rememberMe?: boolean;
 }
 
 class RefreshTokenDto {
@@ -95,8 +122,20 @@ export class AuthController {
   ) {}
 
   @Post('signup')
-  async signup(@Body() dto: SignupDto, @Ip() ip: string): Promise<AuthResponse> {
-    return this.authService.signup(dto.email, dto.password, ip);
+  async signup(
+    @Body() dto: SignupDto,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ): Promise<AuthSessionResponse> {
+    const authResponse = await this.authService.signup(dto.email, dto.password, ip);
+
+    // Set HttpOnly auth cookies (do not expose tokens in JS storage)
+    res.setCookie(ACCESS_TOKEN_COOKIE, authResponse.accessToken, getCookieOptions({ maxAge: authResponse.expiresIn }));
+    // Default signup to a persistent refresh cookie (users expect to stay signed in)
+    res.setCookie(REFRESH_TOKEN_COOKIE, authResponse.refreshToken, getCookieOptions({ maxAge: 7 * 24 * 60 * 60 }));
+
+    return { expiresIn: authResponse.expiresIn, user: authResponse.user };
   }
 
   @Post('login')
@@ -105,16 +144,37 @@ export class AuthController {
     @Body() dto: LoginDto,
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
-  ): Promise<AuthResponse | TwoFactorRequiredResponse> {
-    return this.authService.login(dto.email, dto.password, ip, userAgent);
+    @Res({ passthrough: true }) res: FastifyReply,
+  ): Promise<AuthSessionResponse | TwoFactorRequiredResponse> {
+    const authResponse = await this.authService.login(dto.email, dto.password, ip, userAgent);
+
+    // If 2FA is required, don't set cookies yet
+    if (isTwoFactorRequiredResponse(authResponse)) {
+      return authResponse;
+    }
+
+    const rememberMe = dto.rememberMe === true;
+    const refreshCookieOptions = rememberMe
+      ? getCookieOptions({ maxAge: 7 * 24 * 60 * 60 })
+      : getCookieOptions(); // session cookie
+
+    res.setCookie(ACCESS_TOKEN_COOKIE, authResponse.accessToken, getCookieOptions({ maxAge: authResponse.expiresIn }));
+    res.setCookie(REFRESH_TOKEN_COOKIE, authResponse.refreshToken, refreshCookieOptions);
+
+    return { expiresIn: authResponse.expiresIn, user: authResponse.user };
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout() {
-    // In a production app, you'd invalidate the token here
-    // For now, the client just discards the token
+  async logout(@Request() req: any, @Res({ passthrough: true }) res: FastifyReply) {
+    const refreshToken = req?.cookies?.[REFRESH_TOKEN_COOKIE];
+    if (typeof refreshToken === 'string' && refreshToken.length) {
+      // Revoke the session server-side (best-effort)
+      await this.deviceSessionService.revokeSessionByToken(refreshToken).catch(() => undefined);
+    }
+
+    res.clearCookie(ACCESS_TOKEN_COOKIE, { path: '/' });
+    res.clearCookie(REFRESH_TOKEN_COOKIE, { path: '/' });
     return { message: 'Logged out successfully' };
   }
 
@@ -126,8 +186,24 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@Body() dto: RefreshTokenDto) {
-    return this.authService.refreshTokens(dto.refreshToken);
+  async refreshToken(
+    @Request() req: any,
+    @Body() dto: Partial<RefreshTokenDto>,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    const refreshToken =
+      (dto && typeof dto.refreshToken === 'string' && dto.refreshToken.length ? dto.refreshToken : null) ||
+      (req?.cookies?.[REFRESH_TOKEN_COOKIE] as string | undefined);
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Missing refresh token');
+    }
+
+    const tokens = await this.authService.refreshTokens(refreshToken);
+    res.setCookie(ACCESS_TOKEN_COOKIE, tokens.accessToken, getCookieOptions({ maxAge: tokens.expiresIn }));
+    // Always rotate refresh token on refresh
+    res.setCookie(REFRESH_TOKEN_COOKIE, tokens.refreshToken, getCookieOptions({ maxAge: 7 * 24 * 60 * 60 }));
+    return { success: true, expiresIn: tokens.expiresIn };
   }
 
   @Post('change-password')
@@ -204,6 +280,7 @@ export class AuthController {
     @Body() body: { userId: string; token: string },
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
+    @Res({ passthrough: true }) res: FastifyReply,
   ) {
     // Verify the 2FA token first
     const isValid = await this.twoFactorService.verifyToken(body.userId, body.token);
@@ -212,7 +289,11 @@ export class AuthController {
     }
 
     // Complete the login
-    return this.authService.completeTwoFactorLogin(body.userId, ip, userAgent);
+    const authResponse = await this.authService.completeTwoFactorLogin(body.userId, ip, userAgent);
+    // 2FA completion defaults to session cookie (user can opt into remember-me on next login)
+    res.setCookie(ACCESS_TOKEN_COOKIE, authResponse.accessToken, getCookieOptions({ maxAge: authResponse.expiresIn }));
+    res.setCookie(REFRESH_TOKEN_COOKIE, authResponse.refreshToken, getCookieOptions());
+    return { expiresIn: authResponse.expiresIn, user: authResponse.user };
   }
 
   // Device Session Management Endpoints
@@ -223,9 +304,8 @@ export class AuthController {
     @Request() req: any,
     @Headers('authorization') authHeader: string,
   ): Promise<SessionResponse[]> {
-    // Extract refresh token from stored session (in a real app, this would be in a cookie or stored separately)
-    // For now, we'll return sessions without marking the current one
-    return this.deviceSessionService.getUserSessions(req.user.id);
+    const currentRefreshToken = req?.cookies?.[REFRESH_TOKEN_COOKIE];
+    return this.deviceSessionService.getUserSessions(req.user.id, currentRefreshToken);
   }
 
   @Post('sessions/:sessionId/revoke')
@@ -247,11 +327,19 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async revokeOtherSessions(
     @Request() req: any,
-    @Body() body: { refreshToken: string },
+    @Body() body: Partial<{ refreshToken: string }>,
   ): Promise<{ success: boolean; revokedCount: number }> {
+    const currentRefreshToken =
+      (body?.refreshToken && typeof body.refreshToken === 'string' ? body.refreshToken : null) ||
+      (req?.cookies?.[REFRESH_TOKEN_COOKIE] as string | undefined);
+
+    if (!currentRefreshToken) {
+      throw new UnauthorizedException('Missing refresh token');
+    }
+
     const revokedCount = await this.deviceSessionService.revokeOtherSessions(
       req.user.id,
-      body.refreshToken,
+      currentRefreshToken,
     );
     return { success: true, revokedCount };
   }
@@ -294,39 +382,33 @@ export class AuthController {
     @Query('error') error: string,
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
-    @Res() res: Response,
+    @Res() res: FastifyReply,
   ): Promise<void> {
     // Handle OAuth errors from Google
     if (error) {
       console.error('[OAuth] Google returned error:', error);
-      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3004'}/login?error=oauth_failed`);
+      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`);
       return;
     }
 
     if (!code || !state) {
-      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3004'}/login?error=missing_params`);
+      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=missing_params`);
       return;
     }
 
     try {
       const authResponse = await this.googleOAuthService.handleCallback(code, state, ip, userAgent);
 
-      // Redirect to frontend with tokens (in production, use secure cookies)
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3004';
-      const params = new URLSearchParams({
-        accessToken: authResponse.accessToken,
-        refreshToken: authResponse.refreshToken,
-        userId: authResponse.user.id,
-        email: authResponse.user.email,
-        tier: authResponse.user.subscriptionTier,
-      });
+      // Set secure HttpOnly cookies and redirect without exposing tokens in the URL
+      res.setCookie(ACCESS_TOKEN_COOKIE, authResponse.accessToken, getCookieOptions({ maxAge: authResponse.expiresIn }));
+      res.setCookie(REFRESH_TOKEN_COOKIE, authResponse.refreshToken, getCookieOptions({ maxAge: 7 * 24 * 60 * 60 }));
 
-      res.redirect(`${frontendUrl}/oauth/callback?${params.toString()}`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      res.redirect(`${frontendUrl}/oauth/callback?status=success`);
     } catch (err) {
       console.error('[OAuth] Callback error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3004';
-      res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(errorMessage)}`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      res.redirect(`${frontendUrl}/login?error=oauth_failed`);
     }
   }
 }

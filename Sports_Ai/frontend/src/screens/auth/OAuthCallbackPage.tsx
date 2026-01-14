@@ -8,52 +8,26 @@ export function OAuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleCallback = () => {
-      // Get tokens from URL params
-      const accessToken = searchParams.get('accessToken');
-      const refreshToken = searchParams.get('refreshToken');
-      const userId = searchParams.get('userId');
-      const email = searchParams.get('email');
-      const tier = searchParams.get('tier');
-      const errorParam = searchParams.get('error');
+    const handleCallback = async () => {
+      const status = (searchParams.get('status') || '').toLowerCase();
+      const next = searchParams.get('next');
 
-      if (errorParam) {
-        setError(decodeURIComponent(errorParam));
-        setTimeout(() => {
-          navigate('/login?error=' + encodeURIComponent(errorParam));
-        }, 2000);
+      if (status && status !== 'success') {
+        setError('Authentication failed. Please try again.');
+        setTimeout(() => navigate('/login?error=oauth_failed', { replace: true }), 1500);
         return;
       }
 
-      if (!accessToken || !refreshToken || !userId || !email) {
-        setError('Invalid OAuth callback - missing parameters');
-        setTimeout(() => {
-          navigate('/login?error=oauth_failed');
-        }, 2000);
-        return;
+      // Tokens are set as HttpOnly cookies by the backend.
+      // We just validate the session by fetching /me via checkAuth().
+      try {
+        await useAuthStore.getState().checkAuth();
+        const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : '/home';
+        navigate(safeNext, { replace: true });
+      } catch {
+        setError('Authentication failed. Please try again.');
+        setTimeout(() => navigate('/login?error=oauth_failed', { replace: true }), 1500);
       }
-
-      // Set authentication state
-      useAuthStore.setState({
-        token: accessToken,
-        user: {
-          id: userId,
-          email: email,
-          subscriptionTier: tier || 'free',
-          role: 'user',
-          creditBalance: 0,
-        },
-        isAuthenticated: true,
-        error: null,
-      });
-
-      // Store tokens in localStorage
-      localStorage.setItem('token', accessToken);
-      // Keep refresh token around if backend uses it elsewhere
-      localStorage.setItem('refreshToken', refreshToken);
-
-      // Redirect to home
-      navigate('/home', { replace: true });
     };
 
     handleCallback();

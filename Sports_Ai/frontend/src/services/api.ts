@@ -7,11 +7,10 @@ import {
 } from '../utils/idempotencyUtils';
 import { useDataFreshnessStore } from '../store/dataFreshnessStore';
 
-// Prefer explicit Vercel env var, but default production to the known Render backend
-// so the app works even if `VITE_API_URL` wasn't set in Vercel project settings.
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? 'https://sportsapiai.onrender.com' : 'http://localhost:4000');
+// Prefer explicit env var, otherwise use same-origin /api.
+// - Dev: Vite proxies /api -> http://localhost:4000 (see vite.config.ts)
+// - Prod (Vercel): vercel.json rewrites /api -> Render backend
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Default timeout of 30 seconds to prevent indefinite hanging
 const DEFAULT_TIMEOUT = 30000;
@@ -25,7 +24,27 @@ export const api = axios.create({
   timeout: DEFAULT_TIMEOUT,
 });
 
-// Request interceptor to add auth token and idempotency keys
+let refreshPromise: Promise<void> | null = null;
+
+async function refreshSessionOnce(): Promise<void> {
+  if (!refreshPromise) {
+    refreshPromise = api
+      .post('/v1/auth/refresh')
+      .then(() => undefined)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
+function redirectToLoginPreservingNext(): void {
+  const next = window.location.pathname + window.location.search;
+  const url = `/login?next=${encodeURIComponent(next)}`;
+  window.location.href = url;
+}
+
+// Request interceptor for idempotency keys and offline protection
 api.interceptors.request.use(
   (config) => {
     // Track in-flight requests globally for "refreshing" UI
@@ -44,27 +63,6 @@ api.interceptors.request.use(
         (offlineError as any).isOfflineError = true;
         return Promise.reject(offlineError);
       }
-    }
-
-    // Add auth token
-    const token =
-      localStorage.getItem('token') ||
-      (() => {
-        // Fallback: Zustand persist stores a JSON payload under `auth-storage`.
-        // This prevents "authenticated UI but no Authorization header" situations.
-        try {
-          const raw = localStorage.getItem('auth-storage');
-          if (!raw) return null;
-          const parsed = JSON.parse(raw);
-          const state = parsed?.state;
-          const t = state?.token;
-          return typeof t === 'string' ? t : null;
-        } catch {
-          return null;
-        }
-      })();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
     }
 
     // Add idempotency key for POST requests to specific endpoints
@@ -136,19 +134,39 @@ api.interceptors.response.use(
       // ignore
     }
 
-    // Handle authentication errors
-    if (error.response?.status === 401) {
-      const url = String(error.config?.url || '');
-      const isAuthRoute = url.startsWith('/v1/auth/') || url.includes('/v1/auth/');
-      // Don't hard-redirect on expected 401s (e.g. wrong password on login).
-      if (!isAuthRoute) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('auth-storage');
-        if (window.location.pathname !== '/login') {
-          window.location.replace('/login');
-        }
+    const status = error.response?.status;
+    const originalRequest = error.config as any;
+    const url = (originalRequest?.url as string | undefined) || '';
+
+    // Handle authentication errors:
+    // - First try a silent refresh (once) for non-auth endpoints
+    // - If refresh fails, redirect to login preserving the intended destination
+    if (status === 401 && originalRequest && !originalRequest._retry) {
+      const isAuthEndpoint =
+        url.includes('/v1/auth/login') ||
+        url.includes('/v1/auth/signup') ||
+        url.includes('/v1/auth/refresh') ||
+        url.includes('/v1/auth/google/');
+
+      if (!isAuthEndpoint) {
+        originalRequest._retry = true;
+        return refreshSessionOnce()
+          .then(() => api(originalRequest))
+          .catch(() => {
+            // Clear any legacy token remnants (tokens should be cookies now)
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('user');
+            localStorage.removeItem('auth-storage');
+            redirectToLoginPreservingNext();
+            return Promise.reject(error);
+          });
       }
+
+      // Auth endpoint failed: redirect
+      localStorage.removeItem('auth-storage');
+      redirectToLoginPreservingNext();
     }
 
     // Handle timeout errors
@@ -185,8 +203,12 @@ export interface User {
 }
 
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken?: string;
+  expiresIn?: number;
+  user: User;
+}
+
+// Cookie/session-based auth response (no tokens in JS)
+export interface AuthSessionResponse {
   expiresIn?: number;
   user: User;
 }
@@ -229,13 +251,21 @@ export interface DeviceSession {
 
 // Auth API
 export const authApi = {
-  signup: async (email: string, password: string): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/v1/auth/signup', { email, password });
+  signup: async (email: string, password: string): Promise<AuthSessionResponse> => {
+    const response = await api.post<AuthSessionResponse>('/v1/auth/signup', { email, password });
     return response.data;
   },
 
-  login: async (email: string, password: string): Promise<AuthResponse | TwoFactorRequiredResponse> => {
-    const response = await api.post<AuthResponse | TwoFactorRequiredResponse>('/v1/auth/login', { email, password });
+  login: async (
+    email: string,
+    password: string,
+    options?: { rememberMe?: boolean },
+  ): Promise<AuthSessionResponse | TwoFactorRequiredResponse> => {
+    const response = await api.post<AuthSessionResponse | TwoFactorRequiredResponse>('/v1/auth/login', {
+      email,
+      password,
+      rememberMe: options?.rememberMe === true,
+    });
     return response.data;
   },
 
@@ -269,8 +299,8 @@ export const authApi = {
     return response.data;
   },
 
-  completeTwoFactorLogin: async (userId: string, token: string): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/v1/auth/2fa/complete-login', { userId, token });
+  completeTwoFactorLogin: async (userId: string, token: string): Promise<AuthSessionResponse> => {
+    const response = await api.post<AuthSessionResponse>('/v1/auth/2fa/complete-login', { userId, token });
     return response.data;
   },
 
@@ -319,6 +349,13 @@ export interface Event {
   startTime: string;
   status: string;
   venue: string | null;
+  odds?: Array<{
+    bookmaker?: string;
+    market?: string;
+    outcomeKey: string;
+    odds: number;
+    line?: number | null;
+  }>;
 }
 
 export interface EventsResponse {
@@ -457,6 +494,16 @@ export const eventsApi = {
 
   getById: async (id: string): Promise<Event> => {
     const response = await api.get<Event>(`/v1/events/${id}`);
+    return response.data;
+  },
+
+  getSportsSummary: async (): Promise<Array<{ key: string; name: string; icon: string; events: number }>> => {
+    const response = await api.get('/v1/events/summary/sports');
+    return response.data;
+  },
+
+  getLeaguesSummary: async (): Promise<Array<{ id: string; name: string; sport: string; sportKey: string; country: string; events: number }>> => {
+    const response = await api.get('/v1/events/summary/leagues');
     return response.data;
   },
 

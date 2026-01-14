@@ -10,6 +10,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from '@fastify/helmet';
+import fastifyCookie from '@fastify/cookie';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -40,6 +41,11 @@ async function bootstrap() {
 
     console.log('📎 Registering Fastify plugins...');
     
+    // Cookies (required for secure HttpOnly auth sessions)
+    await app.register(fastifyCookie, {
+      secret: process.env.COOKIE_SECRET || process.env.JWT_SECRET || 'sportsai-cookie-secret-change-in-production',
+    });
+
     // Register multipart for file uploads
     await app.register(fastifyMultipart, {
       limits: {

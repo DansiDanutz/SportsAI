@@ -28,6 +28,12 @@ export interface AuthResponse {
   };
 }
 
+// Cookie/session-based auth response (no tokens)
+export interface AuthSessionResponse {
+  expiresIn: number;
+  user: AuthResponse['user'];
+}
+
 export interface TwoFactorRequiredResponse {
   requiresTwoFactor: true;
   userId: string;

@@ -1,12 +1,27 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../services/api';
+
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  oauth_failed: 'Google sign-in failed. Please try again.',
+  missing_params: 'Authentication callback was missing required parameters. Please try again.',
+  oauth_cancelled: 'Google sign-in was cancelled. Please try again.',
+  session_expired: 'Your session expired. Please sign in again.',
+};
+
+function sanitizeNext(next: string | null): string | null {
+  if (!next) return null;
+  // Only allow internal relative paths
+  if (next.startsWith('/') && !next.startsWith('//')) return next;
+  return null;
+}
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [googleOAuthConfigured, setGoogleOAuthConfigured] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const {
@@ -21,8 +36,12 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const twoFactorInputRef = useRef<HTMLInputElement | null>(null);
+  const errorRef = useRef<HTMLDivElement | null>(null);
 
-  const from = (location.state as any)?.from?.pathname || '/home';
+  const nextParam = sanitizeNext(searchParams.get('next'));
+  const stateFrom = (location.state as any)?.from?.pathname as string | undefined;
+  const from = nextParam || stateFrom || '/home';
 
   // Check if Google OAuth is configured
   useEffect(() => {
@@ -41,10 +60,26 @@ export function LoginPage() {
   useEffect(() => {
     const errorParam = searchParams.get('error');
     if (errorParam) {
-      // Show error from OAuth callback
-      useAuthStore.setState({ error: decodeURIComponent(errorParam) });
+      // Only allow known error codes to prevent displaying attacker-controlled text
+      const normalized = String(errorParam).trim().toLowerCase();
+      const safeMessage = AUTH_ERROR_MESSAGES[normalized] || 'Authentication failed. Please try again.';
+      useAuthStore.setState({ error: safeMessage });
     }
   }, [searchParams]);
+
+  // Focus the 2FA input when the flow starts
+  useEffect(() => {
+    if (requiresTwoFactor) {
+      setTimeout(() => twoFactorInputRef.current?.focus(), 0);
+    }
+  }, [requiresTwoFactor]);
+
+  // Focus error alert when it appears
+  useEffect(() => {
+    if (error) {
+      setTimeout(() => errorRef.current?.focus(), 0);
+    }
+  }, [error]);
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
@@ -63,7 +98,7 @@ export function LoginPage() {
     clearError();
 
     try {
-      const result = await login(email, password);
+      const result = await login(email, password, { rememberMe });
       // If 2FA is not required, navigate
       if (!result.requiresTwoFactor) {
         navigate(from, { replace: true });
@@ -135,6 +170,8 @@ export function LoginPage() {
                 className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm"
                 role="alert"
                 aria-live="polite"
+                tabIndex={-1}
+                ref={errorRef}
               >
                 {error}
               </div>
@@ -155,6 +192,7 @@ export function LoginPage() {
                   }}
                   required
                   autoComplete="one-time-code"
+                  ref={twoFactorInputRef}
                   className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-center text-2xl tracking-widest font-mono placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
                   placeholder="000000"
                   maxLength={8}
@@ -203,6 +241,8 @@ export function LoginPage() {
                 className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm"
                 role="alert"
                 aria-live="polite"
+                tabIndex={-1}
+                ref={errorRef}
               >
                 {error}
               </div>
@@ -245,6 +285,8 @@ export function LoginPage() {
                 <label className="flex items-center">
                   <input
                     type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded border-gray-600 text-green-500 focus:ring-green-500 focus:ring-offset-gray-800"
                   />
                   <span className="ml-2 text-sm text-gray-400">Remember me</span>

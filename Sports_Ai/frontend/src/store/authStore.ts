@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
-import { authApi, User, AuthResponse, TwoFactorRequiredResponse } from '../services/api';
+import { authApi, User, AuthSessionResponse, TwoFactorRequiredResponse } from '../services/api';
 import { safeSetItem, safeGetItem, safeRemoveItem, StorageResult } from '../utils/storage';
 
 // Custom storage adapter with error handling
@@ -22,7 +22,6 @@ const safeStorage: StateStorage = {
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -32,7 +31,7 @@ interface AuthState {
   pendingTwoFactorUserId: string | null;
 
   // Actions
-  login: (email: string, password: string) => Promise<{ requiresTwoFactor: boolean }>;
+  login: (email: string, password: string, options?: { rememberMe?: boolean }) => Promise<{ requiresTwoFactor: boolean }>;
   completeTwoFactorLogin: (token: string) => Promise<void>;
   cancelTwoFactor: () => void;
   signup: (email: string, password: string) => Promise<void>;
@@ -43,7 +42,7 @@ interface AuthState {
 }
 
 // Type guard for 2FA response
-function isTwoFactorRequired(response: AuthResponse | TwoFactorRequiredResponse): response is TwoFactorRequiredResponse {
+function isTwoFactorRequired(response: AuthSessionResponse | TwoFactorRequiredResponse): response is TwoFactorRequiredResponse {
   return 'requiresTwoFactor' in response && response.requiresTwoFactor === true;
 }
 
@@ -51,17 +50,16 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      token: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
       requiresTwoFactor: false,
       pendingTwoFactorUserId: null,
 
-      login: async (email: string, password: string) => {
+      login: async (email: string, password: string, options?: { rememberMe?: boolean }) => {
         set({ isLoading: true, error: null, requiresTwoFactor: false, pendingTwoFactorUserId: null });
         try {
-          const response = await authApi.login(email, password);
+          const response = await authApi.login(email, password, { rememberMe: options?.rememberMe === true });
 
           // Check if 2FA is required
           if (isTwoFactorRequired(response)) {
@@ -74,14 +72,8 @@ export const useAuthStore = create<AuthState>()(
           }
 
           // Regular login without 2FA
-          const storageResult = safeSetItem('token', response.accessToken);
-          if (!storageResult.success) {
-            console.warn('Token storage warning:', storageResult.message);
-            // Continue with login - token is still in memory
-          }
           set({
             user: response.user,
-            token: response.accessToken,
             isAuthenticated: true,
             isLoading: false,
             requiresTwoFactor: false,
@@ -104,13 +96,8 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const response = await authApi.completeTwoFactorLogin(userId, token);
-          const storageResult = safeSetItem('token', response.accessToken);
-          if (!storageResult.success) {
-            console.warn('Token storage warning:', storageResult.message);
-          }
           set({
             user: response.user,
-            token: response.accessToken,
             isAuthenticated: true,
             isLoading: false,
             requiresTwoFactor: false,
@@ -134,15 +121,9 @@ export const useAuthStore = create<AuthState>()(
       signup: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
         try {
-          const response: AuthResponse = await authApi.signup(email, password);
-          const storageResult = safeSetItem('token', response.accessToken);
-          if (!storageResult.success) {
-            console.warn('Token storage warning:', storageResult.message);
-            // Continue with signup - token is still in memory
-          }
+          const response: AuthSessionResponse = await authApi.signup(email, password);
           set({
             user: response.user,
-            token: response.accessToken,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -159,36 +140,29 @@ export const useAuthStore = create<AuthState>()(
         } catch {
           // Ignore errors on logout
         } finally {
+          // Clear any legacy token remnants
           safeRemoveItem('token');
+          safeRemoveItem('refreshToken');
+          safeRemoveItem('accessToken');
           set({
             user: null,
-            token: null,
             isAuthenticated: false,
           });
         }
       },
 
       checkAuth: async () => {
-        const token = safeGetItem('token');
-        if (!token) {
-          set({ isAuthenticated: false, user: null, token: null });
-          return;
-        }
-
         set({ isLoading: true });
         try {
           const user = await authApi.getProfile();
           set({
             user,
-            token,
             isAuthenticated: true,
             isLoading: false,
           });
         } catch {
-          safeRemoveItem('token');
           set({
             user: null,
-            token: null,
             isAuthenticated: false,
             isLoading: false,
           });
@@ -207,7 +181,6 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       storage: createJSONStorage(() => safeStorage),
       partialize: (state) => ({
-        token: state.token,
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),

@@ -63,11 +63,22 @@ export class GoogleOAuthService {
     private deviceSessionService: DeviceSessionService,
   ) {
     // Initialize allowed redirect URIs from environment
-    const baseCallbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/v1/auth/google/callback';
+    // In production with Vercel rewrites, prefer a callback on the frontend domain under /api
+    // so Set-Cookie is issued for the frontend origin (same-site cookie session).
+    const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+    const defaultCallbackUrl = isProd
+      ? `${process.env.FRONTEND_URL || 'https://sports-ai-one.vercel.app'}/api/v1/auth/google/callback`
+      : 'http://localhost:4000/v1/auth/google/callback';
+
+    const baseCallbackUrl = process.env.GOOGLE_CALLBACK_URL || defaultCallbackUrl;
     this.allowedRedirectUris = [
       baseCallbackUrl,
       'http://localhost:3000/v1/auth/google/callback',
       'http://localhost:4000/v1/auth/google/callback',
+      'http://localhost:3000/api/v1/auth/google/callback',
+      'http://localhost:4000/api/v1/auth/google/callback',
+      // Production via Vercel rewrite (adjust FRONTEND_URL in env for your actual domain)
+      `${process.env.FRONTEND_URL || 'https://sports-ai-one.vercel.app'}/api/v1/auth/google/callback`,
     ];
   }
 
@@ -84,8 +95,13 @@ export class GoogleOAuthService {
     const state = crypto.randomBytes(32).toString('hex');
     const nonce = crypto.randomBytes(32).toString('hex');
 
-    // Use configured callback URL
-    const redirectUri = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/v1/auth/google/callback';
+    // Use configured callback URL (see constructor defaults)
+    const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+    const defaultCallbackUrl = isProd
+      ? `${process.env.FRONTEND_URL || 'https://sports-ai-one.vercel.app'}/api/v1/auth/google/callback`
+      : 'http://localhost:4000/v1/auth/google/callback';
+
+    const redirectUri = process.env.GOOGLE_CALLBACK_URL || defaultCallbackUrl;
 
     // Store state for validation (expires in 10 minutes)
     this.oauthStates.set(state, {

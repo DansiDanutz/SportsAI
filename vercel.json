@@ -4,6 +4,27 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "echo \"Using root build script (installs + builds frontend via --prefix)\"",
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), display-capture=(), document-domain=(), encrypted-media=(), fullscreen=(self), gamepad=(), geolocation=(), gyroscope=(), hid=(), idle-detection=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), serial=(), usb=(), web-share=()" },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://sportsapiai.onrender.com https://*.vercel.app ws: wss:; font-src 'self' data: https:; upgrade-insecure-requests"
+        }
+      ]
+    }
+  ],
   "git": {
     "deploymentEnabled": {
       "main": true,
@@ -11,6 +32,10 @@
     }
   },
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://sportsapiai.onrender.com/$1"
+    },
     {
       "handle": "filesystem"
     },
