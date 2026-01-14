@@ -27,6 +27,10 @@ interface AiSettings {
 @Controller('v1/ai')
 @UseGuards(JwtAuthGuard)
 export class AiController {
+  // Cache AI advice briefly to avoid repeated slow upstream calls on Home refresh.
+  // Keyed by user + active configuration + language.
+  private adviceCache = new Map<string, { fetchedAt: number; payload: any }>();
+
   constructor(
     private usersService: UsersService,
     private openRouterService: OpenRouterService,
@@ -39,6 +43,21 @@ export class AiController {
     private newsService: NewsService,
     private prisma: PrismaService,
   ) {}
+
+  private withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('timeout')), ms);
+      promise
+        .then((v) => {
+          clearTimeout(t);
+          resolve(v);
+        })
+        .catch((e) => {
+          clearTimeout(t);
+          reject(e);
+        });
+    });
+  }
 
   @Get('strange-bets')
   async getStrangeBets() {
@@ -324,11 +343,20 @@ export class AiController {
           markets: [],
         };
 
+    const cacheKey = `${req.user.id}:${activeConfig?.id || 'default'}:${languageCode}`;
+    const now = Date.now();
+    const cacheTtlMs = Number(process.env.AI_ADVICE_CACHE_TTL_MS || 60_000);
+    const cached = this.adviceCache.get(cacheKey);
+    if (cached && now - cached.fetchedAt <= cacheTtlMs) {
+      return cached.payload;
+    }
+
     // Get upcoming matches based on configuration
     const events = await this.prisma.event.findMany({
       where: {
         sport: { key: configuration.sportKey },
         status: { in: ['upcoming', 'live'] },
+        startTimeUtc: { gte: new Date() },
         ...(configuration.leagues.length > 0 && {
           league: {
             OR: [
@@ -343,6 +371,7 @@ export class AiController {
         away: true,
         league: true,
         oddsQuotes: {
+          where: { market: { marketKey: 'h2h' } },
           orderBy: { timestamp: 'desc' },
           take: 3,
         },
@@ -371,7 +400,12 @@ export class AiController {
 
     let advice: AiAdvice[] = [];
     try {
-      advice = await this.openRouterService.generateAdvice(configuration, matches, languageCode);
+      // Hard-cap the AI provider time so this endpoint stays snappy even on provider issues.
+      const timeoutMs = Number(process.env.AI_ADVICE_TIMEOUT_MS || 8000);
+      advice = await this.withTimeout(
+        this.openRouterService.generateAdvice(configuration, matches, languageCode),
+        timeoutMs
+      );
     } catch (e) {
       // Fallback: deterministic, odds-derived advice (no fabricated content).
       advice = matches
@@ -402,7 +436,7 @@ export class AiController {
         });
     }
 
-    return {
+    const payload = {
       advice,
       configuration: activeConfig
         ? {
@@ -417,6 +451,9 @@ export class AiController {
       matchCount: matches.length,
       language: languageCode,
     };
+
+    this.adviceCache.set(cacheKey, { fetchedAt: now, payload });
+    return payload;
   }
 
   @Get('news')
