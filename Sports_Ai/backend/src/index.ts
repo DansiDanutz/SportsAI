@@ -78,19 +78,25 @@ async function bootstrap() {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const usingExplicitCors = rawCors.length > 0;
-
     const nodeEnv = (process.env.NODE_ENV || '').toLowerCase();
     const isNonDevRuntime = nodeEnv !== 'development' && nodeEnv !== 'test';
 
-    // Allow Vercel deployments in non-dev runtimes (Render + Vercel integration).
-    // If you need to lock down to a single domain, set CORS_ORIGIN to that domain
-    // and deploy the frontend on that exact origin.
+    const isHttpsVercelOrigin = (origin: string): boolean => {
+      try {
+        const url = new URL(origin);
+        return url.protocol === 'https:' && url.hostname.endsWith('.vercel.app');
+      } catch {
+        return false;
+      }
+    };
+
+    // Always allow HTTPS Vercel deployments (preview + prod). This prevents accidental
+    // misconfiguration of NODE_ENV/CORS_ORIGIN from breaking the Vercel frontend.
     const allowVercelWildcard =
-      isNonDevRuntime ||
       rawCors.includes('https://*.vercel.app') ||
       rawCors.includes('*.vercel.app') ||
-      rawCors.includes('.vercel.app');
+      rawCors.includes('.vercel.app') ||
+      isNonDevRuntime;
 
     const allowedOrigins = (rawCors.length ? rawCors : defaultLocalOrigins).filter(
       (o) => !['*.vercel.app', '.vercel.app'].includes(o)
@@ -108,15 +114,8 @@ async function bootstrap() {
           allowOrigin = true; // Non-browser requests
         } else if (allowedOrigins.includes(origin)) {
           allowOrigin = true;
-        } else if (allowVercelWildcard) {
-          try {
-            const url = new URL(origin);
-            if (url.protocol === 'https:' && url.hostname.endsWith('.vercel.app')) {
-              allowOrigin = true;
-            }
-          } catch {
-            // ignore invalid origin formats
-          }
+        } else if (isHttpsVercelOrigin(origin)) {
+          allowOrigin = true;
         }
         
         if (allowOrigin) {
@@ -125,6 +124,7 @@ async function bootstrap() {
           reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Idempotency-Key');
           reply.header('Access-Control-Allow-Credentials', 'true');
           reply.header('Access-Control-Max-Age', '86400');
+          reply.header('Vary', 'Origin');
           return reply.code(204).send();
         } else {
           return reply.code(403).send({ error: 'CORS blocked origin' });
@@ -141,20 +141,14 @@ async function bootstrap() {
         
         if (allowedOrigins.includes(origin)) {
           allowOrigin = true;
-        } else if (allowVercelWildcard) {
-          try {
-            const url = new URL(origin);
-            if (url.protocol === 'https:' && url.hostname.endsWith('.vercel.app')) {
-              allowOrigin = true;
-            }
-          } catch {
-            // ignore invalid origin formats
-          }
+        } else if (isHttpsVercelOrigin(origin)) {
+          allowOrigin = true;
         }
         
         if (allowOrigin) {
           reply.header('Access-Control-Allow-Origin', origin);
           reply.header('Access-Control-Allow-Credentials', 'true');
+          reply.header('Vary', 'Origin');
         }
       }
     });
