@@ -140,6 +140,9 @@ export function SportEventsPage() {
   const {
     data: eventsResponse,
     refetch: refetchEvents,
+    isLoading: eventsLoading,
+    isFetching: eventsFetching,
+    dataUpdatedAt: eventsUpdatedAt,
   } = useQuery({
     queryKey: ['events', sportKey, refreshKey],
     enabled: !!sportKey,
@@ -159,7 +162,19 @@ export function SportEventsPage() {
     },
     staleTime: 1000 * 30, // 30s
     retry: 1,
+    placeholderData: (prev) => prev,
   });
+
+  const eventsLastUpdatedLabel = useMemo(() => {
+    if (!eventsUpdatedAt) return null;
+    const diffMs = Date.now() - eventsUpdatedAt;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins <= 0) return 'just now';
+    if (mins === 1) return '1 minute ago';
+    if (mins < 60) return `${mins} minutes ago`;
+    const hrs = Math.floor(mins / 60);
+    return hrs === 1 ? '1 hour ago' : `${hrs} hours ago`;
+  }, [eventsUpdatedAt]);
   // Pull to refresh handler - refreshes favorites and events
   const handleRefresh = useCallback(async () => {
     try {
@@ -640,6 +655,10 @@ export function SportEventsPage() {
                 <p className="text-gray-400 mt-1" data-testid="filter-results-count">
                   {filteredEvents.length} {leagueFilter !== 'all' ? `${leagueFilter} ` : ''}events
                 </p>
+                <p className="text-gray-500 text-sm mt-1">
+                  {eventsLastUpdatedLabel ? `Updated ${eventsLastUpdatedLabel}` : 'Updating…'}
+                  {eventsFetching ? ' (refreshing)' : ''}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -825,7 +844,17 @@ export function SportEventsPage() {
         )}
 
         {/* Events List */}
-        {paginatedEvents.length > 0 ? (
+        {eventsLoading && paginatedEvents.length === 0 ? (
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-10">
+            <div className="flex items-center justify-center gap-3 text-gray-300">
+              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
+              <span className="font-medium">Loading live events and odds…</span>
+            </div>
+            <p className="text-gray-500 text-sm mt-3 text-center">
+              We’ll show the last saved results first when available.
+            </p>
+          </div>
+        ) : paginatedEvents.length > 0 ? (
           <div className="space-y-4">
             {paginatedEvents.map((event) => {
               const eventId = `${sportKey}-${event.id}`;
@@ -940,6 +969,9 @@ export function SportEventsPage() {
                 ? `No ${leagueFilter} events found. Try a different filter.`
                 : `Check back later for upcoming ${sport.name} events`
               }
+            </p>
+            <p className="text-gray-500 text-sm mt-2">
+              {eventsLastUpdatedLabel ? `Last checked ${eventsLastUpdatedLabel}.` : 'Checking now…'}
             </p>
             {leagueFilter !== 'all' && (
               <button

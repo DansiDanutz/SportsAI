@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Layout } from '../../components/Layout';
@@ -13,11 +13,6 @@ import { useArbitrage } from '../../hooks/useArbitrage';
 export function HomePage() {
   const { user } = useAuthStore();
   const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
-  const [liveEvents, setLiveEvents] = useState<Event[]>([]);
-  const [favoritesCount, setFavoritesCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<any>(null);
 
   // Fetch Arbitrage Data
   const { data: arbitrageData } = useArbitrage();
@@ -57,42 +52,56 @@ export function HomePage() {
     retry: 1,
   });
 
-  const fetchFavoritesCount = useCallback(async () => {
-    try {
+  const favoritesCountQuery = useQuery({
+    queryKey: ['favoritesCount'],
+    queryFn: async () => {
       const response = await api.get('/v1/favorites');
-      setFavoritesCount(response.data.total || 0);
-    } catch (err) {
-      console.error('Error fetching favorites count:', err);
-    }
-  }, []);
+      return response.data.total || 0;
+    },
+    staleTime: 1000 * 30,
+    retry: 1,
+    placeholderData: (prev) => prev ?? 0,
+  });
 
-  const fetchEvents = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const eventsQuery = useQuery({
+    queryKey: ['homeEvents', favoritesOnly],
+    queryFn: async () => {
       const [upcomingRes, liveRes] = await Promise.all([
         eventsApi.getUpcoming({ favoritesOnly, limit: 10 }),
         eventsApi.getLive({ favoritesOnly, limit: 5 }),
       ]);
-      setUpcomingEvents(upcomingRes.events);
-      setLiveEvents(liveRes.events);
-    } catch (err: any) {
-      console.error('Error fetching events:', err);
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [favoritesOnly]);
-
-  useEffect(() => {
-    fetchEvents();
-    fetchFavoritesCount();
-  }, [fetchEvents, fetchFavoritesCount]);
+      return {
+        upcoming: upcomingRes.events,
+        live: liveRes.events,
+      };
+    },
+    staleTime: 1000 * 30,
+    retry: 1,
+    placeholderData: (prev) => prev,
+  });
 
   // Pull to refresh handler
   const handleRefresh = useCallback(async () => {
-    await Promise.all([fetchEvents(), fetchFavoritesCount()]);
-  }, [fetchEvents, fetchFavoritesCount]);
+    await Promise.all([eventsQuery.refetch(), favoritesCountQuery.refetch()]);
+  }, [eventsQuery, favoritesCountQuery]);
+
+  const favoritesCount = favoritesCountQuery.data ?? 0;
+  const upcomingEvents = eventsQuery.data?.upcoming ?? [];
+  const liveEvents = eventsQuery.data?.live ?? [];
+  const loading = eventsQuery.isLoading || eventsQuery.isFetching;
+  const error = eventsQuery.error;
+
+  const lastUpdatedLabel = useMemo(() => {
+    const updatedAt = eventsQuery.dataUpdatedAt;
+    if (!updatedAt) return null;
+    const diffMs = Date.now() - updatedAt;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins <= 0) return 'just now';
+    if (mins === 1) return '1 minute ago';
+    if (mins < 60) return `${mins} minutes ago`;
+    const hrs = Math.floor(mins / 60);
+    return hrs === 1 ? '1 hour ago' : `${hrs} hours ago`;
+  }, [eventsQuery.dataUpdatedAt]);
 
   const formatEventTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -121,6 +130,11 @@ export function HomePage() {
             <p className="text-gray-400 mt-2">
               Your personalized sports intelligence feed
             </p>
+            {lastUpdatedLabel && (
+              <p className="text-gray-500 text-sm mt-2">
+                Updated {lastUpdatedLabel}
+              </p>
+            )}
           </div>
 
           {/* Filter Chips */}
@@ -415,12 +429,18 @@ export function HomePage() {
                 </a>
               </div>
 
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+              {error ? (
+                <ErrorDisplay error={error} onRetry={() => eventsQuery.refetch()} />
+              ) : loading && upcomingEvents.length === 0 ? (
+                <div className="text-gray-400 text-center py-8">
+                  <div className="inline-flex items-center gap-3">
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
+                    <span>Loading your events…</span>
+                  </div>
+                  <p className="text-gray-500 text-sm mt-2">
+                    This is live data. If this is your first login, it may take a moment to populate.
+                  </p>
                 </div>
-              ) : error ? (
-                <ErrorDisplay error={error} onRetry={fetchEvents} />
               ) : upcomingEvents.length === 0 ? (
                 <div className="text-gray-400 text-center py-8">
                   {favoritesOnly
@@ -451,9 +471,12 @@ export function HomePage() {
                 </span>
               </div>
 
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+              {loading && liveEvents.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-gray-400">
+                  <div className="inline-flex items-center gap-3">
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
+                    <span>Loading live events…</span>
+                  </div>
                 </div>
               ) : liveEvents.length === 0 ? (
                 <div className="text-gray-400 text-center py-8">
