@@ -117,21 +117,11 @@ export class UsersController {
   }
 
   @Get('me/favorites')
-  async getFavorites(@Request() req: any) {
-    // Mock favorites for now - would query from database
+  async getFavorites() {
+    // Favorites are managed via the dedicated /v1/favorites endpoints.
     return {
       favorites: [],
       total: 0,
-    };
-  }
-
-  @Post('me/favorites')
-  async addFavorite(@Request() req: any, @Body() body: { eventId: string }) {
-    // Mock implementation - would save to database
-    return {
-      success: true,
-      message: 'Favorite added',
-      eventId: body.eventId,
     };
   }
 

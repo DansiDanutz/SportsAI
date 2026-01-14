@@ -919,7 +919,9 @@ export function SettingsPage() {
     const planPrices: Record<string, number> = { free: 0, premium: 19.99, pro: 49.99 };
     const currentPrice = planPrices[currentPlan] || 0;
     const newPrice = planPrices[newPlan] || 0;
-    const daysRemaining = 15; // Mock: days remaining in billing cycle
+    // Billing proration requires real billing-cycle data from the backend/payment provider.
+    // We intentionally do not estimate it client-side.
+    const daysRemaining = 0;
     const dailyRate = (newPrice - currentPrice) / 30;
     const amount = Math.abs(dailyRate * daysRemaining);
     return {

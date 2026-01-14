@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class TheSportsDbService implements OnModuleInit {
   private readonly logger = new Logger(TheSportsDbService.name);
-  private client: AxiosInstance;
+  private client!: AxiosInstance;
   private apiKey: string;
   private readonly baseUrl = 'https://www.thesportsdb.com/api/v1/json';
 
@@ -25,8 +25,9 @@ export class TheSportsDbService implements OnModuleInit {
         params: { t: teamName },
       });
       return response.data.teams;
-    } catch (error: any) {
-      this.logger.error(`Failed to search teams: ${error?.message || String(error)}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to search teams: ${msg}`);
       throw error;
     }
   }
@@ -37,8 +38,9 @@ export class TheSportsDbService implements OnModuleInit {
         params: { s: leagueName },
       });
       return response.data.countrys;
-    } catch (error: any) {
-      this.logger.error(`Failed to get league details: ${error?.message || String(error)}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to get league details: ${msg}`);
       throw error;
     }
   }
@@ -49,8 +51,9 @@ export class TheSportsDbService implements OnModuleInit {
         params: { id: teamId },
       });
       return response.data.player;
-    } catch (error: any) {
-      this.logger.error(`Failed to get team players: ${error?.message || String(error)}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to get team players: ${msg}`);
       throw error;
     }
   }

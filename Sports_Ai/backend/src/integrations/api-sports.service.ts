@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class ApiSportsService implements OnModuleInit {
   private readonly logger = new Logger(ApiSportsService.name);
-  private client: AxiosInstance;
+  private client!: AxiosInstance;
   private apiKey: string;
   private readonly baseUrl = 'https://v3.football.api-sports.io'; // Default to football, can be changed per sport
 
@@ -42,8 +42,9 @@ export class ApiSportsService implements OnModuleInit {
     try {
       const response = await this.client.get('/leagues');
       return response.data.response;
-    } catch (error: any) {
-      this.logger.error(`Failed to fetch leagues for ${sport}: ${error?.message || String(error)}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to fetch leagues for ${sport}: ${msg}`);
       throw error;
     }
   }
@@ -53,8 +54,9 @@ export class ApiSportsService implements OnModuleInit {
     try {
       const response = await this.client.get('/fixtures', { params });
       return response.data.response;
-    } catch (error: any) {
-      this.logger.error(`Failed to fetch fixtures for ${sport}: ${error?.message || String(error)}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to fetch fixtures for ${sport}: ${msg}`);
       throw error;
     }
   }
@@ -66,8 +68,9 @@ export class ApiSportsService implements OnModuleInit {
         params: { league, season },
       });
       return response.data.response;
-    } catch (error: any) {
-      this.logger.error(`Failed to fetch standings for ${sport}: ${error?.message || String(error)}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to fetch standings for ${sport}: ${msg}`);
       throw error;
     }
   }

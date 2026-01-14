@@ -14,118 +14,39 @@ interface Notification {
   createdAt: string;
 }
 
-// Mock notifications for demo/testing when API is unavailable
-const generateMockNotifications = (): Notification[] => {
-  const now = new Date();
-  return [
-    {
-      id: 'notif-1',
-      type: 'arbitrage',
-      title: 'New Arbitrage Opportunity!',
-      message: 'Lakers vs Warriors - 3.2% profit opportunity found',
-      url: '/arbitrage',
-      isRead: false,
-      readAt: null,
-      createdAt: new Date(now.getTime() - 5 * 60000).toISOString(), // 5 min ago
-    },
-    {
-      id: 'notif-2',
-      type: 'odds_movement',
-      title: 'Odds Movement Alert',
-      message: 'Manchester United odds shifted from +150 to +180',
-      url: '/event/event-manutd-liverpool',
-      isRead: false,
-      readAt: null,
-      createdAt: new Date(now.getTime() - 15 * 60000).toISOString(), // 15 min ago
-    },
-    {
-      id: 'notif-3',
-      type: 'system',
-      title: 'Welcome to SportsAI!',
-      message: 'Your account is set up and ready to find arbitrage opportunities.',
-      url: '/home',
-      isRead: false,
-      readAt: null,
-      createdAt: new Date(now.getTime() - 60 * 60000).toISOString(), // 1 hour ago
-    },
-    {
-      id: 'notif-4',
-      type: 'promotion',
-      title: 'Premium Trial Available',
-      message: 'Try Premium free for 7 days - unlock AI insights and more!',
-      url: '/credits',
-      isRead: true,
-      readAt: new Date(now.getTime() - 30 * 60000).toISOString(),
-      createdAt: new Date(now.getTime() - 2 * 3600000).toISOString(), // 2 hours ago
-    },
-    {
-      id: 'notif-5',
-      type: 'arbitrage',
-      title: 'Arbitrage Expired',
-      message: 'The Arsenal vs Chelsea opportunity has closed',
-      url: '/arbitrage',
-      isRead: true,
-      readAt: new Date(now.getTime() - 45 * 60000).toISOString(),
-      createdAt: new Date(now.getTime() - 3 * 3600000).toISOString(), // 3 hours ago
-    },
-  ];
-};
-
 export function NotificationDropdown() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  // Initialize with mock notifications for demo
-  const [notifications, setNotifications] = useState<Notification[]>(() => generateMockNotifications());
-  const [unreadCount, setUnreadCount] = useState(() => generateMockNotifications().filter(n => !n.isRead).length);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = useCallback(async () => {
-    // For demo/dev mode, use mock data directly - skip API calls
-    // The initial state already has mock notifications loaded
-    // Just simulate a brief loading state for UX
     setIsLoading(true);
-
-    // Small delay to show loading state briefly
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // In demo mode, just refresh from mock data if notifications were cleared
-    if (notifications.length === 0) {
-      const mockNotifs = generateMockNotifications();
-      setNotifications(mockNotifs);
-      setUnreadCount(mockNotifs.filter(n => !n.isRead).length);
-    }
-
-    setIsLoading(false);
-
-    // In production, enable the API call below:
-    /*
     try {
       const response = await api.get('/v1/notifications?limit=10');
-      if (response.data?.notifications?.length > 0) {
-        setNotifications(response.data.notifications);
-        setUnreadCount(response.data.unreadCount || 0);
-      }
-    } catch {
-      // API unavailable - keep using mock data
+      const notifs: Notification[] = response.data?.notifications || [];
+      setNotifications(notifs);
+      setUnreadCount(typeof response.data?.unreadCount === 'number' ? response.data.unreadCount : notifs.filter(n => !n.isRead).length);
+    } catch (error) {
+      // If notifications are not implemented in the backend yet, show nothing (no fabricated items).
+      setNotifications([]);
+      setUnreadCount(0);
+    } finally {
+      setIsLoading(false);
     }
-    */
-  }, [notifications.length]);
+  }, []);
 
   const fetchUnreadCount = useCallback(async () => {
-    // For demo/dev mode, skip API calls entirely - use mock data
-    // The initial state already has the correct unread count from mock data
-    // In production, enable the API call below:
-    /*
     try {
       const response = await api.get('/v1/notifications/unread-count');
       if (response.data?.unreadCount !== undefined) {
         setUnreadCount(response.data.unreadCount);
       }
-    } catch {
-      // Keep using existing unread count
+    } catch (error) {
+      // Keep existing unread count
     }
-    */
   }, []);
 
   // Fetch unread count on mount and periodically

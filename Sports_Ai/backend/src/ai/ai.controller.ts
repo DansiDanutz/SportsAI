@@ -202,103 +202,15 @@ export class AiController {
       riskProfile: 'balanced',
     };
 
-    // Mock AI tips data - filter by settings
-    const allTips = [
-      {
-        id: '1',
-        type: 'arbitrage',
-        sport: 'soccer',
-        sportKey: 'soccer',
-        confidence: 95,
-        insight: 'High confidence in Real Madrid vs Barcelona arb due to significant odds discrepancy across bookmakers',
-        game: 'Real Madrid vs Barcelona',
-        pick: 'Arbitrage - Home Win',
-        expectedRoi: 2.4,
-        relatedEvents: ['1'],
-        createdAt: '2026-01-11T00:00:00Z',
-      },
-      {
-        id: '2',
-        type: 'value_bet',
-        sport: 'basketball',
-        sportKey: 'basketball',
-        confidence: 88,
-        insight: 'Lakers moneyline shows positive expected value based on recent form analysis',
-        game: 'Lakers vs Celtics',
-        pick: 'Lakers ML',
-        expectedRoi: 5.2,
-        relatedEvents: ['2'],
-        createdAt: '2026-01-11T00:30:00Z',
-      },
-      {
-        id: '3',
-        type: 'market_trend',
-        sport: 'tennis',
-        sportKey: 'tennis',
-        confidence: 82,
-        insight: 'Sharp money movement detected on Sinner to win match',
-        game: 'Sinner vs Alcaraz',
-        pick: 'Sinner ML',
-        expectedRoi: 3.8,
-        relatedEvents: ['3'],
-        createdAt: '2026-01-11T01:00:00Z',
-      },
-      {
-        id: '4',
-        type: 'value_bet',
-        sport: 'american_football',
-        sportKey: 'american_football',
-        confidence: 78,
-        insight: 'Chiefs spread offers value based on injury-adjusted projections',
-        game: 'Chiefs vs Ravens',
-        pick: 'Chiefs -3.5',
-        expectedRoi: 4.1,
-        relatedEvents: ['4'],
-        createdAt: '2026-01-11T01:30:00Z',
-      },
-      {
-        id: '5',
-        type: 'arbitrage',
-        sport: 'ice_hockey',
-        sportKey: 'ice_hockey',
-        confidence: 72,
-        insight: 'Minor arbitrage opportunity in Bruins vs Rangers total goals market',
-        game: 'Bruins vs Rangers',
-        pick: 'Over 5.5 Goals',
-        expectedRoi: 1.2,
-        relatedEvents: ['5'],
-        createdAt: '2026-01-11T02:00:00Z',
-      },
-    ];
-
-    // Filter tips based on user settings
-    const filteredTips = allTips.filter((tip) => {
-      // Filter by sport scope
-      if (!aiSettings.sportScope.includes(tip.sportKey)) {
-        return false;
-      }
-      // Filter by confidence threshold
-      if (tip.confidence < aiSettings.confidenceThreshold) {
-        return false;
-      }
-      return true;
-    });
-
-    // Sort by confidence (higher first) for conservative, by ROI for aggressive
-    if (aiSettings.riskProfile === 'conservative') {
-      filteredTips.sort((a, b) => b.confidence - a.confidence);
-    } else if (aiSettings.riskProfile === 'aggressive') {
-      filteredTips.sort((a, b) => b.expectedRoi - a.expectedRoi);
-    }
-
     return {
-      tips: filteredTips,
-      total: filteredTips.length,
+      tips: [],
+      total: 0,
       appliedSettings: {
         sportScope: aiSettings.sportScope,
         confidenceThreshold: aiSettings.confidenceThreshold,
         riskProfile: aiSettings.riskProfile,
       },
+      message: 'No AI tips available yet.',
     };
   }
 

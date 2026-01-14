@@ -45,7 +45,7 @@ export class StrangeBetsService {
       if (previous && (previous.odds - move.odds) / previous.odds > 0.1) {
         strangeBets.push({
           eventId: move.eventId,
-          event: `${move.event.home?.name || 'Home'} vs ${move.event.away?.name || 'Away'}`,
+          event: `${move.event.home?.name || 'TBD'} vs ${move.event.away?.name || 'TBD'}`,
           outcome: move.outcomeKey,
           drop: `${Math.round(((previous.odds - move.odds) / previous.odds) * 100)}%`,
           type: 'volume_spike',

@@ -52,30 +52,9 @@ export class OddsController {
       }
     }
 
-    // Mock odds history data fallback
     return {
-      history: [
-        {
-          eventId: '1',
-          event: 'Real Madrid vs Barcelona',
-          market: 'Match Winner',
-          movements: [
-            { timestamp: '2026-01-11T00:00:00Z', bookmaker: 'Bet365', outcome: 'Real Madrid', odds: 2.40 },
-            { timestamp: '2026-01-11T01:00:00Z', bookmaker: 'Bet365', outcome: 'Real Madrid', odds: 2.45 },
-            { timestamp: '2026-01-11T02:00:00Z', bookmaker: 'Bet365', outcome: 'Real Madrid', odds: 2.42 },
-          ],
-        },
-        {
-          eventId: '2',
-          event: 'Lakers vs Warriors',
-          market: 'Moneyline',
-          movements: [
-            { timestamp: '2026-01-11T00:00:00Z', bookmaker: 'Stake', outcome: 'Lakers', odds: 2.10 },
-            { timestamp: '2026-01-11T01:00:00Z', bookmaker: 'Stake', outcome: 'Lakers', odds: 2.15 },
-          ],
-        },
-      ],
-      total: 2,
+      history: [],
+      total: 0,
     };
   }
 }

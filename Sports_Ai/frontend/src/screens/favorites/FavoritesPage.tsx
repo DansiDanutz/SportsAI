@@ -688,17 +688,7 @@ export function FavoritesPage() {
   );
 }
 
-// Mock team data for display (in production, fetch from API)
-const MOCK_TEAMS: Record<string, { name: string; league: string; country: string; upcomingEvents: number }> = {
-  'team-liverpool': { name: 'Liverpool FC', league: 'Premier League', country: 'England', upcomingEvents: 3 },
-  'team-lakers': { name: 'Los Angeles Lakers', league: 'NBA', country: 'USA', upcomingEvents: 2 },
-  'team-realmadrid': { name: 'Real Madrid', league: 'La Liga', country: 'Spain', upcomingEvents: 2 },
-  'team-yankees': { name: 'New York Yankees', league: 'MLB', country: 'USA', upcomingEvents: 5 },
-  'team-arsenal': { name: 'Arsenal', league: 'Premier League', country: 'England', upcomingEvents: 4 },
-  'team-chelsea': { name: 'Chelsea', league: 'Premier League', country: 'England', upcomingEvents: 3 },
-  'team-mancity': { name: 'Manchester City', league: 'Premier League', country: 'England', upcomingEvents: 4 },
-  'team-barcelona': { name: 'FC Barcelona', league: 'La Liga', country: 'Spain', upcomingEvents: 3 },
-};
+// Team metadata is rendered from stored favorites only.
 
 interface TabProps {
   favorites: Favorite[];
@@ -724,10 +714,10 @@ function TeamsTab({ favorites, onRemove, loading, onAdd, onConfigureAlerts, sele
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {favorites.map(favorite => {
-        const teamData = MOCK_TEAMS[favorite.entityId] || {
+        const teamData = {
           name: favorite.entityId,
-          league: 'Unknown',
-          country: 'Unknown',
+          league: '—',
+          country: '—',
           upcomingEvents: 0,
         };
         const isSelected = selectedIds?.has(favorite.id) || false;
@@ -785,14 +775,7 @@ function TeamsTab({ favorites, onRemove, loading, onAdd, onConfigureAlerts, sele
   );
 }
 
-// Mock league data
-const MOCK_LEAGUES: Record<string, { name: string; sport: string; country: string; teams: number; upcomingEvents: number }> = {
-  'league-premier': { name: 'Premier League', sport: 'Soccer', country: 'England', teams: 20, upcomingEvents: 10 },
-  'league-nba': { name: 'NBA', sport: 'Basketball', country: 'USA', teams: 30, upcomingEvents: 15 },
-  'league-laliga': { name: 'La Liga', sport: 'Soccer', country: 'Spain', teams: 20, upcomingEvents: 10 },
-  'league-mlb': { name: 'MLB', sport: 'Baseball', country: 'USA', teams: 30, upcomingEvents: 12 },
-  'league-nfl': { name: 'NFL', sport: 'American Football', country: 'USA', teams: 32, upcomingEvents: 8 },
-};
+// League metadata is rendered from stored favorites only.
 
 // Leagues Tab Content
 function LeaguesTab({ favorites, onRemove, loading }: TabProps) {
@@ -807,10 +790,10 @@ function LeaguesTab({ favorites, onRemove, loading }: TabProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {favorites.map(favorite => {
-        const leagueData = MOCK_LEAGUES[favorite.entityId] || {
+        const leagueData = {
           name: favorite.entityId,
-          sport: 'Unknown',
-          country: 'Unknown',
+          sport: '—',
+          country: '—',
           teams: 0,
           upcomingEvents: 0,
         };
@@ -845,14 +828,7 @@ function LeaguesTab({ favorites, onRemove, loading }: TabProps) {
   );
 }
 
-// Mock market data
-const MOCK_MARKETS: Record<string, { name: string; sport: string; description: string }> = {
-  'market-winner': { name: 'Match Winner', sport: 'Soccer', description: 'Bet on the outcome of the match' },
-  'market-overunder': { name: 'Over/Under Goals', sport: 'Soccer', description: 'Bet on total goals scored' },
-  'market-spread': { name: 'Point Spread', sport: 'Basketball', description: 'Bet against the spread' },
-  'market-moneyline': { name: 'Moneyline', sport: 'All Sports', description: 'Bet on outright winner' },
-  'market-btts': { name: 'Both Teams to Score', sport: 'Soccer', description: 'Will both teams score?' },
-};
+// Market metadata is rendered from stored favorites only.
 
 // Markets Tab Content
 function MarketsTab({ favorites, onRemove, loading }: TabProps) {
@@ -946,10 +922,10 @@ function MarketsTab({ favorites, onRemove, loading }: TabProps) {
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {favorites.map(favorite => {
-              const marketData = MOCK_MARKETS[favorite.entityId] || {
+              const marketData = {
                 name: favorite.entityId,
-                sport: 'Unknown',
-                description: 'No description',
+                sport: '—',
+                description: '—',
               };
               return (
                 <FavoriteMarketCard

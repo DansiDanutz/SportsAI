@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { MappingService } from './mapping.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,21 +11,13 @@ export class SyncService implements OnModuleInit {
   constructor(
     private mappingService: MappingService,
     private prisma: PrismaService,
-    @Inject(forwardRef(() => ArbitrageService))
     private arbitrageService: ArbitrageService,
   ) {}
 
   async onModuleInit() {
     this.logger.log('Sync Service initialized. Starting initial data fetch...');
-    // Initial sync on startup (disable by setting RUN_INITIAL_SYNC=false)
-    const runInitial = (process.env.RUN_INITIAL_SYNC || 'true').toLowerCase() === 'true';
-    if (runInitial) {
-      // Small delay to allow Nest to finish booting before hitting external APIs
-      setTimeout(() => {
-        this.syncUpcomingOdds();
-        this.syncLiveScores();
-      }, 5000);
-    }
+    // Initial sync on startup (can be disabled in production to avoid overlap)
+    // this.syncUpcomingOdds();
   }
 
   /**
@@ -45,8 +37,9 @@ export class SyncService implements OnModuleInit {
         if (oddsData) {
           await this.processOddsData(oddsData);
         }
-      } catch (error: any) {
-        this.logger.error(`Failed to sync odds for ${sportKey}: ${error?.message || String(error)}`);
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Failed to sync odds for ${sportKey}: ${msg}`);
       }
     }
   }
@@ -63,82 +56,20 @@ export class SyncService implements OnModuleInit {
         // Process live fixtures and update Event status in DB
         this.logger.log(`Received ${liveFixtures.length} live fixtures`);
       }
-    } catch (error: any) {
-      this.logger.error(`Failed to sync live scores: ${error?.message || String(error)}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to sync live scores: ${msg}`);
     }
   }
 
   private async processOddsData(oddsData: any[]) {
     for (const entry of oddsData) {
       try {
-        // 1) Resolve Sport + League from TheOdds API sport_key (e.g. soccer_epl, basketball_nba)
-        const sportKey: string = entry.sport_key;
-        const baseSportKey =
-          sportKey.startsWith('soccer_') ? 'soccer' :
-          sportKey.startsWith('basketball_') ? 'basketball' :
-          sportKey.startsWith('baseball_') ? 'baseball' :
-          sportKey;
+        // 1. Resolve Sport
+        const sport = await this.prisma.sport.findUnique({ where: { key: entry.sport_key } });
+        if (!sport) continue;
 
-        const sport = await this.prisma.sport.upsert({
-          where: { key: baseSportKey },
-          update: {},
-          create: {
-            key: baseSportKey,
-            name: baseSportKey.replace(/(^|_)([a-z])/g, (_, __, c) => c.toUpperCase()),
-            icon: baseSportKey,
-          } as any,
-        });
-
-        const league = await this.prisma.league.upsert({
-          where: { id: sportKey },
-          update: { sportId: sport.id },
-          create: {
-            id: sportKey,
-            sportId: sport.id,
-            name: sportKey,
-            country: 'Unknown',
-            tier: 1,
-          } as any,
-        });
-
-        // 2) Ensure Teams exist (create stable IDs using league prefix + slug)
-        const slug = (s: string) =>
-          String(s || 'team')
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/(^-|-$)/g, '')
-            .slice(0, 64);
-
-        const homeName = entry.home_team;
-        const awayName = entry.away_team;
-        const homeId = `${sportKey}-${slug(homeName)}`;
-        const awayId = `${sportKey}-${slug(awayName)}`;
-
-        await this.prisma.team.upsert({
-          where: { id: homeId },
-          update: { name: homeName, leagueId: league.id },
-          create: {
-            id: homeId,
-            leagueId: league.id,
-            name: homeName,
-            shortName: homeName.slice(0, 3).toUpperCase(),
-            country: 'Unknown',
-          } as any,
-        });
-
-        await this.prisma.team.upsert({
-          where: { id: awayId },
-          update: { name: awayName, leagueId: league.id },
-          create: {
-            id: awayId,
-            leagueId: league.id,
-            name: awayName,
-            shortName: awayName.slice(0, 3).toUpperCase(),
-            country: 'Unknown',
-          } as any,
-        });
-
-        // 3) Resolve or Create Event
+        // 2. Resolve or Create Event
         const event = await this.prisma.event.upsert({
           where: { id: `event_${entry.id}` },
           update: {
@@ -148,15 +79,15 @@ export class SyncService implements OnModuleInit {
           create: {
             id: `event_${entry.id}`,
             sportId: sport.id,
-            leagueId: league.id,
-            homeId,
-            awayId,
+            leagueId: entry.sport_key, // Simplified league mapping
+            homeId: entry.home_team, // In real app, resolve to Team ID
+            awayId: entry.away_team,
             startTimeUtc: new Date(entry.commence_time),
             status: 'upcoming',
           },
         });
 
-        // 4) Save Odds Quotes and Detect Arbs
+        // 3. Save Odds Quotes and Detect Arbs
         const oddsByOutcome: Record<string, number[]> = {};
 
         for (const bookie of entry.bookmakers) {
@@ -180,10 +111,11 @@ export class SyncService implements OnModuleInit {
           }
         }
 
-        // 5. Trigger Arbitrage Detection
+        // 4. Trigger Arbitrage Detection
         // This would call arbitrageService.detect() with the fresh data
-      } catch (error: any) {
-        this.logger.error(`Error processing event ${entry.id}: ${error?.message || String(error)}`);
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Error processing event ${entry.id}: ${msg}`);
       }
     }
   }

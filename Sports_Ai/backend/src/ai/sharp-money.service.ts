@@ -49,13 +49,9 @@ interface MarketMovement {
 @Injectable()
 export class SharpMoneyService {
   private readonly logger = new Logger(SharpMoneyService.name);
-  private readonly allowMockData: boolean;
 
   constructor(private prisma: PrismaService) {
-    this.allowMockData = (process.env.ALLOW_MOCK_DATA || '').toLowerCase() === 'true';
-    if (this.allowMockData) {
-      this.logger.warn('ALLOW_MOCK_DATA=true: SharpMoneyService may return demo alerts when real signals are missing.');
-    }
+    // Intentionally no demo/placeholder data: only real signals derived from stored odds history.
   }
 
   async getSharpMoneyAlerts(userId: string): Promise<SharpMoneyAlert[]> {
@@ -143,7 +139,7 @@ export class SharpMoneyService {
 
     if (oddsHistory.length < 2) {
       // Not enough data for movement analysis
-      return this.allowMockData ? this.generateMockAlerts(event) : [];
+      return [];
     }
 
     // Group odds by outcome
@@ -178,121 +174,15 @@ export class SharpMoneyService {
       }
     }
 
-    // If no real alerts, return empty (or demo alerts in ALLOW_MOCK_DATA mode)
-    if (alerts.length === 0) return this.allowMockData ? this.generateMockAlerts(event) : [];
+    // If no real alerts, return empty
+    if (alerts.length === 0) return [];
 
     return alerts;
   }
 
   private analyzeLiveSharpAction(event: any): SharpMoneyAlert[] {
     // For live events, detect in-play sharp action
-    return this.allowMockData ? this.generateLiveMockAlerts(event) : [];
-  }
-
-  private generateMockAlerts(event: any): SharpMoneyAlert[] {
-    const alerts: SharpMoneyAlert[] = [];
-    const random = Math.random();
-
-    // Generate alerts for ~40% of events to make it realistic
-    if (random > 0.6) return [];
-
-    const homeTeam = event.home?.name || 'Home Team';
-    const awayTeam = event.away?.name || 'Away Team';
-
-    // Steam Move Alert
-    if (random > 0.3) {
-      const isSteamOnHome = Math.random() > 0.5;
-      const team = isSteamOnHome ? homeTeam : awayTeam;
-      const outcome = isSteamOnHome ? 'Home Win' : 'Away Win';
-      const previousOdds = 2.0 + Math.random();
-      const oddsChange = -(0.1 + Math.random() * 0.3);
-      const currentOdds = previousOdds + oddsChange;
-
-      alerts.push({
-        id: `alert-steam-${event.id}-${Date.now()}`,
-        eventId: event.id,
-        homeTeam,
-        awayTeam,
-        league: event.league?.name || 'Unknown League',
-        sport: event.sport?.name || 'Sport',
-        startTime: event.startTimeUtc.toISOString(),
-        alertType: 'steam_move',
-        severity: Math.abs(oddsChange) > 0.2 ? 'high' : 'medium',
-        description: `Rapid odds movement on ${team} - odds dropped ${Math.abs(oddsChange).toFixed(2)} in the last 30 minutes`,
-        details: {
-          previousOdds: parseFloat(previousOdds.toFixed(2)),
-          currentOdds: parseFloat(currentOdds.toFixed(2)),
-          oddsChange: parseFloat(oddsChange.toFixed(2)),
-          percentageChange: parseFloat(((oddsChange / previousOdds) * 100).toFixed(1)),
-          timeFrame: '30 minutes',
-          affectedOutcome: outcome,
-          sharpBettingPct: Math.floor(65 + Math.random() * 25),
-        },
-        recommendation: `Sharp money appears to be backing ${team}. Consider following this line movement before odds stabilize.`,
-        detectedAt: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-      });
-    }
-
-    // Reverse Line Movement Alert
-    if (random < 0.4) {
-      alerts.push({
-        id: `alert-rlm-${event.id}-${Date.now()}`,
-        eventId: event.id,
-        homeTeam,
-        awayTeam,
-        league: event.league?.name || 'Unknown League',
-        sport: event.sport?.name || 'Sport',
-        startTime: event.startTimeUtc.toISOString(),
-        alertType: 'reverse_line_movement',
-        severity: 'high',
-        description: `Reverse line movement detected: 68% of tickets on ${homeTeam}, but line moving toward ${awayTeam}`,
-        details: {
-          previousOdds: 1.85,
-          currentOdds: 1.95,
-          oddsChange: 0.10,
-          percentageChange: 5.4,
-          timeFrame: '2 hours',
-          affectedOutcome: 'Home Win',
-          publicBettingPct: 68,
-          sharpBettingPct: 78,
-        },
-        recommendation: `Professional bettors are taking ${awayTeam} despite public betting on ${homeTeam}. This is a classic contrarian sharp indicator.`,
-        detectedAt: new Date(Date.now() - Math.random() * 7200000).toISOString(),
-      });
-    }
-
-    return alerts;
-  }
-
-  private generateLiveMockAlerts(event: any): SharpMoneyAlert[] {
-    const homeTeam = event.home?.name || 'Home Team';
-    const awayTeam = event.away?.name || 'Away Team';
-
-    if (Math.random() > 0.5) return [];
-
-    return [{
-      id: `alert-live-${event.id}-${Date.now()}`,
-      eventId: event.id,
-      homeTeam,
-      awayTeam,
-      league: event.league?.name || 'Unknown League',
-      sport: event.sport?.name || 'Sport',
-      startTime: event.startTimeUtc.toISOString(),
-      alertType: 'sharp_action',
-      severity: 'high',
-      description: `In-play sharp action detected: Large wagers placed on ${awayTeam} to win`,
-      details: {
-        previousOdds: 3.50,
-        currentOdds: 2.80,
-        oddsChange: -0.70,
-        percentageChange: -20.0,
-        timeFrame: '5 minutes',
-        affectedOutcome: 'Away Win',
-        sharpBettingPct: 85,
-      },
-      recommendation: `Significant in-play movement suggests informed betting. Monitor closely for continuation.`,
-      detectedAt: new Date().toISOString(),
-    }];
+    return [];
   }
 
   private createSteamMoveAlert(
@@ -359,8 +249,6 @@ export class SharpMoneyService {
         percentageChange: ((currentOdds - previousOdds) / previousOdds) * 100,
         timeFrame: '4 hours',
         affectedOutcome: outcome === 'home' ? 'Home Win' : outcome === 'away' ? 'Away Win' : 'Draw',
-        publicBettingPct: Math.floor(60 + Math.random() * 20),
-        sharpBettingPct: Math.floor(70 + Math.random() * 20),
       },
       recommendation: `Professional money is going against public sentiment. This is often a strong contrarian indicator.`,
       detectedAt: new Date().toISOString(),
@@ -370,7 +258,7 @@ export class SharpMoneyService {
   private detectReverseLine(quotes: any[]): boolean {
     // Simplified reverse line detection
     // In production, would compare ticket counts vs line movement
-    return Math.random() < 0.15; // 15% chance for demo
+    return false;
   }
 
   async getSteamMovesSummary(): Promise<{
@@ -380,16 +268,11 @@ export class SharpMoneyService {
     reverseLineMovements: number;
     lastUpdated: string;
   }> {
-    // This would aggregate all current alerts
-    const steamMoves = Math.floor(5 + Math.random() * 8);
-    const reverseLineMovements = Math.floor(2 + Math.random() * 5);
-    const totalAlerts = steamMoves + reverseLineMovements;
-
     return {
-      totalAlerts,
-      highPriority: Math.floor(totalAlerts * 0.3),
-      steamMoves,
-      reverseLineMovements,
+      totalAlerts: 0,
+      highPriority: 0,
+      steamMoves: 0,
+      reverseLineMovements: 0,
       lastUpdated: new Date().toISOString(),
     };
   }

@@ -88,50 +88,10 @@ export function usePushNotifications(): UsePushNotificationsResult {
 
   // Simulate receiving a push notification (for testing)
   const simulatePushNotification = useCallback(() => {
-    if (!isSupported) {
-      console.warn('Push notifications are not supported');
-      return;
-    }
-
-    if (permission !== 'granted') {
-      console.warn('Push notification permission not granted');
-      return;
-    }
-
-    // Simulate a push notification for an arbitrage opportunity
-    const mockNotifications = [
-      {
-        title: 'New Arbitrage Opportunity!',
-        body: 'Lakers vs Warriors - 3.2% profit opportunity found',
-        data: {
-          url: '/arbitrage',
-          type: 'arbitrage',
-          eventId: 'event-lakers-warriors',
-        },
-      },
-      {
-        title: 'Odds Movement Alert',
-        body: 'Manchester United odds shifted significantly',
-        data: {
-          url: '/event/event-manutd-liverpool',
-          type: 'odds_movement',
-          eventId: 'event-manutd-liverpool',
-        },
-      },
-      {
-        title: 'Live Event Starting',
-        body: 'Arsenal vs Chelsea is now LIVE!',
-        data: {
-          url: '/event/event-live-arsenal-chelsea',
-          type: 'live_event',
-          eventId: 'event-live-arsenal-chelsea',
-        },
-      },
-    ];
-
-    const randomNotification = mockNotifications[Math.floor(Math.random() * mockNotifications.length)];
-    sendNotification(randomNotification);
-  }, [isSupported, permission, sendNotification]);
+    // Intentionally disabled: the app must not fabricate notifications.
+    // Notifications should come from the backend (/v1/notifications) when connected.
+    console.warn('simulatePushNotification is disabled (no fabricated notifications).');
+  }, []);
 
   return {
     permission,

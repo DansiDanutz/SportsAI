@@ -21,7 +21,7 @@ export function ApifyPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'odds' | 'predictions' | 'history'>('odds');
   const [lastFetched, setLastFetched] = useState<string | null>(null);
-  const [dataSource, setDataSource] = useState<'apify' | 'mock'>('mock');
+  const [dataSource, setDataSource] = useState<'apify' | 'unconfigured'>('unconfigured');
 
   // Load initial data
   useEffect(() => {
@@ -140,7 +140,7 @@ export function ApifyPage() {
                 <div className="flex items-center space-x-2">
                   <div className={`w-3 h-3 rounded-full ${status?.configured ? 'bg-green-500' : 'bg-yellow-500'}`} />
                   <span className={status?.configured ? 'text-green-400' : 'text-yellow-400'}>
-                    {status?.configured ? 'Connected' : 'Using Mock Data'}
+                    {status?.configured ? 'Connected' : 'Not configured'}
                   </span>
                 </div>
               </div>
@@ -267,7 +267,10 @@ export function ApifyPage() {
 
               {lastFetched && (
                 <div className="mb-4 text-sm text-gray-400">
-                  Last fetched: {formatDate(lastFetched)} • Source: <span className={dataSource === 'apify' ? 'text-green-400' : 'text-yellow-400'}>{dataSource}</span>
+                  Last fetched: {formatDate(lastFetched)} • Source:{' '}
+                  <span className={dataSource === 'apify' ? 'text-green-400' : 'text-yellow-400'}>
+                    {dataSource === 'apify' ? 'apify' : 'unavailable'}
+                  </span>
                 </div>
               )}
 
@@ -373,7 +376,10 @@ export function ApifyPage() {
 
               {lastFetched && (
                 <div className="mb-4 text-sm text-gray-400">
-                  Last fetched: {formatDate(lastFetched)} • Source: <span className={dataSource === 'apify' ? 'text-green-400' : 'text-yellow-400'}>{dataSource}</span>
+                  Last fetched: {formatDate(lastFetched)} • Source:{' '}
+                  <span className={dataSource === 'apify' ? 'text-green-400' : 'text-yellow-400'}>
+                    {dataSource === 'apify' ? 'apify' : 'unavailable'}
+                  </span>
                 </div>
               )}
 

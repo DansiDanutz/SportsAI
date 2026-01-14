@@ -29,7 +29,7 @@ interface MatchAnalysis {
   };
 }
 
-interface DailyTicket {
+export interface DailyTicket {
   id: string;
   name: string;
   targetOdds: number;
@@ -121,109 +121,74 @@ export class DailyTipsService {
   }
 
   private async analyzeMatches(events: any[], riskFilter?: string): Promise<MatchAnalysis[]> {
-    return events.map((event) => {
-      // Get best odds for each outcome
-      const homeOdds = event.oddsQuotes.find((q: any) => q.outcomeKey === 'home')?.odds || 2.0;
-      const drawOdds = event.oddsQuotes.find((q: any) => q.outcomeKey === 'draw')?.odds || 3.5;
-      const awayOdds = event.oddsQuotes.find((q: any) => q.outcomeKey === 'away')?.odds || 3.0;
+    return events.flatMap((event) => {
+      const quotes = event.oddsQuotes || [];
 
-      // Calculate implied probabilities
-      const homeProb = 1 / homeOdds;
-      const drawProb = 1 / drawOdds;
-      const awayProb = 1 / awayOdds;
+      const candidates = [
+        { key: 'home', label: 'Home Win', odds: quotes.find((q: any) => q.outcomeKey === 'home')?.odds },
+        { key: 'draw', label: 'Draw', odds: quotes.find((q: any) => q.outcomeKey === 'draw')?.odds },
+        { key: 'away', label: 'Away Win', odds: quotes.find((q: any) => q.outcomeKey === 'away')?.odds },
+      ].filter((c) => typeof c.odds === 'number' && Number.isFinite(c.odds) && c.odds > 1.0) as Array<{ key: string; label: string; odds: number }>;
 
-      // Determine best value pick
-      let prediction: string;
-      let selectedOdds: number;
-      let confidence: number;
+      if (candidates.length === 0) return [];
 
-      // Simulate form data
-      const homeForm = this.generateFormString();
-      const awayForm = this.generateFormString();
-      const homeFormScore = this.calculateFormScore(homeForm);
-      const awayFormScore = this.calculateFormScore(awayForm);
+      const implied = candidates.map((c) => 1 / c.odds);
+      const totalImplied = implied.reduce((a, b) => a + b, 0);
 
-      // Combine odds probability with form to determine prediction
-      if (homeOdds < 1.8 && homeFormScore >= 3) {
-        prediction = 'Home Win';
-        selectedOdds = homeOdds;
-        confidence = Math.min(95, Math.round(75 + homeFormScore * 3 + (1.8 - homeOdds) * 10));
-      } else if (awayOdds < 2.2 && awayFormScore >= 3) {
-        prediction = 'Away Win';
-        selectedOdds = awayOdds;
-        confidence = Math.min(90, Math.round(70 + awayFormScore * 3));
-      } else if (Math.abs(homeOdds - awayOdds) < 0.5 && drawOdds < 3.8) {
-        prediction = 'Draw';
-        selectedOdds = drawOdds;
-        confidence = Math.round(55 + Math.random() * 15);
-      } else if (homeFormScore > awayFormScore + 1) {
-        prediction = 'Home Win';
-        selectedOdds = homeOdds;
-        confidence = Math.round(65 + homeFormScore * 4);
-      } else if (awayFormScore > homeFormScore + 1) {
-        prediction = 'Away Win';
-        selectedOdds = awayOdds;
-        confidence = Math.round(60 + awayFormScore * 4);
-      } else {
-        // Default to home win with lower confidence
-        prediction = 'Home Win';
-        selectedOdds = homeOdds;
-        confidence = Math.round(55 + Math.random() * 15);
+      // Pick the highest implied probability (lowest odds) as a conservative baseline.
+      let bestIdx = 0;
+      for (let i = 1; i < candidates.length; i++) {
+        if (implied[i] > implied[bestIdx]) bestIdx = i;
       }
 
-      // Apply risk filter if specified
-      if (riskFilter === 'low' && confidence < 70) {
-        confidence = Math.max(70, confidence + 15);
-      } else if (riskFilter === 'high' && confidence > 75) {
-        confidence = Math.min(65, confidence - 10);
+      const pick = candidates[bestIdx];
+      const probability = totalImplied > 0 ? implied[bestIdx] / totalImplied : 0;
+      const confidence = Math.max(50, Math.min(95, Math.round(probability * 100)));
+
+      let riskLevel: 'low' | 'medium' | 'high' = 'medium';
+      if (pick.odds <= 1.6 && confidence >= 75) riskLevel = 'low';
+      if (pick.odds >= 2.5 || confidence < 65) riskLevel = 'high';
+
+      if (riskFilter === 'low' && riskLevel !== 'low') return [];
+      if (riskFilter === 'high' && riskLevel === 'low') {
+        // allow, but keep it (high-risk filter is permissive)
       }
 
-      // Generate analysis factors
-      const factors = this.generateAnalysisFactors(
-        event.home?.name || 'Home',
-        event.away?.name || 'Away',
-        homeForm,
-        awayForm,
-        prediction
-      );
+      const summary = `${pick.label} based on current market odds.`;
 
-      // Determine risk level based on odds and confidence
-      let riskLevel: 'low' | 'medium' | 'high';
-      if (selectedOdds < 1.5 && confidence > 80) riskLevel = 'low';
-      else if (selectedOdds > 2.5 || confidence < 65) riskLevel = 'high';
-      else riskLevel = 'medium';
+      const valueRating = Math.min(5, Math.max(1, Math.round(1 + confidence / 25)));
 
-      // Calculate value rating (1-5 stars)
-      const impliedProb = 1 / selectedOdds;
-      const edgeEstimate = (confidence / 100) - impliedProb;
-      const valueRating = Math.min(5, Math.max(1, Math.round(2.5 + edgeEstimate * 10)));
-
-      return {
-        eventId: event.id,
-        homeTeam: event.home?.name || 'TBD',
-        awayTeam: event.away?.name || 'TBD',
-        league: event.league?.name || 'Unknown League',
-        sport: event.sport?.name || 'Sport',
-        startTime: event.startTimeUtc.toISOString(),
-        prediction,
-        odds: selectedOdds,
-        confidence,
-        analysis: {
-          summary: this.generateSummary(event.home?.name, event.away?.name, prediction, confidence),
-          factors,
-          riskLevel,
-          valueRating,
+      return [
+        {
+          eventId: event.id,
+          homeTeam: event.home?.name || 'TBD',
+          awayTeam: event.away?.name || 'TBD',
+          league: event.league?.name || 'Unknown League',
+          sport: event.sport?.name || 'Sport',
+          startTime: event.startTimeUtc.toISOString(),
+          prediction: pick.label,
+          odds: pick.odds,
+          confidence,
+          analysis: {
+            summary,
+            factors: [
+              `Odds quotes available: ${quotes.length}`,
+              `Implied probability: ${(probability * 100).toFixed(1)}%`,
+            ],
+            riskLevel,
+            valueRating,
+          },
+          historicalData: {
+            h2hHomeWins: 0,
+            h2hDraws: 0,
+            h2hAwayWins: 0,
+            homeFormLast5: '',
+            awayFormLast5: '',
+            homeGoalsAvg: 0,
+            awayGoalsAvg: 0,
+          },
         },
-        historicalData: {
-          h2hHomeWins: Math.floor(Math.random() * 5) + 1,
-          h2hDraws: Math.floor(Math.random() * 3),
-          h2hAwayWins: Math.floor(Math.random() * 4) + 1,
-          homeFormLast5: homeForm,
-          awayFormLast5: awayForm,
-          homeGoalsAvg: Math.round((1.5 + Math.random() * 1.5) * 10) / 10,
-          awayGoalsAvg: Math.round((1.0 + Math.random() * 1.2) * 10) / 10,
-        },
-      };
+      ];
     });
   }
 
@@ -270,7 +235,7 @@ export class DailyTipsService {
       : 0;
 
     return {
-      id: `ticket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `ticket-${Date.now()}`,
       name,
       targetOdds,
       actualOdds: Math.round(currentOdds * 100) / 100,
@@ -282,10 +247,7 @@ export class DailyTipsService {
   }
 
   private generateFormString(): string {
-    const outcomes = ['W', 'W', 'W', 'D', 'D', 'L', 'L']; // Weighted towards wins
-    return Array.from({ length: 5 }, () =>
-      outcomes[Math.floor(Math.random() * outcomes.length)]
-    ).join('');
+    return '';
   }
 
   private calculateFormScore(form: string): number {

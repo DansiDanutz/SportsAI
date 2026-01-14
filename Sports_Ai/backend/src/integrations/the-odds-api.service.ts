@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class TheOddsApiService implements OnModuleInit {
   private readonly logger = new Logger(TheOddsApiService.name);
-  private client: AxiosInstance;
+  private client!: AxiosInstance;
   private apiKey: string;
   private readonly baseUrl = 'https://api.the-odds-api.com/v4/sports';
 
@@ -29,8 +29,9 @@ export class TheOddsApiService implements OnModuleInit {
     try {
       const response = await this.client.get('');
       return response.data;
-    } catch (error: any) {
-      this.logger.error(`Failed to fetch sports: ${error?.message || String(error)}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to fetch sports: ${msg}`);
       throw error;
     }
   }
@@ -51,8 +52,9 @@ export class TheOddsApiService implements OnModuleInit {
         },
       });
       return response.data;
-    } catch (error: any) {
-      this.logger.error(`Failed to fetch odds for ${sportKey}: ${error?.message || String(error)}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to fetch odds for ${sportKey}: ${msg}`);
       throw error;
     }
   }
@@ -68,8 +70,9 @@ export class TheOddsApiService implements OnModuleInit {
         },
       });
       return response.data;
-    } catch (error: any) {
-      this.logger.error(`Failed to fetch scores for ${sportKey}: ${error?.message || String(error)}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to fetch scores for ${sportKey}: ${msg}`);
       throw error;
     }
   }

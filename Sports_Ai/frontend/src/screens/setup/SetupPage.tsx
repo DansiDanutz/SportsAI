@@ -589,7 +589,9 @@ export function SetupPage() {
                             </div>
                             <div className="bg-gray-700/50 rounded-lg p-3 text-center">
                               <div className="text-gray-400 text-xs mb-1">Avg Goals</div>
-                              <div className="text-white font-semibold">{insight.historicalStats.avgGoals}</div>
+                              <div className="text-white font-semibold">
+                                {insight.historicalStats.avgGoals > 0 ? insight.historicalStats.avgGoals : '—'}
+                              </div>
                             </div>
                           </div>
 

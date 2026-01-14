@@ -1,9 +1,10 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Layout } from '../../components/Layout';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { usePreferencesStore, formatOdds, formatEventTimeWithTimezone } from '../../store/preferencesStore';
-import { api } from '../../services/api';
+import { api, eventsApi, Event as ApiEvent } from '../../services/api';
 
 // Sport-specific settings state (would be persisted in a real app)
 interface SportSettings {
@@ -68,85 +69,17 @@ const isEventUpcoming = (startDate: Date) => {
   return startDate.getTime() > now.getTime();
 };
 
-// Helper to generate event dates relative to now
-const getEventDate = (hoursFromNow: number) => {
-  const date = new Date();
-  date.setHours(date.getHours() + hoursFromNow);
-  return date;
-};
-
-interface MockEvent {
+interface DisplayEvent {
   id: string;
   homeTeam: string;
   awayTeam: string;
   league: string;
   startDate: Date;
-  homeOdds: number;
+  homeOdds?: number;
   drawOdds?: number;
-  awayOdds: number;
+  awayOdds?: number;
+  status?: string;
 }
-
-// Mock events data by sport with actual dates
-// Some events are "live" (started recently, negative hours = started in past)
-const getMockEventsBySport = (): Record<string, MockEvent[]> => ({
-  soccer: [
-    // Live events (started recently)
-    { id: '1', homeTeam: 'Liverpool FC', awayTeam: 'Manchester United', league: 'Premier League', startDate: getEventDate(-0.3), homeOdds: 1.75, drawOdds: 3.40, awayOdds: 4.20 },
-    { id: '2', homeTeam: 'Real Madrid', awayTeam: 'Barcelona', league: 'La Liga', startDate: getEventDate(-0.5), homeOdds: 2.10, drawOdds: 3.20, awayOdds: 3.50 },
-    { id: '3', homeTeam: 'Bayern Munich', awayTeam: 'Dortmund', league: 'Bundesliga', startDate: getEventDate(6), homeOdds: 1.55, drawOdds: 4.00, awayOdds: 5.50 },
-    { id: '4', homeTeam: 'PSG', awayTeam: 'Marseille', league: 'Ligue 1', startDate: getEventDate(10), homeOdds: 1.40, drawOdds: 4.50, awayOdds: 7.00 },
-    { id: '5', homeTeam: 'Manchester City', awayTeam: 'Arsenal', league: 'Premier League', startDate: getEventDate(18), homeOdds: 1.65, drawOdds: 3.80, awayOdds: 4.50 },
-    { id: '6', homeTeam: 'Chelsea', awayTeam: 'Tottenham', league: 'Premier League', startDate: getEventDate(28), homeOdds: 2.00, drawOdds: 3.40, awayOdds: 3.60 },
-    { id: '7', homeTeam: 'Atletico Madrid', awayTeam: 'Sevilla', league: 'La Liga', startDate: getEventDate(36), homeOdds: 1.80, drawOdds: 3.50, awayOdds: 4.20 },
-    { id: '8', homeTeam: 'Juventus', awayTeam: 'AC Milan', league: 'Serie A', startDate: getEventDate(48), homeOdds: 2.20, drawOdds: 3.20, awayOdds: 3.30 },
-    { id: '9', homeTeam: 'Inter Milan', awayTeam: 'Napoli', league: 'Serie A', startDate: getEventDate(72), homeOdds: 1.90, drawOdds: 3.40, awayOdds: 3.80 },
-    { id: '10', homeTeam: 'Newcastle', awayTeam: 'Aston Villa', league: 'Premier League', startDate: getEventDate(96), homeOdds: 2.10, drawOdds: 3.30, awayOdds: 3.40 },
-    { id: '11', homeTeam: 'Valencia', awayTeam: 'Real Betis', league: 'La Liga', startDate: getEventDate(120), homeOdds: 2.30, drawOdds: 3.20, awayOdds: 3.10 },
-    { id: '12', homeTeam: 'RB Leipzig', awayTeam: 'Bayer Leverkusen', league: 'Bundesliga', startDate: getEventDate(144), homeOdds: 2.40, drawOdds: 3.40, awayOdds: 2.90 },
-  ],
-  basketball: [
-    // Live event
-    { id: '1', homeTeam: 'Los Angeles Lakers', awayTeam: 'Golden State Warriors', league: 'NBA', startDate: getEventDate(-0.4), homeOdds: 1.85, awayOdds: 1.95 },
-    // Upcoming events
-    { id: '2', homeTeam: 'Boston Celtics', awayTeam: 'Miami Heat', league: 'NBA', startDate: getEventDate(8), homeOdds: 1.70, awayOdds: 2.15 },
-    { id: '3', homeTeam: 'Milwaukee Bucks', awayTeam: 'Philadelphia 76ers', league: 'NBA', startDate: getEventDate(24), homeOdds: 1.90, awayOdds: 1.90 },
-  ],
-  tennis: [
-    // Live event
-    { id: '1', homeTeam: 'Novak Djokovic', awayTeam: 'Carlos Alcaraz', league: 'ATP Finals', startDate: getEventDate(-0.2), homeOdds: 1.65, awayOdds: 2.20 },
-    { id: '2', homeTeam: 'Jannik Sinner', awayTeam: 'Daniil Medvedev', league: 'ATP 1000', startDate: getEventDate(20), homeOdds: 1.80, awayOdds: 2.00 },
-  ],
-  baseball: [
-    { id: '1', homeTeam: 'New York Yankees', awayTeam: 'Boston Red Sox', league: 'MLB', startDate: getEventDate(0.8), homeOdds: 1.75, awayOdds: 2.05 },
-    { id: '2', homeTeam: 'Los Angeles Dodgers', awayTeam: 'San Francisco Giants', league: 'MLB', startDate: getEventDate(26), homeOdds: 1.60, awayOdds: 2.30 },
-  ],
-  american_football: [
-    { id: '1', homeTeam: 'Kansas City Chiefs', awayTeam: 'Buffalo Bills', league: 'NFL', startDate: getEventDate(14), homeOdds: 1.65, awayOdds: 2.25 },
-    { id: '2', homeTeam: 'Philadelphia Eagles', awayTeam: 'Dallas Cowboys', league: 'NFL', startDate: getEventDate(38), homeOdds: 1.80, awayOdds: 2.00 },
-  ],
-  ice_hockey: [
-    { id: '1', homeTeam: 'Toronto Maple Leafs', awayTeam: 'Montreal Canadiens', league: 'NHL', startDate: getEventDate(0.6), homeOdds: 1.70, awayOdds: 2.10 },
-    { id: '2', homeTeam: 'Edmonton Oilers', awayTeam: 'Calgary Flames', league: 'NHL', startDate: getEventDate(22), homeOdds: 1.85, awayOdds: 1.95 },
-  ],
-  cricket: [
-    { id: '1', homeTeam: 'India', awayTeam: 'Australia', league: 'Test Series', startDate: getEventDate(16), homeOdds: 1.90, awayOdds: 1.90 },
-    { id: '2', homeTeam: 'England', awayTeam: 'South Africa', league: 'ODI', startDate: getEventDate(40), homeOdds: 2.00, awayOdds: 1.80 },
-  ],
-  rugby: [
-    { id: '1', homeTeam: 'New Zealand', awayTeam: 'South Africa', league: 'Rugby Championship', startDate: getEventDate(30), homeOdds: 1.55, awayOdds: 2.50 },
-    { id: '2', homeTeam: 'Ireland', awayTeam: 'France', league: 'Six Nations', startDate: getEventDate(54), homeOdds: 2.10, awayOdds: 1.75 },
-  ],
-  mma: [
-    { id: '1', homeTeam: 'Jon Jones', awayTeam: 'Tom Aspinall', league: 'UFC Heavyweight', startDate: getEventDate(50), homeOdds: 1.75, awayOdds: 2.05 },
-    { id: '2', homeTeam: 'Islam Makhachev', awayTeam: 'Charles Oliveira', league: 'UFC Lightweight', startDate: getEventDate(170), homeOdds: 1.45, awayOdds: 2.75 },
-  ],
-  esports: [
-    { id: '1', homeTeam: 'Team Liquid', awayTeam: 'G2 Esports', league: 'League of Legends LEC', startDate: getEventDate(0.4), homeOdds: 1.90, awayOdds: 1.90 },
-    { id: '2', homeTeam: 'FaZe Clan', awayTeam: 'Cloud9', league: 'CS2 Major', startDate: getEventDate(20), homeOdds: 2.10, awayOdds: 1.75 },
-    { id: '3', homeTeam: 'T1', awayTeam: 'Gen.G', league: 'League of Legends LCK', startDate: getEventDate(44), homeOdds: 1.65, awayOdds: 2.20 },
-  ],
-});
-
 const EVENTS_PER_PAGE = 5;
 
 export function SportEventsPage() {
@@ -201,9 +134,33 @@ export function SportEventsPage() {
   // State for error display
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
-  // Refresh key to trigger re-render of mock data with fresh timestamps
+  // Refresh key to trigger re-fetch
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const {
+    data: eventsResponse,
+    refetch: refetchEvents,
+    isFetching: isFetchingEvents,
+  } = useQuery({
+    queryKey: ['events', sportKey, refreshKey],
+    enabled: !!sportKey,
+    queryFn: async () => {
+      // Fetch both live + upcoming for this sport and merge client-side filters
+      const [upcoming, live] = await Promise.all([
+        eventsApi.getUpcoming({ limit: 200 }),
+        eventsApi.getLive({ limit: 200 }),
+      ]);
+
+      // Filter to this sportKey (backend also supports filtering, but we keep it safe here)
+      const merged = [...(live.events || []), ...(upcoming.events || [])].filter(
+        (e) => e.sportKey === sportKey
+      );
+
+      return { events: merged };
+    },
+    staleTime: 1000 * 30, // 30s
+    retry: 1,
+  });
   // Pull to refresh handler - refreshes favorites and events
   const handleRefresh = useCallback(async () => {
     try {
@@ -215,12 +172,13 @@ export function SportEventsPage() {
         .map((f: { entityId: string }) => f.entityId);
       setFavoriteTeams(new Set(teamIds));
 
-      // Trigger mock data refresh by updating the key
+      // Refresh events
+      await refetchEvents();
       setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error('Failed to refresh:', error);
     }
-  }, []);
+  }, [refetchEvents]);
 
   // Toggle a team as favorite (with optimistic updates and rollback)
   const handleToggleFavorite = async (teamName: string, e: React.MouseEvent) => {
@@ -287,9 +245,24 @@ export function SportEventsPage() {
   };
 
   const sport = sportKey ? sportsData[sportKey] : null;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const mockEventsBySport = useMemo(() => getMockEventsBySport(), [refreshKey]);
-  const allEvents = sportKey ? mockEventsBySport[sportKey] || [] : [];
+
+  const allEvents: DisplayEvent[] = useMemo(() => {
+    if (!sportKey) return [];
+
+    const apiEvents: ApiEvent[] = eventsResponse?.events || [];
+    return apiEvents.map((e) => ({
+      id: e.id,
+      homeTeam: e.homeTeam,
+      awayTeam: e.awayTeam,
+      league: e.league,
+      startDate: new Date(e.startTime),
+      status: e.status,
+      // Odds are not yet available in the /v1/events list response; show placeholders.
+      homeOdds: undefined,
+      drawOdds: undefined,
+      awayOdds: undefined,
+    }));
+  }, [eventsResponse, sportKey]);
 
   // Get unique leagues for filter
   const leagues = useMemo(() => {
@@ -306,11 +279,11 @@ export function SportEventsPage() {
       events = events.filter(e => e.league === leagueFilter);
     }
 
-    // Filter by status (Live/Upcoming)
+    // Filter by status (Live/Upcoming) using backend truth when available
     if (statusFilter === 'live') {
-      events = events.filter(e => isEventLive(e.startDate));
+      events = events.filter((e) => (e.status ? e.status === 'live' : isEventLive(e.startDate)));
     } else if (statusFilter === 'upcoming') {
-      events = events.filter(e => isEventUpcoming(e.startDate));
+      events = events.filter((e) => (e.status ? e.status === 'upcoming' : isEventUpcoming(e.startDate)));
     }
 
     // Filter by time window
@@ -867,7 +840,7 @@ export function SportEventsPage() {
                     {/* Event Info */}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
-                        {isEventLive(event.startDate) && (
+                        {(event.status ? event.status === 'live' : isEventLive(event.startDate)) && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-500 text-white text-xs font-bold">
                             <span className="w-1.5 h-1.5 bg-white rounded-full mr-1 animate-pulse" />
                             LIVE

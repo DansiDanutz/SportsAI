@@ -35,7 +35,7 @@ export class TicketGeneratorService {
 
       ticket.push({
         eventId: pick.eventId,
-        match: `${pick.event.home?.name || 'Home'} vs ${pick.event.away?.name || 'Away'}`,
+        match: `${pick.event.home?.name || 'TBD'} vs ${pick.event.away?.name || 'TBD'}`,
         pick: pick.outcomeKey,
         odds: pick.odds,
       });

@@ -17,6 +17,7 @@ import { ConfigModule } from '@nestjs/config';
     ConfigModule,
     ScheduleModule.forRoot(),
   ],
+  controllers: [],
   providers: [
     MappingService,
     TheOddsApiService,

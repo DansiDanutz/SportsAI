@@ -238,79 +238,75 @@ export class SetupService {
       take: 20, // Get more to filter down to top 5
     });
 
-    // Calculate AI insights for each event
-    const insights: AiMatchInsight[] = events.map((event) => {
-      // Calculate win probabilities based on odds and historical data
-      const homeOdds = event.oddsQuotes.find(q => q.outcomeKey === 'home')?.odds || 2.0;
-      const drawOdds = event.oddsQuotes.find(q => q.outcomeKey === 'draw')?.odds || 3.5;
-      const awayOdds = event.oddsQuotes.find(q => q.outcomeKey === 'away')?.odds || 3.0;
+    // Calculate AI insights for each event (no fabricated stats; require real odds quotes)
+    const insights: AiMatchInsight[] = events.flatMap((event) => {
+      const homeQuote = event.oddsQuotes.find((q) => q.outcomeKey === 'home');
+      const awayQuote = event.oddsQuotes.find((q) => q.outcomeKey === 'away');
+      const drawQuote = event.oddsQuotes.find((q) => q.outcomeKey === 'draw');
 
-      // Calculate implied probabilities from odds
+      // If we don't have at least home+away odds, we cannot compute probabilities without fabricating.
+      if (!homeQuote || !awayQuote) return [];
+
+      const homeOdds = homeQuote.odds;
+      const awayOdds = awayQuote.odds;
+      const drawOdds = drawQuote?.odds;
+
+      // Calculate implied probabilities from odds (2-way if draw is missing)
       const homeImplied = 1 / homeOdds;
-      const drawImplied = 1 / drawOdds;
       const awayImplied = 1 / awayOdds;
-      const totalImplied = homeImplied + drawImplied + awayImplied;
+      const drawImplied = drawOdds ? 1 / drawOdds : 0;
+      const totalImplied = homeImplied + awayImplied + drawImplied;
 
-      // Normalize to get fair probabilities
       const homeProb = Math.round((homeImplied / totalImplied) * 100);
-      const drawProb = Math.round((drawImplied / totalImplied) * 100);
       const awayProb = Math.round((awayImplied / totalImplied) * 100);
+      const drawProb = drawOdds ? Math.round((drawImplied / totalImplied) * 100) : 0;
 
-      // Simulate historical stats (in production, would come from real historical data)
-      const homeWinRate = Math.round(45 + Math.random() * 25);
-      const awayWinRate = Math.round(30 + Math.random() * 25);
-      const drawRate = 100 - homeWinRate - awayWinRate;
-      const avgGoals = Math.round((2.2 + Math.random() * 1.2) * 10) / 10;
-
-      // Calculate AI confidence based on odds stability and data availability
-      const confidence = Math.round(65 + Math.random() * 25);
-
-      // Determine recommended pick
+      // Determine recommended pick from available outcomes
       let recommendedPick = 'Home Win';
       let winProbability = homeProb;
-      if (awayProb > homeProb && awayProb > drawProb) {
+      if (awayProb > winProbability) {
         recommendedPick = 'Away Win';
         winProbability = awayProb;
-      } else if (drawProb > homeProb && drawProb > awayProb) {
+      }
+      if (drawProb > winProbability) {
         recommendedPick = 'Draw';
         winProbability = drawProb;
       }
 
-      // Check if any markets filter matches (if markets are specified)
+      // If user selected markets we don't have real market data for yet, don't fabricate.
       const marketsFilter = activeConfig.markets || [];
-      if (marketsFilter.length > 0) {
-        // Adjust recommendation based on market filter
-        if (marketsFilter.includes('btts') || marketsFilter.includes('BTTS')) {
-          recommendedPick = avgGoals > 2.5 ? 'BTTS Yes' : 'BTTS No';
-          winProbability = avgGoals > 2.5 ? 65 : 55;
-        } else if (marketsFilter.includes('over_under') || marketsFilter.includes('totals')) {
-          recommendedPick = avgGoals > 2.5 ? 'Over 2.5' : 'Under 2.5';
-          winProbability = avgGoals > 2.5 ? 58 : 62;
-        }
+      if (marketsFilter.some((m: string) => ['btts', 'BTTS', 'over_under', 'totals'].includes(m))) {
+        recommendedPick = 'No market data available';
+        winProbability = 0;
       }
 
-      return {
-        eventId: event.id,
-        homeTeam: event.home?.name || 'TBD',
-        awayTeam: event.away?.name || 'TBD',
-        league: event.league?.name || 'Unknown League',
-        startTime: event.startTimeUtc.toISOString(),
-        sport: event.sport?.name || 'Sport',
-        winProbability,
-        recommendedPick,
-        confidence,
-        historicalStats: {
-          homeWinRate,
-          awayWinRate,
-          drawRate,
-          avgGoals,
+      const confidence = winProbability;
+
+      return [
+        {
+          eventId: event.id,
+          homeTeam: event.home?.name || 'TBD',
+          awayTeam: event.away?.name || 'TBD',
+          league: event.league?.name || 'Unknown League',
+          startTime: event.startTimeUtc.toISOString(),
+          sport: event.sport?.name || 'Sport',
+          winProbability,
+          recommendedPick,
+          confidence,
+          historicalStats: {
+            homeWinRate: homeProb,
+            awayWinRate: awayProb,
+            drawRate: drawProb,
+            // Unknown without a connected stats provider; render as unavailable client-side.
+            avgGoals: 0,
+          },
+          odds: {
+            home: homeOdds,
+            ...(drawOdds ? { draw: drawOdds } : {}),
+            away: awayOdds,
+          },
         },
-        odds: {
-          home: homeOdds,
-          draw: drawOdds,
-          away: awayOdds,
-        },
-      };
+      ];
     });
 
     // Sort by confidence and win probability, return top 5

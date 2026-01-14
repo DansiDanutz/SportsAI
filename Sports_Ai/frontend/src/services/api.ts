@@ -631,7 +631,7 @@ export interface ApifyOddsResponse {
   count: number;
   data: ApifyOddsResult[];
   fetchedAt: string;
-  source: 'apify' | 'mock';
+  source: 'apify' | 'unconfigured';
 }
 
 export interface ApifyPredictionsResponse {
@@ -639,7 +639,7 @@ export interface ApifyPredictionsResponse {
   count: number;
   data: ApifyPrediction[];
   fetchedAt: string;
-  source: 'apify' | 'mock';
+  source: 'apify' | 'unconfigured';
 }
 
 export interface ApifySyncResponse {

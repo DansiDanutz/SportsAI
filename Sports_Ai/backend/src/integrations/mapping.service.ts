@@ -24,8 +24,9 @@ export class MappingService {
     try {
       this.logger.log(`Fetching odds for ${sportKey} from primary provider (The Odds API)`);
       return await this.theOddsApi.getOdds(sportKey);
-    } catch (error: any) {
-      this.logger.warn(`Primary odds provider failed, no free fallbacks implemented for raw odds yet. Error: ${error?.message || String(error)}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Primary odds provider failed, no free fallbacks implemented for raw odds yet. Error: ${msg}`);
       // In a real scenario, we might have another odds provider here
       return null;
     }
@@ -38,8 +39,8 @@ export class MappingService {
     try {
       this.logger.log(`Fetching fixtures for ${sport} from primary provider (API-Sports)`);
       return await this.apiSports.getFixtures(sport as any, params);
-    } catch (error: any) {
-      this.logger.warn(`Primary fixture provider failed, trying Sportmonks fallback for football... Error: ${error?.message || String(error)}`);
+    } catch (error) {
+      this.logger.warn(`Primary fixture provider failed, trying Sportmonks fallback for football...`);
       if (sport === 'football' || sport === 'soccer') {
         return await this.sportmonks.getFootballFixtures(params);
       }
@@ -53,8 +54,9 @@ export class MappingService {
   async enrichTeamDetails(teamName: string) {
     try {
       return await this.theSportsDb.searchTeams(teamName);
-    } catch (error: any) {
-      this.logger.error(`Failed to enrich team details for ${teamName}: ${error?.message || String(error)}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to enrich team details for ${teamName}: ${msg}`);
       return null;
     }
   }
@@ -63,13 +65,12 @@ export class MappingService {
    * Resolves a provider-specific event ID to a canonical event ID.
    */
   async resolveEvent(provider: string, providerEventId: string): Promise<string | null> {
-    // Search in Event model externalIds JSON
+    // Search in Event model externalIds (stored as a stringified map)
     const event = await this.prisma.event.findFirst({
       where: {
         externalIds: {
-          path: [provider],
-          equals: providerEventId,
-        } as any,
+          contains: `"${provider}":"${providerEventId}"`,
+        },
       },
     });
     return event?.id || null;

@@ -84,27 +84,24 @@ interface ApifyRunListResponse {
 export class ApifyService {
   private readonly logger = new Logger(ApifyService.name);
   private readonly apiToken: string;
-  private readonly allowMockData: boolean;
   private readonly baseUrl = 'https://api.apify.com/v2';
 
-  // Apify Actor IDs must be provided via environment variables (your Apify account actors).
-  // Format accepted: "username/actor-name" or "username~actor-name" (we normalize).
+  // Apify Actor IDs from the store
   private readonly actors = {
-    oddsApi: process.env.APIFY_ACTOR_ODDS_API || '',
-    sofaScore: process.env.APIFY_ACTOR_SOFASCORE || '',
-    predictions: process.env.APIFY_ACTOR_PREDICTIONS || '',
-    sportsbookOdds: process.env.APIFY_ACTOR_SPORTSBOOK_ODDS || '',
+    // Odds API - Scrapes odds from BetMGM, Caesars, DraftKings, FanDuel, Bet365
+    oddsApi: 'api/odds-api',
+    // SofaScore Scraper PRO - Match stats, live scores, players, teams
+    sofaScore: 'azzouzana/sofascore-scraper-pro',
+    // Daily Bet Prediction Scraper
+    predictions: 'rikunk/bet-prediction-scraper',
+    // Sportsbook Odds Scraper (alternative)
+    sportsbookOdds: 'harvest/sportsbook-odds-scraper',
   };
 
   constructor(private prisma: PrismaService) {
     this.apiToken = process.env.APIFY_API_TOKEN || '';
-    this.allowMockData = (process.env.ALLOW_MOCK_DATA || '').toLowerCase() === 'true';
     if (!this.apiToken) {
-      if (this.allowMockData) {
-        this.logger.warn('APIFY_API_TOKEN not set. Apify integration will use mock data (ALLOW_MOCK_DATA=true).');
-      } else {
-        this.logger.warn('APIFY_API_TOKEN not set. Apify integration is disabled (no mock data in production).');
-      }
+      this.logger.warn('APIFY_API_TOKEN not set. Apify integration is disabled.');
     }
   }
 
@@ -115,10 +112,6 @@ export class ApifyService {
     return !!this.apiToken;
   }
 
-  isMockEnabled(): boolean {
-    return this.allowMockData;
-  }
-
   /**
    * Get Apify configuration status
    */
@@ -126,13 +119,11 @@ export class ApifyService {
     configured: boolean;
     apiToken: string;
     availableActors: string[];
-    actorIds: Record<string, string>;
   } {
     return {
       configured: this.isConfigured(),
       apiToken: this.apiToken ? `${this.apiToken.slice(0, 8)}...` : 'Not set',
       availableActors: Object.keys(this.actors),
-      actorIds: this.actors,
     };
   }
 
@@ -145,27 +136,13 @@ export class ApifyService {
     waitForResults = true,
   ): Promise<T[]> {
     if (!this.isConfigured()) {
-      if (this.allowMockData) {
-        this.logger.warn(`Apify not configured. Returning mock data for ${actorId}`);
-        return this.getMockData(actorId) as T[];
-      }
       throw new ServiceUnavailableException('Apify is not configured (APIFY_API_TOKEN missing)');
     }
-
-    if (!actorId || actorId.trim().length === 0) {
-      throw new ServiceUnavailableException(
-        'Apify actor id is not configured. Set APIFY_ACTOR_ODDS_API / APIFY_ACTOR_SOFASCORE / APIFY_ACTOR_PREDICTIONS in Render env vars.',
-      );
-    }
-
-    // Apify API expects actor ids in the form "username~actor-name".
-    // In the UI/store they’re often shown as "username/actor-name". Normalize here.
-    const normalizedActorId = actorId.includes('/') ? actorId.replace('/', '~') : actorId;
 
     try {
       // Start the actor run
       const runResponse = await fetch(
-        `${this.baseUrl}/acts/${normalizedActorId}/runs?token=${this.apiToken}`,
+        `${this.baseUrl}/acts/${actorId}/runs?token=${this.apiToken}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -174,10 +151,7 @@ export class ApifyService {
       );
 
       if (!runResponse.ok) {
-        const errorText = await runResponse.text().catch(() => '');
-        throw new Error(
-          `Failed to start actor ${normalizedActorId}: ${runResponse.status} ${runResponse.statusText} ${errorText}`.trim(),
-        );
+        throw new Error(`Failed to start actor: ${runResponse.statusText}`);
       }
 
       const runData = (await runResponse.json()) as ApifyRunResponse;
@@ -196,7 +170,7 @@ export class ApifyService {
         await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
 
         const statusResponse = await fetch(
-          `${this.baseUrl}/acts/${normalizedActorId}/runs/${runId}?token=${this.apiToken}`,
+          `${this.baseUrl}/acts/${actorId}/runs/${runId}?token=${this.apiToken}`,
         );
 
         const statusData = (await statusResponse.json()) as ApifyRunResponse;
@@ -223,28 +197,8 @@ export class ApifyService {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error running Apify actor ${actorId}: ${msg}`);
-      if (this.allowMockData) {
-        // Return mock data as fallback (dev/demo only)
-        return this.getMockData(actorId) as T[];
-      }
       throw new ServiceUnavailableException(`Apify request failed: ${msg}`);
     }
-  }
-
-  /**
-   * Get mock data for development/demo purposes
-   */
-  private getMockData(actorId: string): unknown[] {
-    if (actorId.includes('odds')) {
-      return this.getMockOddsData();
-    }
-    if (actorId.includes('sofascore')) {
-      return this.getMockMatchData();
-    }
-    if (actorId.includes('prediction')) {
-      return this.getMockPredictions();
-    }
-    return [];
   }
 
   /**
@@ -460,122 +414,4 @@ export class ApifyService {
     }
   }
 
-  // Mock data generators for development
-  private getMockOddsData(): ApifyOddsResult[] {
-    const now = new Date();
-    return [
-      {
-        team1: 'Los Angeles Lakers',
-        team2: 'Golden State Warriors',
-        gameTime: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(),
-        league: 'NBA',
-        moneyline: { team1: 2.15, team2: 1.75 },
-        spread: { team1: 3.5, team1Odds: 1.91, team2: -3.5, team2Odds: 1.91 },
-        total: { over: 225.5, overOdds: 1.91, under: 225.5, underOdds: 1.91 },
-        bookmaker: 'DraftKings',
-        timestamp: now.toISOString(),
-      },
-      {
-        team1: 'Los Angeles Lakers',
-        team2: 'Golden State Warriors',
-        gameTime: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(),
-        league: 'NBA',
-        moneyline: { team1: 2.20, team2: 1.72 },
-        spread: { team1: 3.5, team1Odds: 1.95, team2: -3.5, team2Odds: 1.87 },
-        total: { over: 226, overOdds: 1.90, under: 226, underOdds: 1.92 },
-        bookmaker: 'FanDuel',
-        timestamp: now.toISOString(),
-      },
-      {
-        team1: 'Real Madrid',
-        team2: 'Barcelona',
-        gameTime: new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString(),
-        league: 'UCL',
-        moneyline: { team1: 2.40, team2: 2.80, draw: 3.50 },
-        bookmaker: 'Bet365',
-        timestamp: now.toISOString(),
-      },
-      {
-        team1: 'Real Madrid',
-        team2: 'Barcelona',
-        gameTime: new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString(),
-        league: 'UCL',
-        moneyline: { team1: 2.35, team2: 2.90, draw: 3.45 },
-        bookmaker: 'BetMGM',
-        timestamp: now.toISOString(),
-      },
-      {
-        team1: 'Kansas City Chiefs',
-        team2: 'Buffalo Bills',
-        gameTime: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-        league: 'NFL',
-        moneyline: { team1: 1.65, team2: 2.30 },
-        spread: { team1: -4.5, team1Odds: 1.91, team2: 4.5, team2Odds: 1.91 },
-        total: { over: 52.5, overOdds: 1.87, under: 52.5, underOdds: 1.95 },
-        bookmaker: 'Caesars',
-        timestamp: now.toISOString(),
-      },
-    ];
-  }
-
-  private getMockMatchData(): ApifySofaScoreMatch[] {
-    const now = new Date();
-    return [
-      {
-        id: 'sf-1',
-        homeTeam: 'Manchester United',
-        awayTeam: 'Liverpool',
-        homeScore: 2,
-        awayScore: 1,
-        status: 'live',
-        startTime: new Date(now.getTime() - 60 * 60 * 1000).toISOString(),
-        tournament: 'Premier League',
-        sport: 'Football',
-        statistics: {
-          possession: { home: 48, away: 52 },
-          shots: { home: 12, away: 15 },
-          shotsOnTarget: { home: 5, away: 7 },
-          corners: { home: 4, away: 6 },
-        },
-      },
-      {
-        id: 'sf-2',
-        homeTeam: 'Bayern Munich',
-        awayTeam: 'Borussia Dortmund',
-        status: 'scheduled',
-        startTime: new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString(),
-        tournament: 'Bundesliga',
-        sport: 'Football',
-      },
-    ];
-  }
-
-  private getMockPredictions(): ApifyPrediction[] {
-    return [
-      {
-        event: 'Lakers vs Warriors',
-        prediction: 'Lakers +3.5',
-        confidence: 0.72,
-        source: 'BetPredictions.com',
-        odds: 1.91,
-        timestamp: new Date().toISOString(),
-      },
-      {
-        event: 'Real Madrid vs Barcelona',
-        prediction: 'Over 2.5 Goals',
-        confidence: 0.68,
-        source: 'FootballTips.io',
-        odds: 1.85,
-        timestamp: new Date().toISOString(),
-      },
-      {
-        event: 'Chiefs vs Bills',
-        prediction: 'Chiefs -4.5',
-        confidence: 0.65,
-        source: 'NFLAnalysis.com',
-        odds: 1.91,
-        timestamp: new Date().toISOString(),
-      },
-    ];
-  }
 }

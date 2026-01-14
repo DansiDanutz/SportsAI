@@ -47,7 +47,6 @@ export class CreditsService {
     }
 
     // Deduct credits and record transaction
-    // Note: opportunityId is optional - it may be a mock ID during development
     const [updatedUser] = await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: userId },
@@ -58,7 +57,7 @@ export class CreditsService {
           userId,
           type: 'unlock',
           amount: -creditCost,
-          // Only link to opportunity if it's a valid UUID (not mock data)
+          // Only link to opportunity if it's a valid UUID
           ...(opportunityId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
             ? { opportunityId }
             : {}),
@@ -136,7 +135,6 @@ export class CreditsService {
     });
 
     // Return unique opportunity IDs that were unlocked
-    // Note: opportunityId may be null for mock unlocks, filter those out
     return unlockTransactions
       .map(t => t.opportunityId)
       .filter((id): id is string => id !== null);
