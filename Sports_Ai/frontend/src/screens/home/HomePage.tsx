@@ -5,7 +5,7 @@ import { Layout } from '../../components/Layout';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { useAuthStore } from '../../store/authStore';
-import { eventsApi, Event, api, AiAdvice, AiNewsItem, SharpMoneyAlert } from '../../services/api';
+import { eventsApi, Event, api, AiAdvice, AiNewsItem, SharpMoneyAlert, getErrorMessage } from '../../services/api';
 import { useArbitrage } from '../../hooks/useArbitrage';
 
 // ... (keep interface definitions)
@@ -20,7 +20,7 @@ export function HomePage() {
   // Fetch AI Advice ...
 
   // Fetch AI Advice
-  const { data: adviceData } = useQuery({
+  const adviceQuery = useQuery({
     queryKey: ['ai-advice'],
     queryFn: async () => {
       const response = await api.get<{ advice: AiAdvice[]; configuration: any; matchCount: number }>('/v1/ai/advice');
@@ -29,9 +29,10 @@ export function HomePage() {
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     retry: 1,
   });
+  const adviceData = adviceQuery.data;
 
   // Fetch AI News
-  const { data: newsData } = useQuery({
+  const newsQuery = useQuery({
     queryKey: ['ai-news'],
     queryFn: async () => {
       const response = await api.get<{ news: AiNewsItem[]; sportScope: string[]; refreshedAt: string }>('/v1/ai/news');
@@ -40,9 +41,10 @@ export function HomePage() {
     staleTime: 1000 * 60 * 10, // Cache for 10 minutes
     retry: 1,
   });
+  const newsData = newsQuery.data;
 
   // Fetch Sharp Money Alerts
-  const { data: sharpMoneyData } = useQuery({
+  const sharpMoneyQuery = useQuery({
     queryKey: ['sharp-money'],
     queryFn: async () => {
       const response = await api.get<{ alerts: SharpMoneyAlert[]; total: number }>('/v1/ai/sharp-money');
@@ -51,6 +53,7 @@ export function HomePage() {
     staleTime: 1000 * 60 * 2, // Cache for 2 minutes (more frequent updates for sharp money)
     retry: 1,
   });
+  const sharpMoneyData = sharpMoneyQuery.data;
 
   const favoritesCountQuery = useQuery({
     queryKey: ['favoritesCount'],
@@ -226,10 +229,29 @@ export function HomePage() {
                   <span className="text-2xl">📰</span>
                   <h2 className="text-xl font-semibold text-white">AI News</h2>
                 </div>
-                <span className="text-xs text-gray-500">Updated {newsData?.refreshedAt ? new Date(newsData.refreshedAt).toLocaleTimeString() : 'recently'}</span>
+                <span className="text-xs text-gray-500">
+                  {newsQuery.isLoading
+                    ? 'Loading…'
+                    : newsData?.refreshedAt
+                      ? `Updated ${new Date(newsData.refreshedAt).toLocaleTimeString()}`
+                      : newsQuery.dataUpdatedAt
+                        ? `Updated ${new Date(newsQuery.dataUpdatedAt).toLocaleTimeString()}`
+                        : '—'}
+                </span>
               </div>
 
-              {newsData?.news && newsData.news.length > 0 ? (
+              {newsQuery.isError ? (
+                <div className="text-center py-6 text-gray-400">
+                  <p className="text-sm">AI news is unavailable right now.</p>
+                  <p className="text-xs text-gray-500 mt-2">{getErrorMessage(newsQuery.error)}</p>
+                  <button
+                    onClick={() => newsQuery.refetch()}
+                    className="mt-3 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-medium"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : newsData?.news && newsData.news.length > 0 ? (
                 <div className="space-y-3">
                   {newsData.news.slice(0, 3).map((news) => (
                     <div key={news.id} className="p-3 bg-gray-700/40 rounded-lg border-l-4 border-l-blue-500">
@@ -254,7 +276,7 @@ export function HomePage() {
                 </div>
               ) : (
                 <div className="text-center py-6 text-gray-400">
-                  <p className="text-sm">Loading news...</p>
+                  <p className="text-sm">{newsQuery.isLoading ? 'Loading news…' : 'No news available yet.'}</p>
                 </div>
               )}
             </div>
@@ -273,7 +295,26 @@ export function HomePage() {
                 )}
               </div>
 
-              {adviceData?.advice && adviceData.advice.length > 0 ? (
+              {adviceQuery.isError ? (
+                <div className="text-center py-6 text-gray-400">
+                  <p className="text-sm">AI advice is unavailable right now.</p>
+                  <p className="text-xs text-gray-500 mt-2">{getErrorMessage(adviceQuery.error)}</p>
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => adviceQuery.refetch()}
+                      className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-medium"
+                    >
+                      Retry
+                    </button>
+                    <Link
+                      to="/setup"
+                      className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium"
+                    >
+                      Configure AI
+                    </Link>
+                  </div>
+                </div>
+              ) : adviceData?.advice && adviceData.advice.length > 0 ? (
                 <div className="space-y-3">
                   {adviceData.advice.slice(0, 3).map((advice) => (
                     <div key={advice.id} className={`p-3 bg-gray-700/40 rounded-lg border-l-4 ${
@@ -312,7 +353,7 @@ export function HomePage() {
                 </div>
               ) : (
                 <div className="text-center py-6 text-gray-400">
-                  <p className="text-sm">Loading advice...</p>
+                  <p className="text-sm">{adviceQuery.isLoading ? 'Loading advice…' : 'No advice available yet.'}</p>
                   <Link to="/setup" className="text-green-500 hover:text-green-400 text-xs mt-2 inline-block">
                     Configure your AI preferences
                   </Link>
