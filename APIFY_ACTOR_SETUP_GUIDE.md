@@ -8,6 +8,7 @@ Your application needs these Apify actors (set as environment variables in Rende
 
 1. **APIFY_ACTOR_ODDS_API** - Fetches sports betting odds data
 2. **APIFY_ACTOR_SOFASCORE** - Scrapes SofaScore for match data, stats, and scores
+3. **APIFY_ACTOR_FLASHSCORE** - (Optional fallback) Scrapes Flashscore for match data/scores when SofaScore is unavailable
 3. **APIFY_ACTOR_PREDICTIONS** - Gets match predictions
 4. **APIFY_ACTOR_SPORTSBOOK_ODDS** - (Optional) Additional sportsbook odds
 
@@ -50,6 +51,12 @@ You have two options:
 - Search terms: `sofascore`, `soccer scores`, `football scores`
 - Example mentioned: `azzouzana/sofascore-scraper-pro` (if it exists)
 - Look for actors that scrape SofaScore data
+
+##### For APIFY_ACTOR_FLASHSCORE (optional fallback)
+- Purpose: provide a **backup provider** for match/scores if the SofaScore actor fails or is blocked.
+- Recommended approach: create/host your own Apify actor based on an open-source Flashscore scraper (see "Open-source baselines" below).
+- Then set:
+  - `APIFY_ACTOR_FLASHSCORE=yourusername/your-flashscore-actor`
 
 ##### For APIFY_ACTOR_PREDICTIONS
 
@@ -117,6 +124,9 @@ APIFY_ACTOR_SPORTSBOOK_ODDS=yourusername/your-sportsbook-actor
 ```env
 APIFY_ACTOR_ODDS_API=apify/sports-odds
 APIFY_ACTOR_SOFASCORE=azzouzana/sofascore-scraper-pro
+
+# Optional fallback
+APIFY_ACTOR_FLASHSCORE=yourusername/your-flashscore-actor
 APIFY_ACTOR_PREDICTIONS=mypredictions/ai-predictions
 ```
 
@@ -235,6 +245,14 @@ If you need to know your Apify username:
 - [ ] Logged into Apify Console
 - [ ] Found/created actor for **APIFY_ACTOR_ODDS_API**
 - [ ] Found/created actor for **APIFY_ACTOR_SOFASCORE**
+- [ ] (Optional) Found/created actor for **APIFY_ACTOR_FLASHSCORE**
+
+## Open-source baselines (GitHub)
+These are good starting points for building your own Flashscore actor:
+- `gustavofariaa/FlashscoreScraping` (Python + Playwright): tends to be the most practical baseline for live pages.
+- `chiruleonard/flashscore-scraper` (Python; packaged on PyPI): useful for simpler match extraction flows.
+
+Note: Flashscore pages can be protected/blocked; an Apify actor is usually more reliable than running browser automation inside our API server.
 - [ ] Found/created actor for **APIFY_ACTOR_PREDICTIONS**
 - [ ] (Optional) Found/created actor for **APIFY_ACTOR_SPORTSBOOK_ODDS**
 - [ ] Got actor IDs in format: `username/actor-name`

@@ -1,5 +1,6 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { FlashscoreService } from '../flashscore/flashscore.service';
 
 // Types for Apify API responses
 export interface ApifyOddsResult {
@@ -80,6 +81,9 @@ interface ApifyRunListResponse {
   };
 }
 
+export type ApifyMatchProvider = 'sofascore' | 'flashscore';
+export type ApifyMatchProviderRequest = ApifyMatchProvider | 'auto';
+
 @Injectable()
 export class ApifyService {
   private readonly logger = new Logger(ApifyService.name);
@@ -89,16 +93,21 @@ export class ApifyService {
   // Apify Actor IDs from the store
   private readonly actors = {
     // Odds API - Scrapes odds from BetMGM, Caesars, DraftKings, FanDuel, Bet365
-    oddsApi: 'api/odds-api',
+    oddsApi: process.env.APIFY_ACTOR_ODDS_API || 'api/odds-api',
     // SofaScore Scraper PRO - Match stats, live scores, players, teams
-    sofaScore: 'azzouzana/sofascore-scraper-pro',
+    sofaScore: process.env.APIFY_ACTOR_SOFASCORE || 'azzouzana/sofascore-scraper-pro',
+    // Flashscore actor (optional). Provide your own actor ID via env.
+    flashscore: process.env.APIFY_ACTOR_FLASHSCORE || '',
     // Daily Bet Prediction Scraper
-    predictions: 'rikunk/bet-prediction-scraper',
+    predictions: process.env.APIFY_ACTOR_PREDICTIONS || 'rikunk/bet-prediction-scraper',
     // Sportsbook Odds Scraper (alternative)
-    sportsbookOdds: 'harvest/sportsbook-odds-scraper',
+    sportsbookOdds: process.env.APIFY_ACTOR_SPORTSBOOK_ODDS || 'harvest/sportsbook-odds-scraper',
   };
 
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    private flashscoreService: FlashscoreService,
+  ) {
     this.apiToken = process.env.APIFY_API_TOKEN || '';
     if (!this.apiToken) {
       this.logger.warn('APIFY_API_TOKEN not set. Apify integration is disabled.');
@@ -112,6 +121,10 @@ export class ApifyService {
     return !!this.apiToken;
   }
 
+  private hasFlashscoreActor(): boolean {
+    return typeof this.actors.flashscore === 'string' && this.actors.flashscore.trim().length > 0;
+  }
+
   /**
    * Get Apify configuration status
    */
@@ -119,11 +132,13 @@ export class ApifyService {
     configured: boolean;
     apiToken: string;
     availableActors: string[];
+    flashscoreActorConfigured: boolean;
   } {
     return {
       configured: this.isConfigured(),
       apiToken: this.apiToken ? `${this.apiToken.slice(0, 8)}...` : 'Not set',
       availableActors: Object.keys(this.actors),
+      flashscoreActorConfigured: this.hasFlashscoreActor(),
     };
   }
 
@@ -226,14 +241,47 @@ export class ApifyService {
   async fetchMatches(options: {
     urls: string[];
     sport?: string;
-  }): Promise<ApifySofaScoreMatch[]> {
-    this.logger.log(`Fetching match data for ${options.urls.length} URLs`);
+    provider?: ApifyMatchProviderRequest;
+  }): Promise<{ provider: ApifyMatchProvider; data: unknown[] }> {
+    const provider = options.provider || 'auto';
+    this.logger.log(
+      `Fetching match data for ${options.urls.length} URLs (provider=${provider})`,
+    );
 
     const input = {
       startUrls: options.urls.map((url) => ({ url })),
     };
 
-    return this.runActor<ApifySofaScoreMatch>(this.actors.sofaScore, input);
+    if (provider === 'flashscore') {
+      if (!this.hasFlashscoreActor()) {
+        throw new ServiceUnavailableException(
+          'Flashscore actor is not configured (APIFY_ACTOR_FLASHSCORE missing)',
+        );
+      }
+      const data = await this.runActor<unknown>(this.actors.flashscore, input);
+      return { provider: 'flashscore', data };
+    }
+
+    try {
+      const data = await this.runActor<ApifySofaScoreMatch>(this.actors.sofaScore, input);
+      return { provider: 'sofascore', data };
+    } catch (error) {
+      if (provider === 'auto' && this.hasFlashscoreActor()) {
+        const msg = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`SofaScore actor failed (${msg}); falling back to Flashscore actor`);
+        const data = await this.runActor<unknown>(this.actors.flashscore, input);
+        return { provider: 'flashscore', data };
+      }
+
+      // Final fallback: local Flashscore scraper (Playwright), if enabled.
+      if (provider === 'auto') {
+        const msg = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`SofaScore actor failed (${msg}); falling back to local Flashscore scraper`);
+        const { matches } = await this.flashscoreService.fetchMatches(options.urls);
+        return { provider: 'flashscore', data: matches };
+      }
+      throw error;
+    }
   }
 
   /**

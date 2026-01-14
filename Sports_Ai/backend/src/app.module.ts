@@ -20,6 +20,7 @@ import { SetupModule } from './setup/setup.module';
 import { ApifyModule } from './apify/apify.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { HealthModule } from './health/health.module';
+import { FlashscoreModule } from './flashscore/flashscore.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { HealthModule } from './health/health.module';
     PresetsModule,
     SetupModule,
     ApifyModule,
+    FlashscoreModule,
     AdminModule,
     HealthModule,
   ],

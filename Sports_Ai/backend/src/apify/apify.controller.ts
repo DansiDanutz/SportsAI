@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard, RequireAdmin } from '../auth/admin.guard';
-import { ApifyService } from './apify.service';
+import { ApifyMatchProviderRequest, ApifyService } from './apify.service';
 
 type LeagueType = 'NFL' | 'NBA' | 'NHL' | 'UCL' | 'UFC' | 'College-Football' | 'College-Basketball';
 
@@ -59,16 +59,21 @@ export class ApifyController {
    */
   @Post('matches')
   @HttpCode(HttpStatus.OK)
-  async fetchMatches(@Body() body: { urls: string[]; sport?: string }) {
-    const matches = await this.apifyService.fetchMatches({
+  async fetchMatches(
+    @Body()
+    body: { urls: string[]; sport?: string; provider?: ApifyMatchProviderRequest },
+  ) {
+    const result = await this.apifyService.fetchMatches({
       urls: body.urls,
       sport: body.sport,
+      provider: body.provider,
     });
 
     return {
       success: true,
-      count: matches.length,
-      data: matches,
+      provider: result.provider,
+      count: result.data.length,
+      data: result.data,
       fetchedAt: new Date().toISOString(),
       source: this.apifyService.isConfigured() ? 'apify' : 'unconfigured',
     };

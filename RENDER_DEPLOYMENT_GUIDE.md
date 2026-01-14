@@ -92,6 +92,7 @@ These are the Apify actor IDs from your Apify account. Format: `username/actor-n
 ```text
 APIFY_ACTOR_ODDS_API=username/your-odds-actor
 APIFY_ACTOR_SOFASCORE=username/your-sofascore-actor
+APIFY_ACTOR_FLASHSCORE=username/your-flashscore-actor
 APIFY_ACTOR_PREDICTIONS=username/your-predictions-actor
 APIFY_ACTOR_SPORTSBOOK_ODDS=username/your-sportsbook-actor (optional)
 ```
@@ -101,10 +102,24 @@ APIFY_ACTOR_SPORTSBOOK_ODDS=username/your-sportsbook-actor (optional)
 ```text
 APIFY_ACTOR_ODDS_API=apify/sports-odds
 APIFY_ACTOR_SOFASCORE=azzouzana/sofascore-scraper-pro
+APIFY_ACTOR_FLASHSCORE=yourusername/your-flashscore-actor
 APIFY_ACTOR_PREDICTIONS=mypredictions/ai-predictions
 ```
 
 **Note:** After deploying commit `54dd4cd`, these actor IDs are required. Find actors in the Apify Store or create your own. See the guide above for details.
+
+#### Flashscore (Local scraping fallback via Playwright)
+
+If SofaScore/Apify is unavailable, the backend can scrape Flashscore directly using Playwright.
+
+```text
+FLASHSCORE_ENABLED=true
+FLASHSCORE_TIMEOUT_MS=15000
+FLASHSCORE_CACHE_TTL_MS=60000
+FLASHSCORE_CONCURRENCY=2
+```
+
+**Important:** the backend installs Playwright Chromium during `npm install` (via `postinstall`). Your Render build will take longer the first time because Chromium is downloaded.
 
 #### OAuth (Optional)
 
