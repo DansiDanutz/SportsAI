@@ -242,6 +242,71 @@ Only return the JSON array, no other text.`;
     }
   }
 
+  /**
+   * General chat method. No mock fallback: requires OPENROUTER_API_KEY.
+   */
+  async chat(
+    message: string,
+    context: {
+      userPreferences: any;
+      relevantMatches: any[];
+      recentNews: any[];
+      standings?: any[];
+      languageCode: string;
+    },
+  ): Promise<string> {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) {
+      throw new ServiceUnavailableException('OPENROUTER_API_KEY not configured');
+    }
+
+    const translationInstruction = this.languageService.getTranslationInstruction(context.languageCode);
+
+    const systemPrompt = `You are the SportsAI Concierge, a sports betting assistant.
+You must be explicit when information is missing. Do not fabricate live odds, injuries, or results.
+
+Context:
+- User Preferences: ${JSON.stringify(context.userPreferences)}
+- Relevant Matches: ${JSON.stringify(context.relevantMatches)}
+- Recent News: ${JSON.stringify(context.recentNews)}
+- Standings: ${JSON.stringify(context.standings || [])}
+
+${translationInstruction}`;
+
+    try {
+      const response = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
+          'X-Title': 'SportsAI Platform',
+        },
+        body: JSON.stringify({
+          model: this.freeModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message },
+          ] as OpenRouterMessage[],
+          temperature: 0.6,
+          max_tokens: 1200,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        this.logger.error(`OpenRouter chat error: ${error}`);
+        throw new BadGatewayException('OpenRouter API error');
+      }
+
+      const data = (await response.json()) as OpenRouterResponse;
+      return data.choices?.[0]?.message?.content || '';
+    } catch (error) {
+      this.logger.error(`OpenRouter chat request failed: ${error}`);
+      throw new BadGatewayException('OpenRouter request failed');
+    }
+  }
+
   private buildUserPrompt(
     configuration: {
       sportKey: string;

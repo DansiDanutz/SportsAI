@@ -34,6 +34,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Vercel/CI builds can produce a JS bundle slightly > 2 MiB.
+        // Increase the limit so PWA generation doesn't fail the build.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
         runtimeCaching: [
           {
             // Cache API responses

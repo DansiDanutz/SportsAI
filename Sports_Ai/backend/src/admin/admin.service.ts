@@ -146,4 +146,9 @@ export class AdminService {
       user: updated,
     };
   }
+
+  async seedDemoData() {
+    // Demo seeding disabled: backend must only store/serve real data.
+    throw new BadRequestException('Demo seeding is disabled in this deployment.');
+  }
 }
