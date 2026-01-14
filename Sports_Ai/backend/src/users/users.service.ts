@@ -5,6 +5,32 @@ import { PrismaService } from '../prisma/prisma.service';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    if (!value || typeof value !== 'object') return false;
+    const proto = Object.getPrototypeOf(value);
+    return proto === Object.prototype || proto === null;
+  }
+
+  /**
+   * Deep merge plain objects. Arrays are replaced (not merged).
+   */
+  private deepMerge<T extends Record<string, unknown>>(base: T, patch: Record<string, unknown>): T {
+    const out: Record<string, unknown> = { ...base };
+    for (const [key, value] of Object.entries(patch || {})) {
+      const current = out[key];
+      if (Array.isArray(value)) {
+        out[key] = value;
+        continue;
+      }
+      if (this.isPlainObject(value) && this.isPlainObject(current)) {
+        out[key] = this.deepMerge(current, value);
+        continue;
+      }
+      out[key] = value;
+    }
+    return out as T;
+  }
+
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
@@ -230,8 +256,8 @@ export class UsersService {
 
     try {
       const parsed = JSON.parse(user.preferences);
-      // Merge with defaults to ensure all keys exist
-      return { ...this.getDefaultPreferences(), ...parsed };
+      // Deep-merge with defaults to ensure nested keys exist (e.g., display.*)
+      return this.deepMerge(this.getDefaultPreferences(), parsed);
     } catch {
       return this.getDefaultPreferences();
     }
@@ -240,7 +266,7 @@ export class UsersService {
   async updatePreferences(userId: string, updates: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Get current preferences and merge with updates
     const currentPrefs = await this.getPreferences(userId);
-    const newPrefs = { ...currentPrefs, ...updates };
+    const newPrefs = this.deepMerge(currentPrefs, updates);
 
     await this.prisma.user.update({
       where: { id: userId },
