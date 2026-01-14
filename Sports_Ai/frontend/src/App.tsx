@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { useScrollRestoration } from './hooks/useScrollRestoration';
 import { OfflineBanner } from './components/OfflineBanner';
 import { PWAUpdatePrompt } from './components/PWAUpdatePrompt';
+import { GlobalFreshnessBadge } from './components/GlobalFreshnessBadge';
 import { api } from './services/api';
 import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage, OAuthCallbackPage } from './screens/auth';
 import { HomePage } from './screens/home';
@@ -87,6 +88,9 @@ function App() {
 
       {/* PWA Update Prompt */}
       <PWAUpdatePrompt />
+
+      {/* Global update timestamp (public + private routes) */}
+      <GlobalFreshnessBadge />
 
       {/* Non-blocking onboarding check indicator */}
       {isCheckingOnboarding && isAuthenticated && user && (
