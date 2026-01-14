@@ -140,7 +140,6 @@ export function SportEventsPage() {
   const {
     data: eventsResponse,
     refetch: refetchEvents,
-    isFetching: isFetchingEvents,
   } = useQuery({
     queryKey: ['events', sportKey, refreshKey],
     enabled: !!sportKey,

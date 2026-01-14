@@ -5,7 +5,7 @@ import { Layout } from '../../components/Layout';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { useAuthStore } from '../../store/authStore';
-import { eventsApi, Event, api } from '../../services/api';
+import { eventsApi, Event, api, AiAdvice, AiNewsItem, SharpMoneyAlert } from '../../services/api';
 import { useArbitrage } from '../../hooks/useArbitrage';
 
 // ... (keep interface definitions)

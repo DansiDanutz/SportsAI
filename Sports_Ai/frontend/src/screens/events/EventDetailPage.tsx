@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Layout } from '../../components/Layout';
 import { useSwipe } from '../../hooks/useSwipe';
-import { eventsApi, StandingsResponse, api, Event } from '../../services/api';
+import { eventsApi, StandingsResponse, Event } from '../../services/api';
 
 // Sport key mapping for breadcrumbs
 const sportKeyMap: Record<string, string> = {
@@ -736,40 +736,6 @@ function OddsTab({ event }: { event: EventDetailModel }) {
   );
 }
 
-// Helper to get availability badge styles
-function getAvailabilityBadge(availability: 'high' | 'medium' | 'low' | 'unavailable', bookmakerCount: number) {
-  switch (availability) {
-    case 'high':
-      return {
-        text: `${bookmakerCount} bookmakers`,
-        bgColor: 'bg-green-500/20',
-        textColor: 'text-green-400',
-        borderColor: 'border-green-500/30',
-      };
-    case 'medium':
-      return {
-        text: `${bookmakerCount} bookmakers`,
-        bgColor: 'bg-yellow-500/20',
-        textColor: 'text-yellow-400',
-        borderColor: 'border-yellow-500/30',
-      };
-    case 'low':
-      return {
-        text: `Low availability (${bookmakerCount})`,
-        bgColor: 'bg-orange-500/20',
-        textColor: 'text-orange-400',
-        borderColor: 'border-orange-500/30',
-      };
-    case 'unavailable':
-      return {
-        text: 'Unavailable',
-        bgColor: 'bg-red-500/20',
-        textColor: 'text-red-400',
-        borderColor: 'border-red-500/30',
-      };
-  }
-}
-
 // Markets & Periods Tab
 function MarketsTab({ event }: { event: EventDetailModel }) {
   const quotes = event.odds || [];
@@ -1103,7 +1069,7 @@ function InjuryRow({
 }
 
 // News & Context Tab
-function NewsTab({ event }: { event: EventDetailModel }) {
+function NewsTab({ event: _event }: { event: EventDetailModel }) {
   return (
     <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
       <h2 className="text-xl font-semibold text-white mb-2">News & Context</h2>

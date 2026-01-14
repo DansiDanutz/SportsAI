@@ -1,24 +1,59 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Layout } from '../../components/Layout';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../services/api';
+import { api, ArbitrageLeg } from '../../services/api';
 import { PremiumGate } from '../../components/PremiumGate';
-import { LineMovementChart } from '../../components/LineMovementChart';
+
+interface DailyTicketMatch {
+  homeTeam: string;
+  awayTeam: string;
+  league: string;
+  prediction: string;
+  odds: number;
+  analysis: { summary: string };
+}
+
+interface DailyTicket {
+  id: string;
+  name: string;
+  actualOdds: number;
+  totalConfidence: number;
+  matches: DailyTicketMatch[];
+}
+
+interface StrangeBet {
+  event: string;
+  outcome: string;
+  drop: string;
+}
+
+interface ArbitrageSummaryItem {
+  id: string;
+  sport: string;
+  league: string;
+  event: string;
+  profit: number;
+  legs?: ArbitrageLeg[];
+}
+
+interface ArbitrageSummaryResponse {
+  opportunities?: ArbitrageSummaryItem[];
+}
 
 export function DailyAiPage() {
   const [activeTab, setActiveTab] = useState<'tickets' | 'strange' | 'arbitrage'>('tickets');
 
-  const { data: tickets, isLoading: ticketsLoading } = useQuery({
+  const { data: tickets } = useQuery<DailyTicket[]>({
     queryKey: ['dailyTickets'],
     queryFn: () => api.get('/v1/ai/tickets/daily').then(res => res.data),
   });
 
-  const { data: strangeBets, isLoading: strangeLoading } = useQuery({
+  const { data: strangeBets } = useQuery<StrangeBet[]>({
     queryKey: ['strangeBets'],
     queryFn: () => api.get('/v1/ai/strange-bets').then(res => res.data),
   });
 
-  const { data: arbs, isLoading: arbsLoading } = useQuery({
+  const { data: arbs } = useQuery<ArbitrageSummaryResponse>({
     queryKey: ['arbsSummary'],
     queryFn: () => api.get('/v1/arbitrage/opportunities?fullDetails=true').then(res => res.data),
   });
@@ -62,7 +97,7 @@ export function DailyAiPage() {
           {/* Daily Tickets Section */}
           {activeTab === 'tickets' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {tickets?.map((ticket: any) => (
+              {tickets?.map((ticket) => (
                 <div key={ticket.id} className="bg-gray-800 rounded-3xl p-8 border border-gray-700 hover:border-green-500/50 transition-all group overflow-hidden relative">
                   <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
                     <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -84,7 +119,7 @@ export function DailyAiPage() {
                   </div>
 
                   <div className="space-y-4 mb-8">
-                    {ticket.matches.map((match: any, idx: number) => (
+                    {ticket.matches.map((match, idx) => (
                       <div key={idx} className="bg-gray-900/50 rounded-2xl p-5 border border-gray-700/50">
                         <div className="flex justify-between items-start mb-3">
                           <div className="text-white font-bold">{match.homeTeam} vs {match.awayTeam}</div>
@@ -114,7 +149,7 @@ export function DailyAiPage() {
           {/* Strange Bets / Anomalies Section */}
           {activeTab === 'strange' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {strangeBets?.length > 0 ? strangeBets.map((bet, i) => (
+              {strangeBets?.length ? strangeBets.map((bet, i) => (
                 <div key={i} className="bg-gray-800 rounded-3xl p-6 border border-purple-500/30 flex flex-col md:flex-row gap-6 items-center">
                   <div className="w-20 h-20 bg-purple-500/10 rounded-2xl flex items-center justify-center flex-shrink-0">
                     <svg className="w-10 h-10 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,7 +184,7 @@ export function DailyAiPage() {
           {/* Arbitrage Opportunities Section */}
           {activeTab === 'arbitrage' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {arbs?.opportunities?.map((arb: any) => (
+              {arbs?.opportunities?.map((arb) => (
                 <div key={arb.id} className="bg-gray-800 rounded-3xl p-8 border border-blue-500/30 flex flex-col md:flex-row justify-between items-center gap-8">
                   <div className="flex-grow">
                     <div className="flex items-center space-x-2 mb-3">
@@ -157,7 +192,7 @@ export function DailyAiPage() {
                       <span className="text-gray-400 text-sm font-medium">{arb.sport} • {arb.league}</span>
                     </div>
                     <h3 className="text-2xl font-black text-white mb-2">{arb.event}</h3>
-                    <p className="text-gray-400 italic">"Market inefficiency detected between {arb.legs?.map(l => l.bookmaker).join(' and ')}."</p>
+                    <p className="text-gray-400 italic">"Market inefficiency detected between {arb.legs?.map((l) => l.bookmaker).join(' and ')}."</p>
                   </div>
                   <div className="text-center md:text-right flex-shrink-0">
                     <div className="text-4xl font-black text-green-500">+{arb.profit}%</div>

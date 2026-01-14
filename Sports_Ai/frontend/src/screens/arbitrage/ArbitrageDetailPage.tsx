@@ -1,15 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { Layout } from '../../components/Layout';
 import { PremiumGate, useIsPremium } from '../../components/PremiumGate';
 import { ConfirmationDialog } from '../../components/ConfirmationDialog';
-import { api, ArbitrageOpportunity, ArbitrageLeg } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { calculateArbitrageProfit, calculateStakes } from '../../utils/arbitrageUtils';
 import { useArbitrage, useUnlockArbitrage } from '../../hooks/useArbitrage';
-
-interface ArbitrageData extends ArbitrageOpportunity {}
 
 export function ArbitrageDetailPage() {
   const { arbId } = useParams<{ arbId: string }>();
@@ -20,7 +16,6 @@ export function ArbitrageDetailPage() {
   const { data: arbitrageData, isLoading } = useArbitrage(isPremium);
   const unlockMutation = useUnlockArbitrage();
 
-  const [selectedTip, setSelectedTip] = useState<ArbitrageData | null>(null);
   const [unlockError, setUnlockError] = useState<{
     message: string;
     required: number;

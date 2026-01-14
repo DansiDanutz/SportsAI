@@ -302,6 +302,44 @@ export interface ArbitrageResponse {
   message?: string;
 }
 
+// AI types (used by Home/Daily AI screens)
+export interface AiAdvice {
+  id: string;
+  category: 'opportunity' | 'warning' | 'strategy' | 'insight' | string;
+  confidence: number;
+  title: string;
+  content: string;
+  relatedMatch?: string | null;
+  createdAt?: string;
+}
+
+export interface AiNewsItem {
+  id: string;
+  sport: string;
+  impact: 'high' | 'medium' | 'low' | string;
+  headline: string;
+  summary: string;
+  createdAt?: string;
+}
+
+export interface SharpMoneyAlert {
+  id: string;
+  eventId: string;
+  homeTeam: string;
+  awayTeam: string;
+  league: string;
+  alertType: 'steam_move' | 'reverse_line_movement' | 'sharp_action' | 'volume_spike' | string;
+  severity: 'high' | 'medium' | 'low' | string;
+  description: string;
+  details: {
+    previousOdds: number;
+    currentOdds: number;
+    oddsChange: number;
+    percentageChange: number;
+  };
+  createdAt?: string;
+}
+
 // Arbitrage API
 export const arbitrageApi = {
   getOpportunities: async (fullDetails: boolean = false): Promise<ArbitrageResponse> => {

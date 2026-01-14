@@ -35,8 +35,7 @@ export function OAuthCallbackPage() {
 
       // Set authentication state
       useAuthStore.setState({
-        accessToken,
-        refreshToken,
+        token: accessToken,
         user: {
           id: userId,
           email: email,
@@ -49,7 +48,8 @@ export function OAuthCallbackPage() {
       });
 
       // Store tokens in localStorage
-      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('token', accessToken);
+      // Keep refresh token around if backend uses it elsewhere
       localStorage.setItem('refreshToken', refreshToken);
 
       // Redirect to home

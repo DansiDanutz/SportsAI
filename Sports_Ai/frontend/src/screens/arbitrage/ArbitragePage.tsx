@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from '../../components/Layout';
@@ -109,7 +109,7 @@ function AiInsightsSection() {
 
   return (
     <div className="space-y-4">
-      {tips.slice(0, 3).map((tip) => (
+      {tips.slice(0, 3).map((tip: any) => (
         <div key={tip.id} className="flex items-start space-x-3 p-3 bg-gray-700/30 rounded-lg border-l-4 border-l-green-500">
           <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
             <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { arbitrageApi, ArbitrageResponse } from '../services/api';
+import { arbitrageApi } from '../services/api';
 
 export function useArbitrage(fullDetails: boolean = false) {
   return useQuery({

@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Layout } from '../../components/Layout';
 import { chatApi } from '../../services/api';
-import { useAuthStore } from '../../store/authStore';
 import ReactMarkdown from 'react-markdown';
 
 interface Message {
@@ -24,7 +23,6 @@ export function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuthStore();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
