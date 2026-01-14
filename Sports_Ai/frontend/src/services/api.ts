@@ -39,7 +39,22 @@ api.interceptors.request.use(
     }
 
     // Add auth token
-    const token = localStorage.getItem('token');
+    const token =
+      localStorage.getItem('token') ||
+      (() => {
+        // Fallback: Zustand persist stores a JSON payload under `auth-storage`.
+        // This prevents "authenticated UI but no Authorization header" situations.
+        try {
+          const raw = localStorage.getItem('auth-storage');
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          const state = parsed?.state;
+          const t = state?.token;
+          return typeof t === 'string' ? t : null;
+        } catch {
+          return null;
+        }
+      })();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -86,9 +101,17 @@ api.interceptors.response.use(
   (error: AxiosError) => {
     // Handle authentication errors
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const url = String(error.config?.url || '');
+      const isAuthRoute = url.startsWith('/v1/auth/') || url.includes('/v1/auth/');
+      // Don't hard-redirect on expected 401s (e.g. wrong password on login).
+      if (!isAuthRoute) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('auth-storage');
+        if (window.location.pathname !== '/login') {
+          window.location.replace('/login');
+        }
+      }
     }
 
     // Handle timeout errors

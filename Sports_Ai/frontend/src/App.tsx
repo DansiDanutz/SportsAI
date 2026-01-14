@@ -50,7 +50,12 @@ function App() {
 
       setIsCheckingOnboarding(true);
       try {
-        const response = await api.get('/v1/users/me/preferences');
+        // Don't block the entire app UI on this request. Also, cap the wait time
+        // so the user never gets stuck on a full-screen spinner.
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 5000);
+        const response = await api.get('/v1/users/me/preferences', { signal: controller.signal });
+        window.clearTimeout(timeout);
         const prefs = response.data;
         setHasCompletedOnboarding(prefs.hasCompletedOnboarding === true);
       } catch (error) {
@@ -71,15 +76,6 @@ function App() {
   const needsSetup = isAuthenticated && user && hasCompletedOnboarding === false;
   const isAtSetup = location.pathname === '/setup';
 
-  // Show loading while checking onboarding status
-  if (isCheckingOnboarding && isAuthenticated && user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
-      </div>
-    );
-  }
-
   if (needsSetup && !isAtSetup) {
     return <Navigate to="/setup" replace />;
   }
@@ -91,6 +87,14 @@ function App() {
 
       {/* PWA Update Prompt */}
       <PWAUpdatePrompt />
+
+      {/* Non-blocking onboarding check indicator */}
+      {isCheckingOnboarding && isAuthenticated && user && (
+        <div className="fixed top-3 right-3 z-50 flex items-center gap-2 bg-gray-800/90 border border-gray-700 text-gray-200 px-3 py-2 rounded-lg">
+          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-green-500" />
+          <span className="text-xs font-medium">Syncing profile…</span>
+        </div>
+      )}
 
       <Routes>
         {/* Public Routes */}
