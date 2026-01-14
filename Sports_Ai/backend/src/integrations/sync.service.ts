@@ -9,6 +9,21 @@ export class SyncService implements OnModuleInit {
   private readonly logger = new Logger(SyncService.name);
   private readonly provider = 'theodds';
 
+  // In-memory status for observability/debugging (safe to expose as aggregates).
+  lastSyncStartedAt: Date | null = null;
+  lastSyncFinishedAt: Date | null = null;
+  lastSyncError: string | null = null;
+  lastSyncedSports: string[] = [];
+  lastSyncedCounts:
+    | {
+        sports: number;
+        leagues: number;
+        teams: number;
+        upcomingEvents: number;
+        oddsQuotes24h: number;
+      }
+    | null = null;
+
   constructor(
     private mappingService: MappingService,
     private prisma: PrismaService,
@@ -43,6 +58,11 @@ export class SyncService implements OnModuleInit {
    * Public helper: sync a list of The Odds API sport keys now.
    */
   async syncOddsForSports(sportsToSync: string[]) {
+    this.lastSyncStartedAt = new Date();
+    this.lastSyncFinishedAt = null;
+    this.lastSyncError = null;
+    this.lastSyncedSports = [...sportsToSync];
+
     for (const sportKey of sportsToSync) {
       try {
         const oddsData = await this.mappingService.fetchOddsWithFallbacks(sportKey);
@@ -53,8 +73,26 @@ export class SyncService implements OnModuleInit {
         }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
+        this.lastSyncError = this.lastSyncError ? `${this.lastSyncError}; ${sportKey}: ${msg}` : `${sportKey}: ${msg}`;
         this.logger.error(`Failed to sync odds for ${sportKey}: ${msg}`);
       }
+    }
+
+    this.lastSyncFinishedAt = new Date();
+
+    try {
+      const now = new Date();
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const [sports, leagues, teams, upcomingEvents, oddsQuotes24h] = await Promise.all([
+        this.prisma.sport.count(),
+        this.prisma.league.count(),
+        this.prisma.team.count(),
+        this.prisma.event.count({ where: { status: { in: ['upcoming', 'live'] }, startTimeUtc: { gte: now } } }),
+        this.prisma.oddsQuote.count({ where: { timestamp: { gte: since } } }),
+      ]);
+      this.lastSyncedCounts = { sports, leagues, teams, upcomingEvents, oddsQuotes24h };
+    } catch (e) {
+      // Ignore count failures; sync may still have succeeded.
     }
   }
 
