@@ -80,14 +80,17 @@ async function bootstrap() {
 
     const usingExplicitCors = rawCors.length > 0;
 
-    // If CORS_ORIGIN is not set in production, default to allowing Vercel preview/prod
+    const nodeEnv = (process.env.NODE_ENV || '').toLowerCase();
+    const isNonDevRuntime = nodeEnv !== 'development' && nodeEnv !== 'test';
+
+    // If CORS_ORIGIN is not set in non-dev runtimes, default to allowing Vercel preview/prod
     // deployments so the frontend can communicate with the backend out-of-the-box.
     // You can still lock this down by setting CORS_ORIGIN explicitly in Render.
     const allowVercelWildcard =
       rawCors.includes('https://*.vercel.app') ||
       rawCors.includes('*.vercel.app') ||
       rawCors.includes('.vercel.app') ||
-      (!usingExplicitCors && process.env.NODE_ENV === 'production');
+      (!usingExplicitCors && isNonDevRuntime);
 
     const allowedOrigins = (rawCors.length ? rawCors : defaultLocalOrigins).filter(
       (o) => !['*.vercel.app', '.vercel.app'].includes(o)
