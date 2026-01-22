@@ -42,19 +42,33 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- v5.1: Vercel deployment target selected for frontend + backend (serverless functions)
-- v5.1: PostgreSQL and Redis to be provisioned via Vercel Postgres and Upstash respectively
+- v5.1: **Backend already deployed to Render** — https://sportsapiai.onrender.com (Service ID: srv-d5ih2qd6ubrc738kh8s0)
+- v5.1: Frontend will deploy to Vercel with VITE_API_URL pointing to existing Render backend
+- v5.1: GitHub repo: DansiDanutz/SportsAI (main branch)
 
 ### Pending Todos
 
 None yet.
 
+### Existing Infrastructure
+
+**Backend (Render):**
+- URL: https://sportsapiai.onrender.com
+- Service: Node (Starter)
+- Status: Deployed
+- Repository: DansiDanutz/SportsAI (main branch)
+
+**Phase 1 Implications:**
+- Backend deployment requirements (DEPLOY-BE-01 to DEPLOY-BE-07) → VERIFY existing setup
+- Frontend deployment (DEPLOY-FE-01 to DEPLOY-FE-06) → NEW work required
+- Infrastructure (INFRA-01 to INFRA-04) → VERIFY existing PostgreSQL/Redis on Render
+
 ### Blockers/Concerns
 
 **Known risks from previous milestone:**
-- CORS configuration hardcoded for local — must update for production (Phase 1)
-- Environment variables: API keys need secure handling on Vercel (Phase 1)
-- Database connection pooling needs production configuration (Phase 1)
+- CORS configuration hardcoded for local — must update Render CORS_ORIGIN for Vercel frontend (Phase 1)
+- Environment variables: Verify API keys configured on Render (Phase 1)
+- Database connection pooling — verify production configuration on Render (Phase 1)
 
 ## Session Continuity
 

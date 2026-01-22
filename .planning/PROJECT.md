@@ -43,8 +43,9 @@ A dual-purpose development workspace containing:
 <!-- Current scope. Building toward these. -->
 
 **Milestone v5.1 - Production Deployment:**
-- [ ] Vercel deployment (frontend + backend)
-- [ ] Environment configuration for production
+- [ ] Frontend deployment to Vercel
+- [ ] Backend verification on Render (existing: https://sportsapiai.onrender.com)
+- [ ] CORS configuration for production
 - [ ] Health check verification
 - [ ] Post-deployment smoke tests
 
@@ -129,7 +130,8 @@ This system was used to build the SportsAI platform autonomously. It can be reus
 | Two-agent pattern (initializer + coding) | Separates project setup from feature implementation | ✓ Good - Proven effective for SportsAI |
 | SQLite for features, PostgreSQL for app data | Lightweight for agent state, robust for user data | ✓ Good - Right tool for each job |
 | MCP servers for agent communication | Standard protocol, extensible | ✓ Good - Works with Claude Agent SDK |
-| Vercel deployment target | Simplest deployment path for React + Node.js | — Pending - Needs completion |
+| Backend on Render (existing) | Already deployed at sportsapiai.onrender.com | ✓ Good - Verified deployment |
+| Frontend on Vercel (planned) | Best-in-class React hosting with CDN/edge | — Pending - Needs completion |
 | PWA over native mobile | Single codebase, mobile-good-enough | ✓ Good - Reduces maintenance |
 | Mock Stripe for payments | Avoids PCI compliance complexity | ⚠️ Revisit - Production needs real payments |
 | Inverse probability for AI predictions | Fast, no external API costs | — Pending - May need enhancement |
