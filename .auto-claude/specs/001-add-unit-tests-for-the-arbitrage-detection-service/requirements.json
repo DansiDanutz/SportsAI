@@ -1,0 +1,4 @@
+{
+  "task_description": "Add unit tests for the arbitrage detection service with edge cases and error scenarios",
+  "workflow_type": "feature"
+}

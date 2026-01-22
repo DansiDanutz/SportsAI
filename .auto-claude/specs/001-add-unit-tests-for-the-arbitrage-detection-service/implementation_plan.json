@@ -1,0 +1,9 @@
+{
+  "feature": "Add unit tests for the arbitrage detection service with edge...",
+  "description": "Add unit tests for the arbitrage detection service with edge cases and error scenarios",
+  "created_at": "2026-01-14T12:28:58.868Z",
+  "updated_at": "2026-01-14T12:29:31.805Z",
+  "status": "human_review",
+  "phases": [],
+  "planStatus": "review"
+}

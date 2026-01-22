@@ -1,0 +1,681 @@
+{
+  "project_root": "C:\\Users\\dansi\\Desktop\\Sports",
+  "project_type": "single",
+  "services": {
+    "main": {
+      "name": "main",
+      "path": "C:\\Users\\dansi\\Desktop\\Sports",
+      "language": "Python",
+      "framework": "FastAPI",
+      "type": "backend",
+      "package_manager": "pip",
+      "default_port": 8000,
+      "orm": "SQLAlchemy",
+      "key_directories": {
+        "api": {
+          "path": "api",
+          "purpose": "API endpoints"
+        }
+      },
+      "dependencies": [
+        "@nestjs/common",
+        "@nestjs/core",
+        "@nestjs/jwt",
+        "@nestjs/passport",
+        "@nestjs/platform-fastify",
+        "@nestjs/platform-socket.io",
+        "@nestjs/schedule",
+        "@nestjs/throttler",
+        "@nestjs/websockets",
+        "@prisma/client",
+        "@fastify/helmet",
+        "@fastify/multipart",
+        "@fastify/static",
+        "bcryptjs",
+        "class-transformer",
+        "class-validator",
+        "dotenv",
+        "reflect-metadata",
+        "rxjs",
+        "uuid"
+      ],
+      "dev_dependencies": [
+        "@types/node",
+        "@types/bcryptjs",
+        "@types/qrcode",
+        "@types/uuid",
+        "@types/passport-jwt",
+        "typescript",
+        "prisma"
+      ],
+      "api": {
+        "routes": [
+          {
+            "path": "/api/health",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\main.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/api/setup/status",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\main.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\main.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/{path:path}",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\main.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/status",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\agent.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/start",
+            "methods": [
+              "POST"
+            ],
+            "file": "server\\routers\\agent.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/stop",
+            "methods": [
+              "POST"
+            ],
+            "file": "server\\routers\\agent.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/pause",
+            "methods": [
+              "POST"
+            ],
+            "file": "server\\routers\\agent.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/resume",
+            "methods": [
+              "POST"
+            ],
+            "file": "server\\routers\\agent.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/conversations/{project_name}",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\assistant_chat.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/conversations/{project_name}/{conversation_id}",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\assistant_chat.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/conversations/{project_name}",
+            "methods": [
+              "POST"
+            ],
+            "file": "server\\routers\\assistant_chat.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/conversations/{project_name}/{conversation_id}",
+            "methods": [
+              "DELETE"
+            ],
+            "file": "server\\routers\\assistant_chat.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/sessions",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\assistant_chat.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/sessions/{project_name}",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\assistant_chat.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/sessions/{project_name}",
+            "methods": [
+              "DELETE"
+            ],
+            "file": "server\\routers\\assistant_chat.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/sessions",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\expand_project.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/sessions/{project_name}",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\expand_project.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/sessions/{project_name}",
+            "methods": [
+              "DELETE"
+            ],
+            "file": "server\\routers\\expand_project.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/{feature_id}",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\features.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/{feature_id}",
+            "methods": [
+              "DELETE"
+            ],
+            "file": "server\\routers\\features.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/{feature_id}/skip",
+            "methods": [
+              "PATCH"
+            ],
+            "file": "server\\routers\\features.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/bulk",
+            "methods": [
+              "POST"
+            ],
+            "file": "server\\routers\\features.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/list",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\filesystem.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/drives",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\filesystem.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/validate",
+            "methods": [
+              "POST"
+            ],
+            "file": "server\\routers\\filesystem.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/create-directory",
+            "methods": [
+              "POST"
+            ],
+            "file": "server\\routers\\filesystem.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/home",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\filesystem.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/{name}",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\projects.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/{name}",
+            "methods": [
+              "DELETE"
+            ],
+            "file": "server\\routers\\projects.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/{name}/prompts",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\projects.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/{name}/prompts",
+            "methods": [
+              "PUT"
+            ],
+            "file": "server\\routers\\projects.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/{name}/stats",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\projects.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/models",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\settings.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/sessions",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\spec_creation.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/sessions/{project_name}",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\spec_creation.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/sessions/{project_name}",
+            "methods": [
+              "DELETE"
+            ],
+            "file": "server\\routers\\spec_creation.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          },
+          {
+            "path": "/status/{project_name}",
+            "methods": [
+              "GET"
+            ],
+            "file": "server\\routers\\spec_creation.py",
+            "framework": "FastAPI",
+            "requires_auth": false
+          }
+        ],
+        "total_routes": 38,
+        "methods": [
+          "PATCH",
+          "POST",
+          "DELETE",
+          "PUT",
+          "GET"
+        ],
+        "protected_routes": []
+      },
+      "database": {
+        "models": {
+          "Project": {
+            "table": "projects",
+            "fields": {
+              "name": {
+                "type": "String",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "path": {
+                "type": "String",
+                "primary_key": false,
+                "unique": false,
+                "nullable": false
+              },
+              "created_at": {
+                "type": "DateTime",
+                "primary_key": false,
+                "unique": false,
+                "nullable": false
+              },
+              "key": {
+                "type": "String",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "value": {
+                "type": "String",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "updated_at": {
+                "type": "DateTime",
+                "primary_key": false,
+                "unique": false,
+                "nullable": false
+              }
+            },
+            "file": "registry.py",
+            "orm": "SQLAlchemy"
+          },
+          "Settings": {
+            "table": "projects",
+            "fields": {
+              "key": {
+                "type": "String",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "value": {
+                "type": "String",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "updated_at": {
+                "type": "DateTime",
+                "primary_key": false,
+                "unique": false,
+                "nullable": false
+              }
+            },
+            "file": "registry.py",
+            "orm": "SQLAlchemy"
+          },
+          "Feature": {
+            "table": "features",
+            "fields": {
+              "id": {
+                "type": "Integer",
+                "primary_key": true,
+                "unique": false,
+                "nullable": true
+              },
+              "priority": {
+                "type": "Integer",
+                "primary_key": false,
+                "unique": false,
+                "nullable": false
+              },
+              "category": {
+                "type": "String",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "name": {
+                "type": "String",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "description": {
+                "type": "Text",
+                "primary_key": false,
+                "unique": false,
+                "nullable": false
+              },
+              "steps": {
+                "type": "JSON",
+                "primary_key": false,
+                "unique": false,
+                "nullable": false
+              },
+              "passes": {
+                "type": "Boolean",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "in_progress": {
+                "type": "Boolean",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              }
+            },
+            "file": "api\\database.py",
+            "orm": "SQLAlchemy"
+          },
+          "Conversation": {
+            "table": "conversations",
+            "fields": {
+              "id": {
+                "type": "Integer",
+                "primary_key": true,
+                "unique": false,
+                "nullable": true
+              },
+              "project_name": {
+                "type": "String",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "title": {
+                "type": "String",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "created_at": {
+                "type": "DateTime",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "updated_at": {
+                "type": "DateTime",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "conversation_id": {
+                "type": "Integer",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "role": {
+                "type": "String",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "content": {
+                "type": "Text",
+                "primary_key": false,
+                "unique": false,
+                "nullable": false
+              },
+              "timestamp": {
+                "type": "DateTime",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              }
+            },
+            "file": "server\\services\\assistant_database.py",
+            "orm": "SQLAlchemy"
+          },
+          "ConversationMessage": {
+            "table": "conversations",
+            "fields": {
+              "id": {
+                "type": "Integer",
+                "primary_key": true,
+                "unique": false,
+                "nullable": true
+              },
+              "conversation_id": {
+                "type": "Integer",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "role": {
+                "type": "String",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              },
+              "content": {
+                "type": "Text",
+                "primary_key": false,
+                "unique": false,
+                "nullable": false
+              },
+              "timestamp": {
+                "type": "DateTime",
+                "primary_key": false,
+                "unique": false,
+                "nullable": true
+              }
+            },
+            "file": "server\\services\\assistant_database.py",
+            "orm": "SQLAlchemy"
+          }
+        },
+        "total_models": 5,
+        "model_names": [
+          "Project",
+          "Settings",
+          "Feature",
+          "Conversation",
+          "ConversationMessage"
+        ]
+      },
+      "services": {
+        "databases": [
+          {
+            "type": "redis",
+            "client": "ioredis"
+          }
+        ],
+        "message_queues": [
+          {
+            "type": "kafka",
+            "client": "kafkajs"
+          }
+        ]
+      },
+      "api_documentation": {
+        "type": "openapi",
+        "auto_generated": true,
+        "docs_url": "/docs",
+        "redoc_url": "/redoc",
+        "openapi_url": "/openapi.json"
+      },
+      "monitoring": {
+        "health_checks": [
+          "/api/health"
+        ]
+      }
+    }
+  },
+  "infrastructure": {
+    "ci": "GitHub Actions",
+    "ci_workflows": [
+      "ci.yml",
+      "render-deploy.yml",
+      "test-vercel-token.yml",
+      "vercel-deploy.yml"
+    ],
+    "deployment": "Vercel"
+  },
+  "conventions": {
+    "python_linting": "Ruff",
+    "typescript": true
+  }
+}
