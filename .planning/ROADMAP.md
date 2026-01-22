@@ -12,7 +12,7 @@ Deploy the SportsAI Platform to Vercel (frontend + backend) with full production
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Infrastructure & Core Deployment** - Provision databases, configure environment variables, deploy backend and frontend to Vercel
+- [x] **Phase 1: Infrastructure & Core Deployment** - ✅ COMPLETE (backend on Render, frontend on Vercel)
 - [ ] **Phase 2: Verification & Integration Testing** - End-to-end testing of deployed system functionality
 - [ ] **Phase 3: Monitoring & Observability** - Add production monitoring, analytics, and error tracking
 
@@ -90,8 +90,8 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Infrastructure & Core Deployment | 0/3 | Not started | - |
+| 1. Infrastructure & Core Deployment | 3/3 | ✅ Complete | Deployments exist |
 | 2. Verification & Integration Testing | 0/3 | Not started | - |
 | 3. Monitoring & Observability | 0/2 | Not started | - |
 
-**Overall Progress:** 0/8 plans complete (0%)
+**Overall Progress:** 3/8 plans complete (38%)
