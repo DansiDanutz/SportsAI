@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 4. Frontend deployed to Vercel with VITE_API_URL pointing to production backend and vercel.json routing configured
 5. JWT_SECRET uses strong random value, API keys stored as Vercel environment variables (not in code), CORS_ORIGIN restricted to frontend URL
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [ ] 01-01: Provision infrastructure resources (PostgreSQL, Redis)
@@ -56,12 +56,12 @@ Plans:
 5. Core features functional (events browsing, odds display, arbitrage detection)
 6. Health check endpoint returns healthy status and no CORS errors in browser console
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Verify frontend deployment and baseline functionality
-- [ ] 02-02: Verify authentication flow and API communication
-- [ ] 02-03: Verify core features and WebSocket connectivity
+- [ ] 02-01-PLAN.md — Verify frontend deployment and baseline functionality (homepage load, console errors, UI structure)
+- [ ] 02-02-PLAN.md — Verify authentication flow and API communication (signup, login, CORS configuration)
+- [ ] 02-03-PLAN.md — Verify core features (events browsing, odds display, arbitrage detection, data health)
 
 ### Phase 3: Monitoring & Observability
 
@@ -91,7 +91,7 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Infrastructure & Core Deployment | 3/3 | ✅ Complete | Deployments exist |
-| 2. Verification & Integration Testing | 0/3 | Not started | - |
+| 2. Verification & Integration Testing | 0/3 | Ready to execute | - |
 | 3. Monitoring & Observability | 0/2 | Not started | - |
 
 **Overall Progress:** 3/8 plans complete (38%)
