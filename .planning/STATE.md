@@ -58,10 +58,16 @@ None yet.
 - Status: Deployed
 - Repository: DansiDanutz/SportsAI (main branch)
 
+**Frontend (Vercel):**
+- URL: https://sports-ai-one.vercel.app
+- Status: Deployed
+- Project: sports-ai-one
+
 **Phase 1 Implications:**
-- Backend deployment requirements (DEPLOY-BE-01 to DEPLOY-BE-07) → VERIFY existing setup
-- Frontend deployment (DEPLOY-FE-01 to DEPLOY-FE-06) → NEW work required
-- Infrastructure (INFRA-01 to INFRA-04) → VERIFY existing PostgreSQL/Redis on Render
+- Phase 1 COMPLETE → Both deployments already exist
+- Skip to Phase 2 (Verification) - verify existing deployments work correctly
+- Check CORS configuration between Vercel frontend and Render backend
+- Verify environment variables on both platforms
 
 ### Blockers/Concerns
 
