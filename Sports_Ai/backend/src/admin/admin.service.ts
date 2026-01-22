@@ -11,6 +11,7 @@ export class AdminService {
 
     const apiSports = process.env.API_SPORTS_KEY;
     const oddsApi = process.env.THE_ODDS_API_KEY;
+    const zai = process.env.ZAI_API_KEY;
     const openRouter = process.env.OPENROUTER_API_KEY;
     const apify = process.env.APIFY_API_TOKEN;
     const apifyOddsActor = process.env.APIFY_ACTOR_ODDS_API;
@@ -25,6 +26,7 @@ export class AdminService {
       keys: {
         API_SPORTS_KEY: { set: has(apiSports), placeholder: isPlaceholder(apiSports) },
         THE_ODDS_API_KEY: { set: has(oddsApi), placeholder: isPlaceholder(oddsApi) },
+        ZAI_API_KEY: { set: has(zai), placeholder: false },
         OPENROUTER_API_KEY: { set: has(openRouter), placeholder: false },
         APIFY_API_TOKEN: { set: has(apify), placeholder: false },
         APIFY_ACTOR_ODDS_API: { set: has(apifyOddsActor), placeholder: false },
