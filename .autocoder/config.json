@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "defaultModel": "glm-4",
+  "defaultCliCommand": "zai",
+  "zai": {
+    "apiKey": "***REMOVED***",
+    "model": "glm-4",
+    "apiUrl": "https://api.z.ai/v1/chat/completions",
+    "timeoutMs": 12000
+  },
+  "claude": {
+    "enabled": true,
+    "defaultModel": "claude-opus-4-5-20251101"
+  },
+  "autoDetect": true,
+  "preferredProvider": "zai"
+}

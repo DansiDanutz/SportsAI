@@ -8,6 +8,7 @@ Functions for creating and configuring the Claude Agent SDK client.
 import json
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -21,8 +22,32 @@ from security import bash_security_hook
 load_dotenv()
 
 # Default CLI command - can be overridden via CLI_COMMAND environment variable
-# Common values: "claude" (default), "glm"
-DEFAULT_CLI_COMMAND = "claude"
+# Common values: "claude" (default), "zai", "glm"
+# Auto-detects Z.AI if ZAI_API_KEY is set
+def _get_default_cli_command() -> str:
+    """Auto-detect CLI command based on available API keys."""
+    if os.getenv("ZAI_API_KEY"):
+        # Check if ZAI CLI is available (try both 'zai' and 'npx @guizmo-ai/zai-cli')
+        zai_cli = shutil.which("zai")
+        if zai_cli:
+            return "zai"
+        # Check if npx is available and can run ZAI CLI
+        npx_cli = shutil.which("npx")
+        if npx_cli:
+            # Test if ZAI CLI works via npx
+            try:
+                result = subprocess.run(
+                    [npx_cli, "@guizmo-ai/zai-cli", "--version"],
+                    capture_output=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    return "npx @guizmo-ai/zai-cli"
+            except Exception:
+                pass
+    return "claude"
+
+DEFAULT_CLI_COMMAND = _get_default_cli_command()
 
 # Default Playwright headless mode - can be overridden via PLAYWRIGHT_HEADLESS env var
 # When True, browser runs invisibly in background
@@ -34,10 +59,14 @@ def get_cli_command() -> str:
     """
     Get the CLI command to use for the agent.
 
-    Reads from CLI_COMMAND environment variable, defaults to 'claude'.
-    This allows users to use alternative CLIs like 'glm'.
+    Reads from CLI_COMMAND environment variable, defaults to auto-detected CLI.
+    Auto-detects Z.AI CLI if ZAI_API_KEY is set and zai command is available.
+    This allows users to use alternative CLIs like 'zai' or 'glm'.
     """
-    return os.getenv("CLI_COMMAND", DEFAULT_CLI_COMMAND)
+    configured = os.getenv("CLI_COMMAND")
+    if configured:
+        return configured
+    return DEFAULT_CLI_COMMAND
 
 
 def get_playwright_headless() -> bool:

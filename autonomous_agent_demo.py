@@ -33,6 +33,7 @@ load_dotenv()
 
 from agent import run_autonomous_agent
 from registry import DEFAULT_MODEL, get_project_path
+from get_default_model import get_default_model
 
 
 def parse_args() -> argparse.Namespace:
@@ -80,8 +81,8 @@ Authentication:
     parser.add_argument(
         "--model",
         type=str,
-        default=DEFAULT_MODEL,
-        help=f"Claude model to use (default: {DEFAULT_MODEL})",
+        default=None,  # Will use get_default_model() if not provided
+        help=f"Model to use (default: auto-detected from ZAI_API_KEY or {DEFAULT_MODEL})",
     )
 
     parser.add_argument(
@@ -123,11 +124,14 @@ def main() -> None:
             return
 
     try:
+        # Get model (use provided model or auto-detect)
+        model = args.model if args.model else get_default_model()
+        
         # Run the agent (MCP server handles feature database)
         asyncio.run(
             run_autonomous_agent(
                 project_dir=project_dir,
-                model=args.model,
+                model=model,
                 max_iterations=args.max_iterations,
                 yolo_mode=args.yolo,
             )

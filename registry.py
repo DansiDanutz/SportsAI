@@ -20,6 +20,10 @@ from sqlalchemy import Column, DateTime, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
+
 # Module logger
 logger = logging.getLogger(__name__)
 
@@ -31,15 +35,36 @@ logger = logging.getLogger(__name__)
 # Available models with display names
 # To add a new model: add an entry here with {"id": "model-id", "name": "Display Name"}
 AVAILABLE_MODELS = [
+    # Claude Models
     {"id": "claude-opus-4-5-20251101", "name": "Claude Opus 4.5"},
     {"id": "claude-sonnet-4-5-20250929", "name": "Claude Sonnet 4.5"},
+    # Z.AI GLM Models
+    {"id": "glm-4", "name": "GLM-4"},
+    {"id": "glm-4-plus", "name": "GLM-4 Plus"},
+    {"id": "glm-4.6", "name": "GLM-4.6"},
+    {"id": "glm-4.5", "name": "GLM-4.5"},
 ]
 
 # List of valid model IDs (derived from AVAILABLE_MODELS)
 VALID_MODELS = [m["id"] for m in AVAILABLE_MODELS]
 
 # Default model and settings
-DEFAULT_MODEL = "claude-opus-4-5-20251101"
+# Priority: 1) Environment variable, 2) Auto-detect based on ZAI_API_KEY, 3) Claude default
+# Note: Global settings are checked at runtime (after registry is initialized)
+def _get_default_model() -> str:
+    """Get default model with fallback chain."""
+    # Check environment variable first
+    env_model = os.getenv("AUTOCODER_MODEL")
+    if env_model and env_model in VALID_MODELS:
+        return env_model
+    
+    # Auto-detect based on ZAI_API_KEY
+    if os.getenv("ZAI_API_KEY"):
+        return "glm-4"
+    
+    return "claude-opus-4-5-20251101"
+
+DEFAULT_MODEL = _get_default_model()
 DEFAULT_YOLO_MODE = False
 
 # SQLite connection settings
