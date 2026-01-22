@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { OpenRouterService } from './openrouter.service';
+import { LlmService } from './llm.service';
 
 @Injectable()
 export class StrangeBetsService {
@@ -8,7 +8,7 @@ export class StrangeBetsService {
 
   constructor(
     private prisma: PrismaService,
-    private openRouter: OpenRouterService,
+    private llmService: LlmService,
   ) {}
 
   /**

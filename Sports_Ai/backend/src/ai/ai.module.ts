@@ -2,6 +2,8 @@ import { Module, Global } from '@nestjs/common';
 import { AiController } from './ai.controller';
 import { UsersModule } from '../users/users.module';
 import { OpenRouterService } from './openrouter.service';
+import { ZaiService } from './zai.service';
+import { LlmService } from './llm.service';
 import { DailyTipsService } from './daily-tips.service';
 import { SharpMoneyService } from './sharp-money.service';
 import { StrangeBetsService } from './strange-bets.service';
@@ -15,6 +17,8 @@ import { PrismaModule } from '../prisma/prisma.module';
   controllers: [AiController],
   providers: [
     OpenRouterService,
+    ZaiService,
+    LlmService,
     DailyTipsService,
     SharpMoneyService,
     StrangeBetsService,
@@ -23,6 +27,8 @@ import { PrismaModule } from '../prisma/prisma.module';
   ],
   exports: [
     OpenRouterService,
+    ZaiService,
+    LlmService,
     DailyTipsService,
     SharpMoneyService,
     StrangeBetsService,

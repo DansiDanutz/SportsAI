@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { OpenRouterService } from './openrouter.service';
+import { LlmService } from './llm.service';
 import { SyncService } from '../integrations/sync.service';
 
 interface MatchAnalysis {
@@ -54,7 +54,7 @@ export class DailyTipsService {
 
   constructor(
     private prisma: PrismaService,
-    private openRouterService: OpenRouterService,
+    private llmService: LlmService,
     private syncService: SyncService,
   ) {}
 

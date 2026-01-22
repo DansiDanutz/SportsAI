@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Patch, Body, UseGuards, ForbiddenException, Request, Ip, Query, Inject, forwardRef } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
-import { OpenRouterService, AiAdvice } from './openrouter.service';
+import { LlmService } from './llm.service';
+import { AiAdvice } from './openrouter.service';
 import { DailyTipsService } from './daily-tips.service';
 import { SharpMoneyService } from './sharp-money.service';
 import { StrangeBetsService } from './strange-bets.service';
@@ -33,7 +34,7 @@ export class AiController {
 
   constructor(
     private usersService: UsersService,
-    private openRouterService: OpenRouterService,
+    private llmService: LlmService,
     private dailyTipsService: DailyTipsService,
     private sharpMoneyService: SharpMoneyService,
     private strangeBetsService: StrangeBetsService,
@@ -91,7 +92,7 @@ export class AiController {
     Focus on form and statistical trends. Keep it to 2 concise sentences.`;
     
     try {
-      const advice = await this.openRouterService.generateAdvice(
+      const advice = await this.llmService.generateAdvice(
         { sportKey: 'soccer', countries: [], leagues: [], markets: [] },
         [{
           homeTeam: match.homeTeam,
@@ -403,7 +404,7 @@ export class AiController {
       // Hard-cap the AI provider time so this endpoint stays snappy even on provider issues.
       const timeoutMs = Number(process.env.AI_ADVICE_TIMEOUT_MS || 8000);
       advice = await this.withTimeout(
-        this.openRouterService.generateAdvice(configuration, matches, languageCode),
+        this.llmService.generateAdvice(configuration, matches, languageCode),
         timeoutMs
       );
     } catch (e) {
@@ -493,7 +494,7 @@ export class AiController {
     // If NewsAPI returned nothing (not configured or error), fall back to OpenRouter with Search
     if (news.length === 0) {
       try {
-        const aiNews = await this.openRouterService.generateNews(cappedSportKeys, languageCode);
+        const aiNews = await this.llmService.generateNews(cappedSportKeys, languageCode);
         const mappedNews: any[] = aiNews.map((item) => ({
           id: item.id,
           headline: item.headline,
@@ -699,7 +700,7 @@ export class AiController {
     const news = await this.newsService.getLatestSportsNews(['soccer', 'basketball']);
 
     // 5. Call OpenRouter chat
-    const response = await this.openRouterService.chat(message, {
+    const response = await this.llmService.chat(message, {
       userPreferences: preferences,
       relevantMatches: upcomingEvents.map(e => ({
         home: e.home?.name,

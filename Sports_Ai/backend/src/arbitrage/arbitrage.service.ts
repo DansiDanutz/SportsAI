@@ -1,6 +1,6 @@
-import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { OpenRouterService } from '../ai/openrouter.service';
+import { LlmService } from '../ai/llm.service';
 
 @Injectable()
 export class ArbitrageService {
@@ -8,8 +8,7 @@ export class ArbitrageService {
 
   constructor(
     private prisma: PrismaService,
-    @Inject(forwardRef(() => OpenRouterService))
-    private openRouter: OpenRouterService,
+    private llmService: LlmService,
   ) {}
 
   /**
@@ -42,7 +41,7 @@ export class ArbitrageService {
 
     Provide a professional 2-sentence explanation.`;
 
-    const advice = await this.openRouter.generateAdvice(
+    const advice = await this.llmService.generateAdvice(
       { sportKey: arb.event.sport.key, countries: [], leagues: [], markets: [] },
       [{
         homeTeam: arb.event.home.name,
