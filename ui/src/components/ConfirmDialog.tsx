@@ -5,12 +5,13 @@
  * Used to confirm destructive actions like deleting projects.
  */
 
+import type { ReactNode } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 
 interface ConfirmDialogProps {
   isOpen: boolean
   title: string
-  message: string
+  message: ReactNode
   confirmLabel?: string
   cancelLabel?: string
   variant?: 'danger' | 'warning'
@@ -55,12 +56,12 @@ export function ConfirmDialog({
         <div className="flex items-center justify-between p-4 border-b-3 border-[var(--color-neo-border)]">
           <div className="flex items-center gap-3">
             <div
-              className="p-2 border-2 border-[var(--color-neo-border)] shadow-[2px_2px_0px_rgba(0,0,0,1)]"
-              style={{ backgroundColor: colors.icon }}
+              className="p-2 border-2 border-[var(--color-neo-border)]"
+              style={{ boxShadow: 'var(--shadow-neo-sm)', backgroundColor: colors.icon }}
             >
-              <AlertTriangle size={20} className="text-white" />
+              <AlertTriangle size={20} className="text-[var(--color-neo-text-on-bright)]" />
             </div>
-            <h2 className="font-display font-bold text-lg text-[#1a1a1a]">
+            <h2 className="font-display font-bold text-lg text-[var(--color-neo-text)]">
               {title}
             </h2>
           </div>
@@ -75,9 +76,9 @@ export function ConfirmDialog({
 
         {/* Content */}
         <div className="p-6">
-          <p className="text-[var(--color-neo-text-secondary)] mb-6">
+          <div className="text-[var(--color-neo-text-secondary)] mb-6">
             {message}
-          </p>
+          </div>
 
           {/* Actions */}
           <div className="flex justify-end gap-3">

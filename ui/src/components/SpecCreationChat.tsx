@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Send, X, CheckCircle2, AlertCircle, Wifi, WifiOff, RotateCcw, Loader2, ArrowRight, Zap, Paperclip, ExternalLink } from 'lucide-react'
+import { Send, X, CheckCircle2, AlertCircle, Wifi, WifiOff, RotateCcw, Loader2, ArrowRight, Zap, Paperclip, ExternalLink, FileText } from 'lucide-react'
 import { useSpecChat } from '../hooks/useSpecChat'
 import { ChatMessage } from './ChatMessage'
 import { QuestionOptions } from './QuestionOptions'
@@ -16,6 +16,24 @@ import type { ImageAttachment } from '../lib/types'
 // Image upload validation constants
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png']
+
+// Sample prompt for quick testing
+const SAMPLE_PROMPT = `Let's call it Simple Todo. This is a really simple web app that I can use to track my to-do items using a Kanban board. I should be able to add to-dos and then drag and drop them through the Kanban board. The different columns in the Kanban board are:
+
+- To Do
+- In Progress
+- Done
+
+The app should use a neobrutalism design.
+
+There is no need for user authentication either. All the to-dos will be stored in local storage, so each user has access to all of their to-dos when they open their browser. So do not worry about implementing a backend with user authentication or a database. Simply store everything in local storage. As for the design, please try to avoid AI slop, so use your front-end design skills to design something beautiful and practical. As for the content of the to-dos, we should store:
+
+- The name or the title at the very least
+- Optionally, we can also set tags, due dates, and priorities which should be represented as beautiful little badges on the to-do card
+
+Users should have the ability to easily clear out all the completed To-Dos. They should also be able to filter and search for To-Dos as well.
+
+You choose the rest. Keep it simple. Should be 25 features.`
 
 type InitializerStatus = 'idle' | 'starting' | 'error'
 
@@ -207,9 +225,9 @@ export function SpecCreationChat({
   return (
     <div className="flex flex-col h-full bg-[var(--color-neo-bg)]">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b-3 border-[var(--color-neo-border)] bg-white">
+      <div className="flex items-center justify-between p-4 border-b-3 border-[var(--color-neo-border)] bg-[var(--color-neo-card)]">
         <div className="flex items-center gap-3">
-          <h2 className="font-display font-bold text-lg text-[#1a1a1a]">
+          <h2 className="font-display font-bold text-lg text-[var(--color-neo-text)]">
             Create Spec: {projectName}
           </h2>
           <ConnectionIndicator />
@@ -222,6 +240,23 @@ export function SpecCreationChat({
               Complete
             </span>
           )}
+
+          {/* Load Sample Prompt */}
+          <button
+            onClick={() => {
+              setInput(SAMPLE_PROMPT)
+              // Also resize the textarea to fit content
+              if (inputRef.current) {
+                inputRef.current.style.height = 'auto'
+                inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 200)}px`
+              }
+            }}
+            className="neo-btn neo-btn-ghost text-sm py-2"
+            title="Load sample prompt (Simple Todo app)"
+          >
+            <FileText size={16} />
+            Load Sample
+          </button>
 
           {/* Exit to Project - always visible escape hatch */}
           <button
@@ -245,12 +280,12 @@ export function SpecCreationChat({
 
       {/* Error banner */}
       {error && (
-        <div className="flex items-center gap-2 p-3 bg-[var(--color-neo-danger)] text-white border-b-3 border-[var(--color-neo-border)]">
+        <div className="flex items-center gap-2 p-3 bg-[var(--color-neo-error-bg)] text-[var(--color-neo-error-text)] border-b-3 border-[var(--color-neo-error-border)]">
           <AlertCircle size={16} />
           <span className="flex-1 text-sm">{error}</span>
           <button
             onClick={() => setError(null)}
-            className="p-1 hover:bg-white/20 rounded"
+            className="p-1 hover:opacity-70 transition-opacity rounded"
           >
             <X size={14} />
           </button>
@@ -304,7 +339,7 @@ export function SpecCreationChat({
       {/* Input area */}
       {!isComplete && (
         <div
-          className="p-4 border-t-3 border-[var(--color-neo-border)] bg-white"
+          className="p-4 border-t-3 border-[var(--color-neo-border)] bg-[var(--color-neo-card)]"
           onDrop={handleDrop}
           onDragOver={handleDragOver}
         >
@@ -314,7 +349,8 @@ export function SpecCreationChat({
               {pendingAttachments.map((attachment) => (
                 <div
                   key={attachment.id}
-                  className="relative group border-2 border-[var(--color-neo-border)] p-1 bg-white shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+                  className="relative group border-2 border-[var(--color-neo-border)] p-1 bg-[var(--color-neo-card)]"
+                  style={{ boxShadow: 'var(--shadow-neo-sm)' }}
                 >
                   <img
                     src={attachment.previewUrl}
@@ -323,7 +359,7 @@ export function SpecCreationChat({
                   />
                   <button
                     onClick={() => handleRemoveAttachment(attachment.id)}
-                    className="absolute -top-2 -right-2 bg-[var(--color-neo-danger)] text-white rounded-full p-0.5 border-2 border-[var(--color-neo-border)] hover:scale-110 transition-transform"
+                    className="absolute -top-2 -right-2 bg-[var(--color-neo-danger)] text-[var(--color-neo-text-on-bright)] rounded-full p-0.5 border-2 border-[var(--color-neo-border)] hover:scale-110 transition-transform"
                     title="Remove attachment"
                   >
                     <X size={12} />
@@ -409,22 +445,22 @@ export function SpecCreationChat({
             <div className="flex items-center gap-2">
               {initializerStatus === 'starting' ? (
                 <>
-                  <Loader2 size={20} className="animate-spin" />
-                  <span className="font-bold">
+                  <Loader2 size={20} className="animate-spin text-[var(--color-neo-text-on-bright)]" />
+                  <span className="font-bold text-[var(--color-neo-text-on-bright)]">
                     Starting agent{yoloEnabled ? ' (YOLO mode)' : ''}...
                   </span>
                 </>
               ) : initializerStatus === 'error' ? (
                 <>
-                  <AlertCircle size={20} className="text-white" />
-                  <span className="font-bold text-white">
+                  <AlertCircle size={20} className="text-[var(--color-neo-text-on-bright)]" />
+                  <span className="font-bold text-[var(--color-neo-text-on-bright)]">
                     {initializerError || 'Failed to start agent'}
                   </span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 size={20} />
-                  <span className="font-bold">Specification created successfully!</span>
+                  <CheckCircle2 size={20} className="text-[var(--color-neo-text-on-bright)]" />
+                  <span className="font-bold text-[var(--color-neo-text-on-bright)]">Specification created successfully!</span>
                 </>
               )}
             </div>
@@ -432,7 +468,7 @@ export function SpecCreationChat({
               {initializerStatus === 'error' && onRetryInitializer && (
                 <button
                   onClick={onRetryInitializer}
-                  className="neo-btn bg-white"
+                  className="neo-btn bg-[var(--color-neo-card)]"
                 >
                   <RotateCcw size={14} />
                   Retry
@@ -444,7 +480,7 @@ export function SpecCreationChat({
                   <button
                     onClick={() => setYoloEnabled(!yoloEnabled)}
                     className={`neo-btn text-sm py-2 px-3 ${
-                      yoloEnabled ? 'neo-btn-warning' : 'bg-white'
+                      yoloEnabled ? 'neo-btn-warning' : 'bg-[var(--color-neo-card)]'
                     }`}
                     title="YOLO Mode: Skip testing for rapid prototyping"
                   >

@@ -5,6 +5,7 @@
  * Supports user, assistant, and system messages with neobrutalism styling.
  */
 
+import { memo } from 'react'
 import { Bot, User, Info } from 'lucide-react'
 import type { ChatMessage as ChatMessageType } from '../lib/types'
 
@@ -12,7 +13,10 @@ interface ChatMessageProps {
   message: ChatMessageType
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+// Module-level regex to avoid recreating on each render
+const BOLD_REGEX = /\*\*(.*?)\*\*/g
+
+export const ChatMessage = memo(function ChatMessage({ message }: ChatMessageProps) {
   const { role, content, attachments, timestamp, isStreaming } = message
 
   // Format timestamp
@@ -21,31 +25,37 @@ export function ChatMessage({ message }: ChatMessageProps) {
     minute: '2-digit',
   })
 
-  // Role-specific styling
+  // Role-specific styling using CSS variables for theme consistency
   const roleConfig = {
     user: {
       icon: User,
       bgColor: 'bg-[var(--color-neo-pending)]',
+      textColor: 'text-[var(--color-neo-text-on-bright)]',
       borderColor: 'border-[var(--color-neo-border)]',
       align: 'justify-end',
       bubbleAlign: 'items-end',
       iconBg: 'bg-[var(--color-neo-pending)]',
+      shadow: 'var(--shadow-neo-md)',
     },
     assistant: {
       icon: Bot,
-      bgColor: 'bg-white',
+      bgColor: 'bg-[var(--color-neo-card)]',
+      textColor: 'text-[var(--color-neo-text)]',
       borderColor: 'border-[var(--color-neo-border)]',
       align: 'justify-start',
       bubbleAlign: 'items-start',
       iconBg: 'bg-[var(--color-neo-progress)]',
+      shadow: 'var(--shadow-neo-md)',
     },
     system: {
       icon: Info,
       bgColor: 'bg-[var(--color-neo-done)]',
+      textColor: 'text-[var(--color-neo-text-on-bright)]',
       borderColor: 'border-[var(--color-neo-border)]',
       align: 'justify-center',
       bubbleAlign: 'items-center',
       iconBg: 'bg-[var(--color-neo-done)]',
+      shadow: 'var(--shadow-neo-sm)',
     },
   }
 
@@ -61,9 +71,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
             ${config.bgColor}
             border-2 ${config.borderColor}
             px-4 py-2
-            text-sm font-mono
-            shadow-[2px_2px_0px_rgba(0,0,0,1)]
+            text-sm font-mono text-[var(--color-neo-text-on-bright)]
           `}
+          style={{ boxShadow: 'var(--shadow-neo-sm)' }}
         >
           <span className="flex items-center gap-2">
             <Icon size={14} />
@@ -85,11 +95,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 ${config.iconBg}
                 border-2 border-[var(--color-neo-border)]
                 p-1.5
-                shadow-[2px_2px_0px_rgba(0,0,0,1)]
                 flex-shrink-0
               `}
+              style={{ boxShadow: 'var(--shadow-neo-sm)' }}
             >
-              <Icon size={16} className="text-white" />
+              <Icon size={16} className="text-[var(--color-neo-text-on-bright)]" />
             </div>
           )}
 
@@ -98,21 +108,21 @@ export function ChatMessage({ message }: ChatMessageProps) {
               ${config.bgColor}
               border-3 ${config.borderColor}
               px-4 py-3
-              shadow-[4px_4px_0px_rgba(0,0,0,1)]
               ${isStreaming ? 'animate-pulse-neo' : ''}
             `}
+            style={{ boxShadow: config.shadow }}
           >
             {/* Parse content for basic markdown-like formatting */}
             {content && (
-              <div className="whitespace-pre-wrap text-sm leading-relaxed text-[#1a1a1a]">
+              <div className={`whitespace-pre-wrap text-sm leading-relaxed ${config.textColor}`}>
                 {content.split('\n').map((line, i) => {
-                  // Bold text
-                  const boldRegex = /\*\*(.*?)\*\*/g
+                  // Bold text - use module-level regex, reset lastIndex for each line
+                  BOLD_REGEX.lastIndex = 0
                   const parts = []
                   let lastIndex = 0
                   let match
 
-                  while ((match = boldRegex.exec(line)) !== null) {
+                  while ((match = BOLD_REGEX.exec(line)) !== null) {
                     if (match.index > lastIndex) {
                       parts.push(line.slice(lastIndex, match.index))
                     }
@@ -144,7 +154,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 {attachments.map((attachment) => (
                   <div
                     key={attachment.id}
-                    className="border-2 border-[var(--color-neo-border)] p-1 bg-white shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+                    className="border-2 border-[var(--color-neo-border)] p-1 bg-[var(--color-neo-card)]"
+                    style={{ boxShadow: 'var(--shadow-neo-sm)' }}
                   >
                     <img
                       src={attachment.previewUrl}
@@ -173,11 +184,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 ${config.iconBg}
                 border-2 border-[var(--color-neo-border)]
                 p-1.5
-                shadow-[2px_2px_0px_rgba(0,0,0,1)]
                 flex-shrink-0
               `}
+              style={{ boxShadow: 'var(--shadow-neo-sm)' }}
             >
-              <Icon size={16} />
+              <Icon size={16} className="text-[var(--color-neo-text-on-bright)]" />
             </div>
           )}
         </div>
@@ -189,4 +200,4 @@ export function ChatMessage({ message }: ChatMessageProps) {
       </div>
     </div>
   )
-}
+})

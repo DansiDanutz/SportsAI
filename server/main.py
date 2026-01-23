@@ -6,25 +6,21 @@ Main entry point for the Autonomous Coding UI server.
 Provides REST API, WebSocket, and static file serving.
 """
 
+import asyncio
 import os
 import shutil
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+# Fix for Windows subprocess support in asyncio
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 from dotenv import load_dotenv
 
 # Load environment variables from .env file if present
 load_dotenv()
-
-
-def get_cli_command() -> str:
-    """
-    Get the CLI command to use for the agent.
-
-    Reads from CLI_COMMAND environment variable, defaults to 'claude'.
-    This allows users to use alternative CLIs like 'glm'.
-    """
-    return os.getenv("CLI_COMMAND", "claude")
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,17 +30,26 @@ from fastapi.staticfiles import StaticFiles
 from .routers import (
     agent_router,
     assistant_chat_router,
+    devserver_router,
     expand_project_router,
     features_router,
     filesystem_router,
     projects_router,
+    schedules_router,
     settings_router,
     spec_creation_router,
+    terminal_router,
 )
 from .schemas import SetupStatus
 from .services.assistant_chat_session import cleanup_all_sessions as cleanup_assistant_sessions
+from .services.dev_server_manager import (
+    cleanup_all_devservers,
+    cleanup_orphaned_devserver_locks,
+)
 from .services.expand_chat_session import cleanup_all_expand_sessions
 from .services.process_manager import cleanup_all_managers, cleanup_orphaned_locks
+from .services.scheduler_service import cleanup_scheduler, get_scheduler
+from .services.terminal_manager import cleanup_all_terminals
 from .websocket import project_websocket
 
 # Paths
@@ -57,11 +62,22 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown."""
     # Startup - clean up orphaned lock files from previous runs
     cleanup_orphaned_locks()
+    cleanup_orphaned_devserver_locks()
+
+    # Start the scheduler service
+    scheduler = get_scheduler()
+    await scheduler.start()
+
     yield
-    # Shutdown - cleanup all running agents and sessions
+
+    # Shutdown - cleanup scheduler first to stop triggering new starts
+    await cleanup_scheduler()
+    # Then cleanup all running agents, sessions, terminals, and dev servers
     await cleanup_all_managers()
     await cleanup_assistant_sessions()
     await cleanup_all_expand_sessions()
+    await cleanup_all_terminals()
+    await cleanup_all_devservers()
 
 
 # Create FastAPI app
@@ -137,11 +153,14 @@ async def require_localhost(request: Request, call_next):
 app.include_router(projects_router)
 app.include_router(features_router)
 app.include_router(agent_router)
+app.include_router(schedules_router)
+app.include_router(devserver_router)
 app.include_router(spec_creation_router)
 app.include_router(expand_project_router)
 app.include_router(filesystem_router)
 app.include_router(assistant_chat_router)
 app.include_router(settings_router)
+app.include_router(terminal_router)
 
 
 # ============================================================================
@@ -167,15 +186,18 @@ async def health_check():
 @app.get("/api/setup/status", response_model=SetupStatus)
 async def setup_status():
     """Check system setup status."""
-    # Check for CLI (configurable via CLI_COMMAND environment variable)
-    cli_command = get_cli_command()
-    claude_cli = shutil.which(cli_command) is not None
+    # Check for Claude CLI
+    claude_cli = shutil.which("claude") is not None
 
     # Check for CLI configuration directory
     # Note: CLI no longer stores credentials in ~/.claude/.credentials.json
     # The existence of ~/.claude indicates the CLI has been configured
     claude_dir = Path.home() / ".claude"
-    credentials = claude_dir.exists() and claude_dir.is_dir()
+    has_claude_config = claude_dir.exists() and claude_dir.is_dir()
+
+    # If GLM mode is configured via .env, we have alternative credentials
+    glm_configured = bool(os.getenv("ANTHROPIC_BASE_URL") and os.getenv("ANTHROPIC_AUTH_TOKEN"))
+    credentials = has_claude_config or glm_configured
 
     # Check for Node.js and npm
     node = shutil.which("node") is not None

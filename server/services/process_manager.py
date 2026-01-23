@@ -8,6 +8,7 @@ Provides start/stop/pause/resume functionality with cross-platform support.
 
 import asyncio
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -22,6 +23,7 @@ import psutil
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from auth import AUTH_ERROR_HELP_SERVER as AUTH_ERROR_HELP  # noqa: E402
 from auth import is_auth_error
+from server.utils.process_utils import kill_process_tree
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +82,9 @@ class AgentProcessManager:
         self._output_task: asyncio.Task | None = None
         self.yolo_mode: bool = False  # YOLO mode for rapid prototyping
         self.model: str | None = None  # Model being used
+        self.parallel_mode: bool = False  # Parallel execution mode
+        self.max_concurrency: int | None = None  # Max concurrent agents
+        self.testing_agent_ratio: int = 1  # Regression testing agents (0-3)
 
         # Support multiple callbacks (for multiple WebSocket clients)
         self._output_callbacks: Set[Callable[[str], Awaitable[None]]] = set()
@@ -146,16 +151,36 @@ class AgentProcessManager:
         return self.process.pid if self.process else None
 
     def _check_lock(self) -> bool:
-        """Check if another agent is already running for this project."""
+        """Check if another agent is already running for this project.
+
+        Uses PID + process creation time to handle PID reuse on Windows.
+        """
         if not self.lock_file.exists():
             return True
 
         try:
-            pid = int(self.lock_file.read_text().strip())
+            lock_content = self.lock_file.read_text().strip()
+            # Support both legacy format (just PID) and new format (PID:CREATE_TIME)
+            if ":" in lock_content:
+                pid_str, create_time_str = lock_content.split(":", 1)
+                pid = int(pid_str)
+                stored_create_time = float(create_time_str)
+            else:
+                # Legacy format - just PID
+                pid = int(lock_content)
+                stored_create_time = None
+
             if psutil.pid_exists(pid):
                 # Check if it's actually our agent process
                 try:
                     proc = psutil.Process(pid)
+                    # Verify it's the same process using creation time (handles PID reuse)
+                    if stored_create_time is not None:
+                        # Allow 1 second tolerance for creation time comparison
+                        if abs(proc.create_time() - stored_create_time) > 1.0:
+                            # Different process reused the PID - stale lock
+                            self.lock_file.unlink(missing_ok=True)
+                            return True
                     cmdline = " ".join(proc.cmdline())
                     if "autonomous_agent_demo.py" in cmdline:
                         return False  # Another agent is running
@@ -168,11 +193,34 @@ class AgentProcessManager:
             self.lock_file.unlink(missing_ok=True)
             return True
 
-    def _create_lock(self) -> None:
-        """Create lock file with current process PID."""
+    def _create_lock(self) -> bool:
+        """Atomically create lock file with current process PID and creation time.
+
+        Returns:
+            True if lock was created successfully, False if lock already exists.
+        """
         self.lock_file.parent.mkdir(parents=True, exist_ok=True)
-        if self.process:
-            self.lock_file.write_text(str(self.process.pid))
+        if not self.process:
+            return False
+
+        try:
+            # Get process creation time for PID reuse detection
+            create_time = psutil.Process(self.process.pid).create_time()
+            lock_content = f"{self.process.pid}:{create_time}"
+
+            # Atomic lock creation using O_CREAT | O_EXCL
+            # This prevents TOCTOU race conditions
+            import os
+            fd = os.open(str(self.lock_file), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(fd, lock_content.encode())
+            os.close(fd)
+            return True
+        except FileExistsError:
+            # Another process beat us to it
+            return False
+        except (psutil.NoSuchProcess, OSError) as e:
+            logger.warning(f"Failed to create lock file: {e}")
+            return False
 
     def _remove_lock(self) -> None:
         """Remove lock file."""
@@ -241,13 +289,23 @@ class AgentProcessManager:
                     self.status = "stopped"
                 self._remove_lock()
 
-    async def start(self, yolo_mode: bool = False, model: str | None = None) -> tuple[bool, str]:
+    async def start(
+        self,
+        yolo_mode: bool = False,
+        model: str | None = None,
+        parallel_mode: bool = False,
+        max_concurrency: int | None = None,
+        testing_agent_ratio: int = 1,
+    ) -> tuple[bool, str]:
         """
         Start the agent as a subprocess.
 
         Args:
-            yolo_mode: If True, run in YOLO mode (no browser testing)
+            yolo_mode: If True, run in YOLO mode (skip testing agents)
             model: Model to use (e.g., claude-opus-4-5-20251101)
+            parallel_mode: DEPRECATED - ignored, always uses unified orchestrator
+            max_concurrency: Max concurrent coding agents (1-5, default 1)
+            testing_agent_ratio: Number of regression testing agents (0-3, default 1)
 
         Returns:
             Tuple of (success, message)
@@ -261,10 +319,14 @@ class AgentProcessManager:
         # Store for status queries
         self.yolo_mode = yolo_mode
         self.model = model
+        self.parallel_mode = True  # Always True now (unified orchestrator)
+        self.max_concurrency = max_concurrency or 1
+        self.testing_agent_ratio = testing_agent_ratio
 
-        # Build command - pass absolute path to project directory
+        # Build command - unified orchestrator with --concurrency
         cmd = [
             sys.executable,
+            "-u",  # Force unbuffered stdout/stderr for real-time output
             str(self.root_dir / "autonomous_agent_demo.py"),
             "--project-dir",
             str(self.project_dir.resolve()),
@@ -278,17 +340,35 @@ class AgentProcessManager:
         if yolo_mode:
             cmd.append("--yolo")
 
+        # Add --concurrency flag (unified orchestrator always uses this)
+        cmd.extend(["--concurrency", str(max_concurrency or 1)])
+
+        # Add testing agent configuration
+        cmd.extend(["--testing-ratio", str(testing_agent_ratio)])
+
         try:
             # Start subprocess with piped stdout/stderr
             # Use project_dir as cwd so Claude SDK sandbox allows access to project files
+            # IMPORTANT: Set PYTHONUNBUFFERED to ensure output isn't delayed
             self.process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 cwd=str(self.project_dir),
+                env={**os.environ, "PYTHONUNBUFFERED": "1"},
             )
 
-            self._create_lock()
+            # Atomic lock creation - if it fails, another process beat us
+            if not self._create_lock():
+                # Kill the process we just started since we couldn't get the lock
+                self.process.terminate()
+                try:
+                    self.process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
+                self.process = None
+                return False, "Another agent instance is already running for this project"
+
             self.started_at = datetime.now()
             self.status = "running"
 
@@ -302,7 +382,9 @@ class AgentProcessManager:
 
     async def stop(self) -> tuple[bool, str]:
         """
-        Stop the agent (SIGTERM then SIGKILL if needed).
+        Stop the agent and all its child processes (SIGTERM then SIGKILL if needed).
+
+        CRITICAL: Kills entire process tree to prevent orphaned coding/testing agents.
 
         Returns:
             Tuple of (success, message)
@@ -319,20 +401,16 @@ class AgentProcessManager:
                 except asyncio.CancelledError:
                     pass
 
-            # Terminate gracefully first
-            self.process.terminate()
-
-            # Wait up to 5 seconds for graceful shutdown
+            # CRITICAL: Kill entire process tree, not just orchestrator
+            # This ensures all spawned coding/testing agents are also terminated
+            proc = self.process  # Capture reference before async call
             loop = asyncio.get_running_loop()
-            try:
-                await asyncio.wait_for(
-                    loop.run_in_executor(None, self.process.wait),
-                    timeout=5.0
-                )
-            except asyncio.TimeoutError:
-                # Force kill if still running
-                self.process.kill()
-                await loop.run_in_executor(None, self.process.wait)
+            result = await loop.run_in_executor(None, kill_process_tree, proc, 10.0)
+            logger.debug(
+                "Process tree kill result: status=%s, children=%d (terminated=%d, killed=%d)",
+                result.status, result.children_found,
+                result.children_terminated, result.children_killed
+            )
 
             self._remove_lock()
             self.status = "stopped"
@@ -340,6 +418,9 @@ class AgentProcessManager:
             self.started_at = None
             self.yolo_mode = False  # Reset YOLO mode
             self.model = None  # Reset model
+            self.parallel_mode = False  # Reset parallel mode
+            self.max_concurrency = None  # Reset concurrency
+            self.testing_agent_ratio = 1  # Reset testing ratio
 
             return True, "Agent stopped"
         except Exception as e:
@@ -422,6 +503,9 @@ class AgentProcessManager:
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "yolo_mode": self.yolo_mode,
             "model": self.model,
+            "parallel_mode": self.parallel_mode,
+            "max_concurrency": self.max_concurrency,
+            "testing_agent_ratio": self.testing_agent_ratio,
         }
 
 
@@ -490,13 +574,29 @@ def cleanup_orphaned_locks() -> int:
                 continue
 
             try:
-                pid_str = lock_file.read_text().strip()
-                pid = int(pid_str)
+                lock_content = lock_file.read_text().strip()
+                # Support both legacy format (just PID) and new format (PID:CREATE_TIME)
+                if ":" in lock_content:
+                    pid_str, create_time_str = lock_content.split(":", 1)
+                    pid = int(pid_str)
+                    stored_create_time = float(create_time_str)
+                else:
+                    # Legacy format - just PID
+                    pid = int(lock_content)
+                    stored_create_time = None
 
                 # Check if process is still running
                 if psutil.pid_exists(pid):
                     try:
                         proc = psutil.Process(pid)
+                        # Verify it's the same process using creation time (handles PID reuse)
+                        if stored_create_time is not None:
+                            if abs(proc.create_time() - stored_create_time) > 1.0:
+                                # Different process reused the PID - stale lock
+                                lock_file.unlink(missing_ok=True)
+                                cleaned += 1
+                                logger.info("Removed orphaned lock file for project '%s' (PID reused)", name)
+                                continue
                         cmdline = " ".join(proc.cmdline())
                         if "autonomous_agent_demo.py" in cmdline:
                             # Process is still running, don't remove

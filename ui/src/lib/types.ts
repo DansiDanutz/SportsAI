@@ -66,6 +66,32 @@ export interface Feature {
   steps: string[]
   passes: boolean
   in_progress: boolean
+  dependencies?: number[]           // Optional for backwards compat
+  blocked?: boolean                 // Computed by API
+  blocking_dependencies?: number[]  // Computed by API
+}
+
+// Status type for graph nodes
+export type FeatureStatus = 'pending' | 'in_progress' | 'done' | 'blocked'
+
+// Graph visualization types
+export interface GraphNode {
+  id: number
+  name: string
+  category: string
+  status: FeatureStatus
+  priority: number
+  dependencies: number[]
+}
+
+export interface GraphEdge {
+  source: number
+  target: number
+}
+
+export interface DependencyGraph {
+  nodes: GraphNode[]
+  edges: GraphEdge[]
 }
 
 export interface FeatureListResponse {
@@ -80,10 +106,20 @@ export interface FeatureCreate {
   description: string
   steps: string[]
   priority?: number
+  dependencies?: number[]
+}
+
+export interface FeatureUpdate {
+  category?: string
+  name?: string
+  description?: string
+  steps?: string[]
+  priority?: number
+  dependencies?: number[]
 }
 
 // Agent types
-export type AgentStatus = 'stopped' | 'running' | 'paused' | 'crashed'
+export type AgentStatus = 'stopped' | 'running' | 'paused' | 'crashed' | 'loading'
 
 export interface AgentStatusResponse {
   status: AgentStatus
@@ -91,6 +127,9 @@ export interface AgentStatusResponse {
   started_at: string | null
   yolo_mode: boolean
   model: string | null  // Model being used by running agent
+  parallel_mode: boolean  // DEPRECATED: Always true now (unified orchestrator)
+  max_concurrency: number | null
+  testing_agent_ratio: number  // Regression testing agents (0-3)
 }
 
 export interface AgentActionResponse {
@@ -107,8 +146,99 @@ export interface SetupStatus {
   npm: boolean
 }
 
+// Dev Server types
+export type DevServerStatus = 'stopped' | 'running' | 'crashed'
+
+export interface DevServerStatusResponse {
+  status: DevServerStatus
+  pid: number | null
+  url: string | null
+  command: string | null
+  started_at: string | null
+}
+
+export interface DevServerConfig {
+  detected_type: string | null
+  detected_command: string | null
+  custom_command: string | null
+  effective_command: string | null
+}
+
+// Terminal types
+export interface TerminalInfo {
+  id: string
+  name: string
+  created_at: string
+}
+
+// Agent mascot names for multi-agent UI
+export const AGENT_MASCOTS = [
+  'Spark', 'Fizz', 'Octo', 'Hoot', 'Buzz',    // Original 5
+  'Pixel', 'Byte', 'Nova', 'Chip', 'Bolt',    // Tech-inspired
+  'Dash', 'Zap', 'Gizmo', 'Turbo', 'Blip',    // Energetic
+  'Neon', 'Widget', 'Zippy', 'Quirk', 'Flux', // Playful
+] as const
+export type AgentMascot = typeof AGENT_MASCOTS[number]
+
+// Agent state for Mission Control
+export type AgentState = 'idle' | 'thinking' | 'working' | 'testing' | 'success' | 'error' | 'struggling'
+
+// Agent type (coding vs testing)
+export type AgentType = 'coding' | 'testing'
+
+// Individual log entry for an agent
+export interface AgentLogEntry {
+  line: string
+  timestamp: string
+  type: 'output' | 'state_change' | 'error'
+}
+
+// Agent update from backend
+export interface ActiveAgent {
+  agentIndex: number  // -1 for synthetic completions
+  agentName: AgentMascot | 'Unknown'
+  agentType: AgentType  // "coding" or "testing"
+  featureId: number
+  featureName: string
+  state: AgentState
+  thought?: string
+  timestamp: string
+  logs?: AgentLogEntry[]  // Per-agent log history
+}
+
+// Orchestrator state for Mission Control
+export type OrchestratorState =
+  | 'idle'
+  | 'initializing'
+  | 'scheduling'
+  | 'spawning'
+  | 'monitoring'
+  | 'complete'
+
+// Orchestrator event for recent activity
+export interface OrchestratorEvent {
+  eventType: string
+  message: string
+  timestamp: string
+  featureId?: number
+  featureName?: string
+}
+
+// Orchestrator status for Mission Control
+export interface OrchestratorStatus {
+  state: OrchestratorState
+  message: string
+  codingAgents: number
+  testingAgents: number
+  maxConcurrency: number
+  readyCount: number
+  blockedCount: number
+  timestamp: string
+  recentEvents: OrchestratorEvent[]
+}
+
 // WebSocket message types
-export type WSMessageType = 'progress' | 'feature_update' | 'log' | 'agent_status' | 'pong'
+export type WSMessageType = 'progress' | 'feature_update' | 'log' | 'agent_status' | 'pong' | 'dev_log' | 'dev_server_status' | 'agent_update' | 'orchestrator_update'
 
 export interface WSProgressMessage {
   type: 'progress'
@@ -128,6 +258,22 @@ export interface WSLogMessage {
   type: 'log'
   line: string
   timestamp: string
+  featureId?: number
+  agentIndex?: number
+  agentName?: AgentMascot
+}
+
+export interface WSAgentUpdateMessage {
+  type: 'agent_update'
+  agentIndex: number  // -1 for synthetic completions (untracked agents)
+  agentName: AgentMascot | 'Unknown'
+  agentType: AgentType  // "coding" or "testing"
+  featureId: number
+  featureName: string
+  state: AgentState
+  thought?: string
+  timestamp: string
+  synthetic?: boolean  // True for synthetic completions from untracked agents
 }
 
 export interface WSAgentStatusMessage {
@@ -139,12 +285,43 @@ export interface WSPongMessage {
   type: 'pong'
 }
 
+export interface WSDevLogMessage {
+  type: 'dev_log'
+  line: string
+  timestamp: string
+}
+
+export interface WSDevServerStatusMessage {
+  type: 'dev_server_status'
+  status: DevServerStatus
+  url: string | null
+}
+
+export interface WSOrchestratorUpdateMessage {
+  type: 'orchestrator_update'
+  eventType: string
+  state: OrchestratorState
+  message: string
+  timestamp: string
+  codingAgents?: number
+  testingAgents?: number
+  maxConcurrency?: number
+  readyCount?: number
+  blockedCount?: number
+  featureId?: number
+  featureName?: string
+}
+
 export type WSMessage =
   | WSProgressMessage
   | WSFeatureUpdateMessage
   | WSLogMessage
   | WSAgentStatusMessage
+  | WSAgentUpdateMessage
   | WSPongMessage
+  | WSDevLogMessage
+  | WSDevServerStatusMessage
+  | WSOrchestratorUpdateMessage
 
 // ============================================================================
 // Spec Chat Types
@@ -348,9 +525,62 @@ export interface ModelsResponse {
 export interface Settings {
   yolo_mode: boolean
   model: string
+  glm_mode: boolean
+  testing_agent_ratio: number  // Regression testing agents (0-3)
 }
 
 export interface SettingsUpdate {
   yolo_mode?: boolean
   model?: string
+  testing_agent_ratio?: number
+}
+
+// ============================================================================
+// Schedule Types
+// ============================================================================
+
+export interface Schedule {
+  id: number
+  project_name: string
+  start_time: string      // "HH:MM" in UTC
+  duration_minutes: number
+  days_of_week: number    // Bitfield: Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64
+  enabled: boolean
+  yolo_mode: boolean
+  model: string | null
+  max_concurrency: number // 1-5 concurrent agents
+  crash_count: number
+  created_at: string
+}
+
+export interface ScheduleCreate {
+  start_time: string      // "HH:MM" format (local time, will be stored as UTC)
+  duration_minutes: number
+  days_of_week: number
+  enabled: boolean
+  yolo_mode: boolean
+  model: string | null
+  max_concurrency: number // 1-5 concurrent agents
+}
+
+export interface ScheduleUpdate {
+  start_time?: string
+  duration_minutes?: number
+  days_of_week?: number
+  enabled?: boolean
+  yolo_mode?: boolean
+  model?: string | null
+  max_concurrency?: number
+}
+
+export interface ScheduleListResponse {
+  schedules: Schedule[]
+}
+
+export interface NextRunResponse {
+  has_schedules: boolean
+  next_start: string | null  // ISO datetime in UTC
+  next_end: string | null    // ISO datetime in UTC (latest end if overlapping)
+  is_currently_running: boolean
+  active_schedule_count: number
 }

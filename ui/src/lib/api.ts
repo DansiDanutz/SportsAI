@@ -9,8 +9,10 @@ import type {
   FeatureListResponse,
   Feature,
   FeatureCreate,
+  FeatureUpdate,
   FeatureBulkCreate,
   FeatureBulkCreateResponse,
+  DependencyGraph,
   AgentStatusResponse,
   AgentActionResponse,
   SetupStatus,
@@ -21,6 +23,14 @@ import type {
   Settings,
   SettingsUpdate,
   ModelsResponse,
+  DevServerStatusResponse,
+  DevServerConfig,
+  TerminalInfo,
+  Schedule,
+  ScheduleCreate,
+  ScheduleUpdate,
+  ScheduleListResponse,
+  NextRunResponse,
 } from './types'
 
 const API_BASE = '/api'
@@ -37,6 +47,11 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
     throw new Error(error.detail || `HTTP ${response.status}`)
+  }
+
+  // Handle 204 No Content responses
+  if (response.status === 204) {
+    return undefined as T
   }
 
   return response.json()
@@ -116,6 +131,17 @@ export async function skipFeature(projectName: string, featureId: number): Promi
   })
 }
 
+export async function updateFeature(
+  projectName: string,
+  featureId: number,
+  update: FeatureUpdate
+): Promise<Feature> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/features/${featureId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(update),
+  })
+}
+
 export async function createFeaturesBulk(
   projectName: string,
   bulk: FeatureBulkCreate
@@ -124,6 +150,50 @@ export async function createFeaturesBulk(
     method: 'POST',
     body: JSON.stringify(bulk),
   })
+}
+
+// ============================================================================
+// Dependency Graph API
+// ============================================================================
+
+export async function getDependencyGraph(projectName: string): Promise<DependencyGraph> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/features/graph`)
+}
+
+export async function addDependency(
+  projectName: string,
+  featureId: number,
+  dependencyId: number
+): Promise<{ success: boolean; feature_id: number; dependencies: number[] }> {
+  return fetchJSON(
+    `/projects/${encodeURIComponent(projectName)}/features/${featureId}/dependencies/${dependencyId}`,
+    { method: 'POST' }
+  )
+}
+
+export async function removeDependency(
+  projectName: string,
+  featureId: number,
+  dependencyId: number
+): Promise<{ success: boolean; feature_id: number; dependencies: number[] }> {
+  return fetchJSON(
+    `/projects/${encodeURIComponent(projectName)}/features/${featureId}/dependencies/${dependencyId}`,
+    { method: 'DELETE' }
+  )
+}
+
+export async function setDependencies(
+  projectName: string,
+  featureId: number,
+  dependencyIds: number[]
+): Promise<{ success: boolean; feature_id: number; dependencies: number[] }> {
+  return fetchJSON(
+    `/projects/${encodeURIComponent(projectName)}/features/${featureId}/dependencies`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ dependency_ids: dependencyIds }),
+    }
+  )
 }
 
 // ============================================================================
@@ -136,11 +206,21 @@ export async function getAgentStatus(projectName: string): Promise<AgentStatusRe
 
 export async function startAgent(
   projectName: string,
-  yoloMode: boolean = false
+  options: {
+    yoloMode?: boolean
+    parallelMode?: boolean
+    maxConcurrency?: number
+    testingAgentRatio?: number
+  } = {}
 ): Promise<AgentActionResponse> {
   return fetchJSON(`/projects/${encodeURIComponent(projectName)}/agent/start`, {
     method: 'POST',
-    body: JSON.stringify({ yolo_mode: yoloMode }),
+    body: JSON.stringify({
+      yolo_mode: options.yoloMode ?? false,
+      parallel_mode: options.parallelMode ?? false,
+      max_concurrency: options.maxConcurrency,
+      testing_agent_ratio: options.testingAgentRatio,
+    }),
   })
 }
 
@@ -300,4 +380,121 @@ export async function updateSettings(settings: SettingsUpdate): Promise<Settings
     method: 'PATCH',
     body: JSON.stringify(settings),
   })
+}
+
+// ============================================================================
+// Dev Server API
+// ============================================================================
+
+export async function getDevServerStatus(projectName: string): Promise<DevServerStatusResponse> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/devserver/status`)
+}
+
+export async function startDevServer(
+  projectName: string,
+  command?: string
+): Promise<{ success: boolean; message: string }> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/devserver/start`, {
+    method: 'POST',
+    body: JSON.stringify({ command }),
+  })
+}
+
+export async function stopDevServer(
+  projectName: string
+): Promise<{ success: boolean; message: string }> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/devserver/stop`, {
+    method: 'POST',
+  })
+}
+
+export async function getDevServerConfig(projectName: string): Promise<DevServerConfig> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/devserver/config`)
+}
+
+// ============================================================================
+// Terminal API
+// ============================================================================
+
+export async function listTerminals(projectName: string): Promise<TerminalInfo[]> {
+  return fetchJSON(`/terminal/${encodeURIComponent(projectName)}`)
+}
+
+export async function createTerminal(
+  projectName: string,
+  name?: string
+): Promise<TerminalInfo> {
+  return fetchJSON(`/terminal/${encodeURIComponent(projectName)}`, {
+    method: 'POST',
+    body: JSON.stringify({ name: name ?? null }),
+  })
+}
+
+export async function renameTerminal(
+  projectName: string,
+  terminalId: string,
+  name: string
+): Promise<TerminalInfo> {
+  return fetchJSON(`/terminal/${encodeURIComponent(projectName)}/${terminalId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  })
+}
+
+export async function deleteTerminal(
+  projectName: string,
+  terminalId: string
+): Promise<void> {
+  await fetchJSON(`/terminal/${encodeURIComponent(projectName)}/${terminalId}`, {
+    method: 'DELETE',
+  })
+}
+
+// ============================================================================
+// Schedule API
+// ============================================================================
+
+export async function listSchedules(projectName: string): Promise<ScheduleListResponse> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/schedules`)
+}
+
+export async function createSchedule(
+  projectName: string,
+  schedule: ScheduleCreate
+): Promise<Schedule> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/schedules`, {
+    method: 'POST',
+    body: JSON.stringify(schedule),
+  })
+}
+
+export async function getSchedule(
+  projectName: string,
+  scheduleId: number
+): Promise<Schedule> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/schedules/${scheduleId}`)
+}
+
+export async function updateSchedule(
+  projectName: string,
+  scheduleId: number,
+  update: ScheduleUpdate
+): Promise<Schedule> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/schedules/${scheduleId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(update),
+  })
+}
+
+export async function deleteSchedule(
+  projectName: string,
+  scheduleId: number
+): Promise<void> {
+  await fetchJSON(`/projects/${encodeURIComponent(projectName)}/schedules/${scheduleId}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function getNextScheduledRun(projectName: string): Promise<NextRunResponse> {
+  return fetchJSON(`/projects/${encodeURIComponent(projectName)}/schedules/next`)
 }

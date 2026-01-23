@@ -3,10 +3,14 @@
  *
  * Slide-in panel container for the project assistant chat.
  * Slides in from the right side of the screen.
+ * Manages conversation state with localStorage persistence.
  */
 
+import { useState, useEffect, useCallback } from 'react'
 import { X, Bot } from 'lucide-react'
 import { AssistantChat } from './AssistantChat'
+import { useConversation } from '../hooks/useConversations'
+import type { ChatMessage } from '../lib/types'
 
 interface AssistantPanelProps {
   projectName: string
@@ -14,7 +18,75 @@ interface AssistantPanelProps {
   onClose: () => void
 }
 
+const STORAGE_KEY_PREFIX = 'assistant-conversation-'
+
+function getStoredConversationId(projectName: string): number | null {
+  try {
+    const stored = localStorage.getItem(`${STORAGE_KEY_PREFIX}${projectName}`)
+    if (stored) {
+      const data = JSON.parse(stored)
+      return data.conversationId || null
+    }
+  } catch {
+    // Invalid stored data, ignore
+  }
+  return null
+}
+
+function setStoredConversationId(projectName: string, conversationId: number | null) {
+  const key = `${STORAGE_KEY_PREFIX}${projectName}`
+  if (conversationId) {
+    localStorage.setItem(key, JSON.stringify({ conversationId }))
+  } else {
+    localStorage.removeItem(key)
+  }
+}
+
 export function AssistantPanel({ projectName, isOpen, onClose }: AssistantPanelProps) {
+  // Load initial conversation ID from localStorage
+  const [conversationId, setConversationId] = useState<number | null>(() =>
+    getStoredConversationId(projectName)
+  )
+
+  // Fetch conversation details when we have an ID
+  const { data: conversationDetail, isLoading: isLoadingConversation } = useConversation(
+    projectName,
+    conversationId
+  )
+
+  // Convert API messages to ChatMessage format for the chat component
+  const initialMessages: ChatMessage[] | undefined = conversationDetail?.messages.map((msg) => ({
+    id: `db-${msg.id}`,
+    role: msg.role,
+    content: msg.content,
+    timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
+  }))
+
+  // Persist conversation ID changes to localStorage
+  useEffect(() => {
+    setStoredConversationId(projectName, conversationId)
+  }, [projectName, conversationId])
+
+  // Reset conversation ID when project changes
+  useEffect(() => {
+    setConversationId(getStoredConversationId(projectName))
+  }, [projectName])
+
+  // Handle starting a new chat
+  const handleNewChat = useCallback(() => {
+    setConversationId(null)
+  }, [])
+
+  // Handle selecting a conversation from history
+  const handleSelectConversation = useCallback((id: number) => {
+    setConversationId(id)
+  }, [])
+
+  // Handle when a new conversation is created (from WebSocket)
+  const handleConversationCreated = useCallback((id: number) => {
+    setConversationId(id)
+  }, [])
+
   return (
     <>
       {/* Backdrop - click to close */}
@@ -31,26 +103,29 @@ export function AssistantPanel({ projectName, isOpen, onClose }: AssistantPanelP
         className={`
           fixed right-0 top-0 bottom-0 z-50
           w-[400px] max-w-[90vw]
-          bg-white
+          bg-neo-card
           border-l-4 border-[var(--color-neo-border)]
-          shadow-[-8px_0_0px_rgba(0,0,0,1)]
           transform transition-transform duration-300 ease-out
           flex flex-col
           ${isOpen ? 'translate-x-0' : 'translate-x-full'}
         `}
+        style={{ boxShadow: 'var(--shadow-neo-left-lg)' }}
         role="dialog"
         aria-label="Project Assistant"
         aria-hidden={!isOpen}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b-3 border-[var(--color-neo-border)] bg-[var(--color-neo-progress)]">
+        <div className="flex items-center justify-between px-4 py-3 border-b-3 border-neo-border bg-neo-progress">
           <div className="flex items-center gap-2">
-            <div className="bg-white border-2 border-[var(--color-neo-border)] p-1.5 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+            <div
+              className="bg-neo-card border-2 border-neo-border p-1.5"
+              style={{ boxShadow: 'var(--shadow-neo-sm)' }}
+            >
               <Bot size={18} />
             </div>
             <div>
-              <h2 className="font-display font-bold text-white">Project Assistant</h2>
-              <p className="text-xs text-white/80 font-mono">{projectName}</p>
+              <h2 className="font-display font-bold text-neo-text-on-bright">Project Assistant</h2>
+              <p className="text-xs text-neo-text-on-bright opacity-80 font-mono">{projectName}</p>
             </div>
           </div>
           <button
@@ -58,9 +133,9 @@ export function AssistantPanel({ projectName, isOpen, onClose }: AssistantPanelP
             className="
               neo-btn neo-btn-ghost
               p-2
-              bg-white/20 border-white/40
-              hover:bg-white/30
-              text-white
+              bg-[var(--color-neo-card)] border-[var(--color-neo-border)]
+              hover:bg-[var(--color-neo-bg)]
+              text-[var(--color-neo-text)]
             "
             title="Close Assistant (Press A)"
             aria-label="Close Assistant"
@@ -71,7 +146,17 @@ export function AssistantPanel({ projectName, isOpen, onClose }: AssistantPanelP
 
         {/* Chat area */}
         <div className="flex-1 overflow-hidden">
-          {isOpen && <AssistantChat projectName={projectName} />}
+          {isOpen && (
+            <AssistantChat
+              projectName={projectName}
+              conversationId={conversationId}
+              initialMessages={initialMessages}
+              isLoadingConversation={isLoadingConversation}
+              onNewChat={handleNewChat}
+              onSelectConversation={handleSelectConversation}
+              onConversationCreated={handleConversationCreated}
+            />
+          )}
         </div>
       </div>
     </>

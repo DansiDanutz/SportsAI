@@ -10,6 +10,7 @@ interface ProjectSelectorProps {
   selectedProject: string | null
   onSelectProject: (name: string | null) => void
   isLoading: boolean
+  onSpecCreatingChange?: (isCreating: boolean) => void
 }
 
 export function ProjectSelector({
@@ -17,6 +18,7 @@ export function ProjectSelector({
   selectedProject,
   onSelectProject,
   isLoading,
+  onSpecCreatingChange,
 }: ProjectSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showNewProjectModal, setShowNewProjectModal] = useState(false)
@@ -63,7 +65,7 @@ export function ProjectSelector({
       {/* Dropdown Trigger */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="neo-btn bg-white text-[var(--color-neo-text)] min-w-[200px] justify-between"
+        className="neo-btn bg-[var(--color-neo-card)] text-[var(--color-neo-text)] min-w-[200px] justify-between"
         disabled={isLoading}
       >
         {isLoading ? (
@@ -106,7 +108,7 @@ export function ProjectSelector({
                     key={project.name}
                     className={`flex items-center ${
                       project.name === selectedProject
-                        ? 'bg-[var(--color-neo-pending)]'
+                        ? 'bg-[var(--color-neo-pending)] text-[var(--color-neo-text-on-bright)]'
                         : ''
                     }`}
                   >
@@ -166,6 +168,7 @@ export function ProjectSelector({
         isOpen={showNewProjectModal}
         onClose={() => setShowNewProjectModal(false)}
         onProjectCreated={handleProjectCreated}
+        onStepChange={(step) => onSpecCreatingChange?.(step === 'chat')}
       />
 
       {/* Delete Confirmation Dialog */}

@@ -23,32 +23,33 @@ from dotenv import load_dotenv
 from .assistant_database import (
     add_message,
     create_conversation,
+    get_messages,
 )
 
 # Load environment variables from .env file if present
 load_dotenv()
-
-
-def get_cli_command() -> str:
-    """
-    Get the CLI command to use for the agent.
-
-    Reads from CLI_COMMAND environment variable, defaults to 'claude'.
-    This allows users to use alternative CLIs like 'glm'.
-    """
-    return os.getenv("CLI_COMMAND", "claude")
-
 
 logger = logging.getLogger(__name__)
 
 # Root directory of the project
 ROOT_DIR = Path(__file__).parent.parent.parent
 
+# Environment variables to pass through to Claude CLI for API configuration
+API_ENV_VARS = [
+    "ANTHROPIC_BASE_URL",
+    "ANTHROPIC_AUTH_TOKEN",
+    "API_TIMEOUT_MS",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+]
+
 # Read-only feature MCP tools
 READONLY_FEATURE_MCP_TOOLS = [
     "mcp__features__feature_get_stats",
-    "mcp__features__feature_get_next",
-    "mcp__features__feature_get_for_regression",
+    "mcp__features__feature_get_by_id",
+    "mcp__features__feature_get_ready",
+    "mcp__features__feature_get_blocked",
 ]
 
 # Feature management tools (create/skip but not mark_passing)
@@ -124,8 +125,9 @@ If the user asks you to modify code, explain that you're a project assistant and
 
 **Feature Management:**
 - **feature_get_stats**: Get feature completion progress
-- **feature_get_next**: See the next pending feature
-- **feature_get_for_regression**: See passing features for testing
+- **feature_get_by_id**: Get details for a specific feature
+- **feature_get_ready**: See features ready for implementation
+- **feature_get_blocked**: See features blocked by dependencies
 - **feature_create**: Create a single feature in the backlog
 - **feature_create_bulk**: Create multiple features at once
 - **feature_skip**: Move a feature to the end of the queue
@@ -179,6 +181,7 @@ class AssistantChatSession:
         self.client: Optional[ClaudeSDKClient] = None
         self._client_entered: bool = False
         self.created_at = datetime.now()
+        self._history_loaded: bool = False  # Track if we've loaded history for resumed conversations
 
     async def close(self) -> None:
         """Clean up resources and close the Claude client."""
@@ -196,10 +199,14 @@ class AssistantChatSession:
         Initialize session with the Claude client.
 
         Creates a new conversation if none exists, then sends an initial greeting.
+        For resumed conversations, skips the greeting since history is loaded from DB.
         Yields message chunks as they stream in.
         """
+        # Track if this is a new conversation (for greeting decision)
+        is_new_conversation = self.conversation_id is None
+
         # Create a new conversation if we don't have one
-        if self.conversation_id is None:
+        if is_new_conversation:
             conv = create_conversation(self.project_dir, self.project_name)
             self.conversation_id = conv.id
             yield {"type": "conversation_created", "conversation_id": self.conversation_id}
@@ -232,7 +239,8 @@ class AssistantChatSession:
                 "command": sys.executable,
                 "args": ["-m", "mcp_server.feature_mcp"],
                 "env": {
-                    **os.environ,
+                    # Only specify variables the MCP server needs
+                    # (subprocess inherits parent environment automatically)
                     "PROJECT_DIR": str(self.project_dir.resolve()),
                     "PYTHONPATH": str(ROOT_DIR.resolve()),
                 },
@@ -242,43 +250,70 @@ class AssistantChatSession:
         # Get system prompt with project context
         system_prompt = get_system_prompt(self.project_name, self.project_dir)
 
-        # Use system CLI (configurable via CLI_COMMAND environment variable)
-        cli_command = get_cli_command()
-        system_cli = shutil.which(cli_command)
+        # Write system prompt to CLAUDE.md file to avoid Windows command line length limit
+        # The SDK will read this via setting_sources=["project"]
+        claude_md_path = self.project_dir / "CLAUDE.md"
+        with open(claude_md_path, "w", encoding="utf-8") as f:
+            f.write(system_prompt)
+        logger.info(f"Wrote assistant system prompt to {claude_md_path}")
+
+        # Use system Claude CLI
+        system_cli = shutil.which("claude")
+
+        # Build environment overrides for API configuration
+        sdk_env = {var: os.getenv(var) for var in API_ENV_VARS if os.getenv(var)}
+
+        # Determine model from environment or use default
+        # This allows using alternative APIs (e.g., GLM via z.ai) that may not support Claude model names
+        model = os.getenv("ANTHROPIC_DEFAULT_OPUS_MODEL", "claude-opus-4-5-20251101")
 
         try:
+            logger.info("Creating ClaudeSDKClient...")
             self.client = ClaudeSDKClient(
                 options=ClaudeAgentOptions(
-                    model="claude-opus-4-5-20251101",
+                    model=model,
                     cli_path=system_cli,
-                    system_prompt=system_prompt,
+                    # System prompt loaded from CLAUDE.md via setting_sources
+                    # This avoids Windows command line length limit (~8191 chars)
+                    setting_sources=["project"],
                     allowed_tools=[*READONLY_BUILTIN_TOOLS, *ASSISTANT_FEATURE_TOOLS],
                     mcp_servers=mcp_servers,
                     permission_mode="bypassPermissions",
                     max_turns=100,
                     cwd=str(self.project_dir.resolve()),
                     settings=str(settings_file.resolve()),
+                    env=sdk_env,
                 )
             )
+            logger.info("Entering Claude client context...")
             await self.client.__aenter__()
             self._client_entered = True
+            logger.info("Claude client ready")
         except Exception as e:
             logger.exception("Failed to create Claude client")
             yield {"type": "error", "content": f"Failed to initialize assistant: {str(e)}"}
             return
 
-        # Send initial greeting
-        try:
-            greeting = f"Hello! I'm your project assistant for **{self.project_name}**. I can help you understand the codebase, explain features, and answer questions about the project. What would you like to know?"
+        # Send initial greeting only for NEW conversations
+        # Resumed conversations already have history loaded from the database
+        if is_new_conversation:
+            # New conversations don't need history loading
+            self._history_loaded = True
+            try:
+                greeting = f"Hello! I'm your project assistant for **{self.project_name}**. I can help you understand the codebase, explain features, and answer questions about the project. What would you like to know?"
 
-            # Store the greeting in the database
-            add_message(self.project_dir, self.conversation_id, "assistant", greeting)
+                # Store the greeting in the database
+                add_message(self.project_dir, self.conversation_id, "assistant", greeting)
 
-            yield {"type": "text", "content": greeting}
+                yield {"type": "text", "content": greeting}
+                yield {"type": "response_done"}
+            except Exception as e:
+                logger.exception("Failed to send greeting")
+                yield {"type": "error", "content": f"Failed to start conversation: {str(e)}"}
+        else:
+            # For resumed conversations, history will be loaded on first message
+            # _history_loaded stays False so send_message() will include history
             yield {"type": "response_done"}
-        except Exception as e:
-            logger.exception("Failed to send greeting")
-            yield {"type": "error", "content": f"Failed to start conversation: {str(e)}"}
 
     async def send_message(self, user_message: str) -> AsyncGenerator[dict, None]:
         """
@@ -305,8 +340,32 @@ class AssistantChatSession:
         # Store user message in database
         add_message(self.project_dir, self.conversation_id, "user", user_message)
 
+        # For resumed conversations, include history context in first message
+        message_to_send = user_message
+        if not self._history_loaded:
+            self._history_loaded = True
+            history = get_messages(self.project_dir, self.conversation_id)
+            # Exclude the message we just added (last one)
+            history = history[:-1] if history else []
+            # Cap history to last 35 messages to prevent context overload
+            history = history[-35:] if len(history) > 35 else history
+            if history:
+                # Format history as context for Claude
+                history_lines = ["[Previous conversation history for context:]"]
+                for msg in history:
+                    role = "User" if msg["role"] == "user" else "Assistant"
+                    content = msg["content"]
+                    # Truncate very long messages
+                    if len(content) > 500:
+                        content = content[:500] + "..."
+                    history_lines.append(f"{role}: {content}")
+                history_lines.append("[End of history. Continue the conversation:]")
+                history_lines.append(f"User: {user_message}")
+                message_to_send = "\n".join(history_lines)
+                logger.info(f"Loaded {len(history)} messages from conversation history")
+
         try:
-            async for chunk in self._query_claude(user_message):
+            async for chunk in self._query_claude(message_to_send):
                 yield chunk
             yield {"type": "response_done"}
         except Exception as e:

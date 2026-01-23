@@ -4,7 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as api from '../lib/api'
-import type { FeatureCreate, ModelsResponse, Settings, SettingsUpdate } from '../lib/types'
+import type { FeatureCreate, FeatureUpdate, ModelsResponse, Settings, SettingsUpdate } from '../lib/types'
 
 // ============================================================================
 // Projects
@@ -94,6 +94,18 @@ export function useSkipFeature(projectName: string) {
   })
 }
 
+export function useUpdateFeature(projectName: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ featureId, update }: { featureId: number; update: FeatureUpdate }) =>
+      api.updateFeature(projectName, featureId, update),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['features', projectName] })
+    },
+  })
+}
+
 // ============================================================================
 // Agent
 // ============================================================================
@@ -111,7 +123,12 @@ export function useStartAgent(projectName: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (yoloMode: boolean = false) => api.startAgent(projectName, yoloMode),
+    mutationFn: (options: {
+      yoloMode?: boolean
+      parallelMode?: boolean
+      maxConcurrency?: number
+      testingAgentRatio?: number
+    } = {}) => api.startAgent(projectName, options),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-status', projectName] })
     },
@@ -125,6 +142,8 @@ export function useStopAgent(projectName: string) {
     mutationFn: () => api.stopAgent(projectName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-status', projectName] })
+      // Invalidate schedule status to reflect manual stop override
+      queryClient.invalidateQueries({ queryKey: ['nextRun', projectName] })
     },
   })
 }
@@ -217,6 +236,8 @@ const DEFAULT_MODELS: ModelsResponse = {
 const DEFAULT_SETTINGS: Settings = {
   yolo_mode: false,
   model: 'claude-opus-4-5-20251101',
+  glm_mode: false,
+  testing_agent_ratio: 1,
 }
 
 export function useAvailableModels() {

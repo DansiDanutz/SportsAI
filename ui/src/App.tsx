@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { useProjects, useFeatures, useAgentStatus } from './hooks/useProjects'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
+import { useProjects, useFeatures, useAgentStatus, useSettings } from './hooks/useProjects'
 import { useProjectWebSocket } from './hooks/useWebSocket'
 import { useFeatureSound } from './hooks/useFeatureSound'
 import { useCelebration } from './hooks/useCelebration'
-
-const STORAGE_KEY = 'autocoder-selected-project'
 import { ProjectSelector } from './components/ProjectSelector'
 import { KanbanBoard } from './components/KanbanBoard'
 import { AgentControl } from './components/AgentControl'
@@ -13,14 +11,26 @@ import { ProgressDashboard } from './components/ProgressDashboard'
 import { SetupWizard } from './components/SetupWizard'
 import { AddFeatureForm } from './components/AddFeatureForm'
 import { FeatureModal } from './components/FeatureModal'
-import { DebugLogViewer } from './components/DebugLogViewer'
+import { DebugLogViewer, type TabType } from './components/DebugLogViewer'
 import { AgentThought } from './components/AgentThought'
+import { AgentMissionControl } from './components/AgentMissionControl'
+import { CelebrationOverlay } from './components/CelebrationOverlay'
 import { AssistantFAB } from './components/AssistantFAB'
 import { AssistantPanel } from './components/AssistantPanel'
 import { ExpandProjectModal } from './components/ExpandProjectModal'
+import { SpecCreationChat } from './components/SpecCreationChat'
 import { SettingsModal } from './components/SettingsModal'
-import { Loader2, Settings } from 'lucide-react'
+import { DevServerControl } from './components/DevServerControl'
+import { ViewToggle, type ViewMode } from './components/ViewToggle'
+import { DependencyGraph } from './components/DependencyGraph'
+import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp'
+import { getDependencyGraph } from './lib/api'
+import { Loader2, Settings, Moon, Sun } from 'lucide-react'
 import type { Feature } from './lib/types'
+
+const STORAGE_KEY = 'autocoder-selected-project'
+const DARK_MODE_KEY = 'autocoder-dark-mode'
+const VIEW_MODE_KEY = 'autocoder-view-mode'
 
 function App() {
   // Initialize selected project from localStorage
@@ -37,14 +47,69 @@ function App() {
   const [setupComplete, setSetupComplete] = useState(true) // Start optimistic
   const [debugOpen, setDebugOpen] = useState(false)
   const [debugPanelHeight, setDebugPanelHeight] = useState(288) // Default height
+  const [debugActiveTab, setDebugActiveTab] = useState<TabType>('agent')
   const [assistantOpen, setAssistantOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
+  const [isSpecCreating, setIsSpecCreating] = useState(false)
+  const [showSpecChat, setShowSpecChat] = useState(false)  // For "Create Spec" button in empty kanban
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem(DARK_MODE_KEY) === 'true'
+    } catch {
+      return false
+    }
+  })
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    try {
+      const stored = localStorage.getItem(VIEW_MODE_KEY)
+      return (stored === 'graph' ? 'graph' : 'kanban') as ViewMode
+    } catch {
+      return 'kanban'
+    }
+  })
 
   const queryClient = useQueryClient()
   const { data: projects, isLoading: projectsLoading } = useProjects()
   const { data: features } = useFeatures(selectedProject)
+  const { data: settings } = useSettings()
   useAgentStatus(selectedProject) // Keep polling for status updates
   const wsState = useProjectWebSocket(selectedProject)
+
+  // Get has_spec from the selected project
+  const selectedProjectData = projects?.find(p => p.name === selectedProject)
+  const hasSpec = selectedProjectData?.has_spec ?? true
+
+  // Fetch graph data when in graph view
+  const { data: graphData } = useQuery({
+    queryKey: ['dependencyGraph', selectedProject],
+    queryFn: () => getDependencyGraph(selectedProject!),
+    enabled: !!selectedProject && viewMode === 'graph',
+    refetchInterval: 5000, // Refresh every 5 seconds
+  })
+
+  // Apply dark mode class to document
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+    try {
+      localStorage.setItem(DARK_MODE_KEY, String(darkMode))
+    } catch {
+      // localStorage not available
+    }
+  }, [darkMode])
+
+  // Persist view mode to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(VIEW_MODE_KEY, viewMode)
+    } catch {
+      // localStorage not available
+    }
+  }, [viewMode])
 
   // Play sounds when features move between columns
   useFeatureSound(features)
@@ -65,6 +130,17 @@ function App() {
       // localStorage not available
     }
   }, [])
+
+  // Handle graph node click - memoized to prevent DependencyGraph re-renders
+  const handleGraphNodeClick = useCallback((nodeId: number) => {
+    const allFeatures = [
+      ...(features?.pending ?? []),
+      ...(features?.in_progress ?? []),
+      ...(features?.done ?? [])
+    ]
+    const feature = allFeatures.find(f => f.id === nodeId)
+    if (feature) setSelectedFeature(feature)
+  }, [features])
 
   // Validate stored project exists (clear if project was deleted)
   useEffect(() => {
@@ -87,6 +163,22 @@ function App() {
         setDebugOpen(prev => !prev)
       }
 
+      // T : Toggle terminal tab in debug panel
+      if (e.key === 't' || e.key === 'T') {
+        e.preventDefault()
+        if (!debugOpen) {
+          // If panel is closed, open it and switch to terminal tab
+          setDebugOpen(true)
+          setDebugActiveTab('terminal')
+        } else if (debugActiveTab === 'terminal') {
+          // If already on terminal tab, close the panel
+          setDebugOpen(false)
+        } else {
+          // If open but on different tab, switch to terminal
+          setDebugActiveTab('terminal')
+        }
+      }
+
       // N : Add new feature (when project selected)
       if ((e.key === 'n' || e.key === 'N') && selectedProject) {
         e.preventDefault()
@@ -100,8 +192,8 @@ function App() {
         setShowExpandProject(true)
       }
 
-      // A : Toggle assistant panel (when project selected)
-      if ((e.key === 'a' || e.key === 'A') && selectedProject) {
+      // A : Toggle assistant panel (when project selected and not in spec creation)
+      if ((e.key === 'a' || e.key === 'A') && selectedProject && !isSpecCreating) {
         e.preventDefault()
         setAssistantOpen(prev => !prev)
       }
@@ -112,9 +204,23 @@ function App() {
         setShowSettings(true)
       }
 
+      // G : Toggle between Kanban and Graph view (when project selected)
+      if ((e.key === 'g' || e.key === 'G') && selectedProject) {
+        e.preventDefault()
+        setViewMode(prev => prev === 'kanban' ? 'graph' : 'kanban')
+      }
+
+      // ? : Show keyboard shortcuts help
+      if (e.key === '?') {
+        e.preventDefault()
+        setShowKeyboardHelp(true)
+      }
+
       // Escape : Close modals
       if (e.key === 'Escape') {
-        if (showExpandProject) {
+        if (showKeyboardHelp) {
+          setShowKeyboardHelp(false)
+        } else if (showExpandProject) {
           setShowExpandProject(false)
         } else if (showSettings) {
           setShowSettings(false)
@@ -132,7 +238,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedProject, showAddFeature, showExpandProject, selectedFeature, debugOpen, assistantOpen, features, showSettings])
+  }, [selectedProject, showAddFeature, showExpandProject, selectedFeature, debugOpen, debugActiveTab, assistantOpen, features, showSettings, showKeyboardHelp, isSpecCreating, viewMode])
 
   // Combine WebSocket progress with feature data
   const progress = wsState.progress.total > 0 ? wsState.progress : {
@@ -150,9 +256,9 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-neo-bg)]">
+    <div className="min-h-screen bg-neo-bg">
       {/* Header */}
-      <header className="bg-[var(--color-neo-text)] text-white border-b-4 border-[var(--color-neo-border)]">
+      <header className="bg-neo-card text-neo-text border-b-4 border-neo-border">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo and Title */}
@@ -167,6 +273,7 @@ function App() {
                 selectedProject={selectedProject}
                 onSelectProject={handleSelectProject}
                 isLoading={projectsLoading}
+                onSpecCreatingChange={setIsSpecCreating}
               />
 
               {selectedProject && (
@@ -174,6 +281,12 @@ function App() {
                   <AgentControl
                     projectName={selectedProject}
                     status={wsState.agentStatus}
+                  />
+
+                  <DevServerControl
+                    projectName={selectedProject}
+                    status={wsState.devServerStatus}
+                    url={wsState.devServerUrl}
                   />
 
                   <button
@@ -184,8 +297,28 @@ function App() {
                   >
                     <Settings size={18} />
                   </button>
+
+                  {/* GLM Mode Badge */}
+                  {settings?.glm_mode && (
+                    <span
+                      className="px-2 py-1 text-xs font-bold bg-[var(--color-neo-glm)] text-white rounded border-2 border-neo-border shadow-neo-sm"
+                      title="Using GLM API (configured via .env)"
+                    >
+                      GLM
+                    </span>
+                  )}
                 </>
               )}
+
+              {/* Dark mode toggle - always visible */}
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="neo-btn text-sm py-2 px-3"
+                title="Toggle dark mode"
+                aria-label="Toggle dark mode"
+              >
+                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
             </div>
           </div>
         </div>
@@ -201,7 +334,7 @@ function App() {
             <h2 className="font-display text-2xl font-bold mb-2">
               Welcome to SportsAI
             </h2>
-            <p className="text-[var(--color-neo-text-secondary)] mb-4">
+            <p className="text-neo-text-secondary mb-4">
               Select a project from the dropdown above or create a new one to get started.
             </p>
           </div>
@@ -215,11 +348,21 @@ function App() {
               isConnected={wsState.isConnected}
             />
 
-            {/* Agent Thought - shows latest agent narrative */}
-            <AgentThought
-              logs={wsState.logs}
-              agentStatus={wsState.agentStatus}
+            {/* Agent Mission Control - shows orchestrator status and active agents in parallel mode */}
+            <AgentMissionControl
+              agents={wsState.activeAgents}
+              orchestratorStatus={wsState.orchestratorStatus}
+              recentActivity={wsState.recentActivity}
+              getAgentLogs={wsState.getAgentLogs}
             />
+
+            {/* Agent Thought - shows latest agent narrative (single agent mode) */}
+            {wsState.activeAgents.length === 0 && (
+              <AgentThought
+                logs={wsState.logs}
+                agentStatus={wsState.agentStatus}
+              />
+            )}
 
             {/* Initializing Features State - show when agent is running but no features yet */}
             {features &&
@@ -228,23 +371,49 @@ function App() {
              features.done.length === 0 &&
              wsState.agentStatus === 'running' && (
               <div className="neo-card p-8 text-center">
-                <Loader2 size={32} className="animate-spin mx-auto mb-4 text-[var(--color-neo-progress)]" />
+                <Loader2 size={32} className="animate-spin mx-auto mb-4 text-neo-progress" />
                 <h3 className="font-display font-bold text-xl mb-2">
                   Initializing Features...
                 </h3>
-                <p className="text-[var(--color-neo-text-secondary)]">
+                <p className="text-neo-text-secondary">
                   The agent is reading your spec and creating features. This may take a moment.
                 </p>
               </div>
             )}
 
-            {/* Kanban Board */}
-            <KanbanBoard
-              features={features}
-              onFeatureClick={setSelectedFeature}
-              onAddFeature={() => setShowAddFeature(true)}
-              onExpandProject={() => setShowExpandProject(true)}
-            />
+            {/* View Toggle - only show when there are features */}
+            {features && (features.pending.length + features.in_progress.length + features.done.length) > 0 && (
+              <div className="flex justify-center">
+                <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+              </div>
+            )}
+
+            {/* Kanban Board or Dependency Graph based on view mode */}
+            {viewMode === 'kanban' ? (
+              <KanbanBoard
+                features={features}
+                onFeatureClick={setSelectedFeature}
+                onAddFeature={() => setShowAddFeature(true)}
+                onExpandProject={() => setShowExpandProject(true)}
+                activeAgents={wsState.activeAgents}
+                onCreateSpec={() => setShowSpecChat(true)}
+                hasSpec={hasSpec}
+              />
+            ) : (
+              <div className="neo-card overflow-hidden" style={{ height: '600px' }}>
+                {graphData ? (
+                  <DependencyGraph
+                    graphData={graphData}
+                    onNodeClick={handleGraphNodeClick}
+                    activeAgents={wsState.activeAgents}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <Loader2 size={32} className="animate-spin text-neo-progress" />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -279,19 +448,41 @@ function App() {
         />
       )}
 
+      {/* Spec Creation Chat - for creating spec from empty kanban */}
+      {showSpecChat && selectedProject && (
+        <div className="fixed inset-0 z-50 bg-[var(--color-neo-bg)]">
+          <SpecCreationChat
+            projectName={selectedProject}
+            onComplete={() => {
+              setShowSpecChat(false)
+              // Refresh projects to update has_spec
+              queryClient.invalidateQueries({ queryKey: ['projects'] })
+              queryClient.invalidateQueries({ queryKey: ['features', selectedProject] })
+            }}
+            onCancel={() => setShowSpecChat(false)}
+            onExitToProject={() => setShowSpecChat(false)}
+          />
+        </div>
+      )}
+
       {/* Debug Log Viewer - fixed to bottom */}
       {selectedProject && (
         <DebugLogViewer
           logs={wsState.logs}
+          devLogs={wsState.devLogs}
           isOpen={debugOpen}
           onToggle={() => setDebugOpen(!debugOpen)}
           onClear={wsState.clearLogs}
+          onClearDevLogs={wsState.clearDevLogs}
           onHeightChange={setDebugPanelHeight}
+          projectName={selectedProject}
+          activeTab={debugActiveTab}
+          onTabChange={setDebugActiveTab}
         />
       )}
 
-      {/* Assistant FAB and Panel - hide FAB when expand modal is open */}
-      {selectedProject && !showExpandProject && (
+      {/* Assistant FAB and Panel - hide when expand modal or spec creation is open */}
+      {selectedProject && !showExpandProject && !isSpecCreating && !showSpecChat && (
         <>
           <AssistantFAB
             onClick={() => setAssistantOpen(!assistantOpen)}
@@ -308,6 +499,20 @@ function App() {
       {/* Settings Modal */}
       {showSettings && (
         <SettingsModal onClose={() => setShowSettings(false)} />
+      )}
+
+      {/* Keyboard Shortcuts Help */}
+      {showKeyboardHelp && (
+        <KeyboardShortcutsHelp onClose={() => setShowKeyboardHelp(false)} />
+      )}
+
+      {/* Celebration Overlay - shows when a feature is completed by an agent */}
+      {wsState.celebration && (
+        <CelebrationOverlay
+          agentName={wsState.celebration.agentName}
+          featureName={wsState.celebration.featureName}
+          onComplete={wsState.clearCelebration}
+        />
       )}
     </div>
   )
