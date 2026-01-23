@@ -27,6 +27,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
+    // If payload was already verified by JwtMultiSecretGuard, use it
+    // Otherwise, validate normally
     const user = await this.usersService.findById(payload.sub);
     if (!user) {
       throw new UnauthorizedException();

@@ -1,12 +1,22 @@
 /**
  * Storage utility with quota error handling
- * Provides safe localStorage operations with error recovery
+ * Provides safe localStorage operations with error recovery and fallback mechanisms
  */
 
 export interface StorageResult {
   success: boolean;
   error?: 'quota_exceeded' | 'storage_unavailable' | 'unknown';
   message?: string;
+  usedFallback?: boolean;
+}
+
+export interface StorageQuotaInfo {
+  used: number;
+  total: number;
+  percentage: number;
+  available: number;
+  isNearLimit: boolean; // > 80% used
+  isAtLimit: boolean; // > 95% used
 }
 
 // Storage keys prioritized by importance (most important first)
@@ -31,15 +41,16 @@ export function isStorageAvailable(): boolean {
 }
 
 /**
- * Get estimated storage usage
+ * Get estimated storage usage with detailed quota information
  */
-export function getStorageUsage(): { used: number; total: number; percentage: number } {
+export function getStorageUsage(): StorageQuotaInfo {
   let used = 0;
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key) {
         const value = localStorage.getItem(key) || '';
+        // Each character is typically 1-2 bytes (UTF-8), we'll estimate 1 byte per char
         used += key.length + value.length;
       }
     }
@@ -47,13 +58,26 @@ export function getStorageUsage(): { used: number; total: number; percentage: nu
     // Ignore errors
   }
 
-  // Typical localStorage limit is 5MB
+  // Typical localStorage limit is 5MB (some browsers may have 10MB)
   const total = 5 * 1024 * 1024;
+  const percentage = (used / total) * 100;
+  
   return {
     used,
     total,
-    percentage: (used / total) * 100,
+    percentage,
+    available: total - used,
+    isNearLimit: percentage > 80,
+    isAtLimit: percentage > 95,
   };
+}
+
+/**
+ * Check if we should use sessionStorage as fallback
+ */
+function shouldUseSessionStorageFallback(): boolean {
+  const usage = getStorageUsage();
+  return usage.isAtLimit || !isStorageAvailable();
 }
 
 /**
@@ -154,18 +178,31 @@ export function safeSetItem(key: string, value: string): StorageResult {
 }
 
 /**
- * Safely get an item from localStorage
+ * Safely get an item from localStorage with sessionStorage fallback
  */
-export function safeGetItem(key: string): string | null {
-  if (!isStorageAvailable()) {
-    return null;
+export function safeGetItem(key: string, checkFallback = true): string | null {
+  // Try localStorage first
+  if (isStorageAvailable()) {
+    try {
+      const value = localStorage.getItem(key);
+      if (value !== null) {
+        return value;
+      }
+    } catch {
+      // Continue to fallback
+    }
   }
 
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
+  // Try sessionStorage as fallback
+  if (checkFallback) {
+    try {
+      return sessionStorage.getItem(key);
+    } catch {
+      return null;
+    }
   }
+
+  return null;
 }
 
 /**
@@ -196,4 +233,49 @@ export function getStorageErrorMessage(result: StorageResult): string {
     default:
       return result.message || 'Failed to save data.';
   }
+}
+
+/**
+ * Monitor storage quota and trigger cleanup if needed
+ * Returns true if cleanup was performed
+ */
+export function monitorAndCleanupStorage(): boolean {
+  const usage = getStorageUsage();
+  
+  if (usage.isNearLimit) {
+    console.warn(`Storage usage is at ${usage.percentage.toFixed(1)}%. Performing cleanup...`);
+    const clearedBytes = clearNonCriticalStorage();
+    
+    if (clearedBytes > 0) {
+      console.log(`Cleared ${clearedBytes} bytes of non-critical storage.`);
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Get storage keys sorted by size (largest first)
+ * Useful for debugging storage issues
+ */
+export function getStorageKeysBySize(): Array<{ key: string; size: number }> {
+  const keys: Array<{ key: string; size: number }> = [];
+  
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        const value = localStorage.getItem(key) || '';
+        keys.push({
+          key,
+          size: key.length + value.length,
+        });
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+  
+  return keys.sort((a, b) => b.size - a.size);
 }

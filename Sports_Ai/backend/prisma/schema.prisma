@@ -318,3 +318,16 @@ model AiConfiguration {
   @@index([userId])
   @@index([userId, isActive])
 }
+
+model JwtSecret {
+  id        String   @id @default(uuid())
+  secret    String   // Encrypted JWT secret
+  version   Int      @unique // Sequential version number
+  createdAt DateTime @default(now())
+  expiresAt DateTime // When this secret expires
+  isActive  Boolean  @default(true) // Only one should be active at a time
+
+  @@index([isActive])
+  @@index([version])
+  @@index([expiresAt])
+}

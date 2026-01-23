@@ -20,31 +20,55 @@ const queryClient = new QueryClient({
 
 // Persist *real* query results so the app doesn't look empty after refresh/login.
 // This is not mock data: it's the last successful API responses from this user's browser.
+// Uses improved storage utilities with fallback and error handling
+import { safeGetItem, safeSetItem, safeRemoveItem, monitorAndCleanupStorage } from './utils/storage';
+
+// Monitor storage on app start
+monitorAndCleanupStorage();
+
 const storage: Storage = {
   getItem: (key) => {
+    return safeGetItem(key, true); // Check fallback
+  },
+  setItem: (key, value) => {
+    const result = safeSetItem(key, value, true); // Use fallback
+    if (!result.success && result.error === 'quota_exceeded') {
+      // Try cleanup and retry once
+      if (monitorAndCleanupStorage()) {
+        safeSetItem(key, value, true);
+      }
+    }
+  },
+  removeItem: (key) => {
+    safeRemoveItem(key);
+    // Also try to remove from sessionStorage fallback
     try {
-      return window.localStorage.getItem(key);
+      sessionStorage.removeItem(key);
+    } catch {
+      // Ignore
+    }
+  },
+  clear: () => {
+    try {
+      window.localStorage.clear();
+    } catch {
+      // Ignore
+    }
+  },
+  key: (index) => {
+    try {
+      return window.localStorage.key(index);
     } catch {
       return null;
     }
   },
-  setItem: (key, value) => {
+  get length() {
     try {
-      window.localStorage.setItem(key, value);
+      return window.localStorage.length;
     } catch {
-      // Ignore quota/unavailable storage errors (app will still work without persistence)
+      return 0;
     }
   },
-  removeItem: (key) => {
-    try {
-      window.localStorage.removeItem(key);
-    } catch {
-      // ignore
-    }
-  },
-  clear: () => window.localStorage.clear(),
-  key: (index) => window.localStorage.key(index),
-  length: window.localStorage.length,
 };
 
 const persister = createSyncStoragePersister({

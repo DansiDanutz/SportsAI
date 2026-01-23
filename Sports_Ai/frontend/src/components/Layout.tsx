@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { ErrorBoundary } from './ErrorBoundary';
 import { PremiumBadge } from './PremiumGate';
 import { NotificationDropdown } from './NotificationDropdown';
 import { OnboardingWizard } from './OnboardingWizard';
@@ -255,13 +256,17 @@ export function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main id="main-content" className="flex-1 overflow-auto lg:mt-0 mt-14" tabIndex={-1}>
-        {children}
-      </main>
+      <ErrorBoundary>
+        <main id="main-content" className="flex-1 overflow-auto lg:mt-0 mt-14" tabIndex={-1}>
+          {children}
+        </main>
+      </ErrorBoundary>
 
       {/* Onboarding Wizard */}
       {showOnboarding && onboardingChecked && (
-        <OnboardingWizard onComplete={handleOnboardingComplete} />
+        <ErrorBoundary>
+          <OnboardingWizard onComplete={handleOnboardingComplete} />
+        </ErrorBoundary>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { safeGetItem, safeSetItem, safeRemoveItem, StorageResult } from '../utils/storage';
 
 export type OddsFormat = 'decimal' | 'american' | 'fractional';
 
@@ -47,6 +48,28 @@ interface PreferencesState {
   resetToDefaults: () => void;
 }
 
+// Custom storage with fallback support
+const preferencesStorage = {
+  getItem: (name: string): string | null => {
+    return safeGetItem(name, true);
+  },
+  setItem: (name: string, value: string): void => {
+    const result: StorageResult = safeSetItem(name, value, true);
+    if (!result.success && result.error === 'quota_exceeded') {
+      console.warn('Failed to save preferences due to storage quota. Using session-only storage.');
+    }
+  },
+  removeItem: (name: string): void => {
+    safeRemoveItem(name);
+    // Also remove from sessionStorage fallback
+    try {
+      sessionStorage.removeItem(name);
+    } catch {
+      // Ignore
+    }
+  },
+};
+
 export const usePreferencesStore = create<PreferencesState>()(
   persist(
     (set) => ({
@@ -68,6 +91,7 @@ export const usePreferencesStore = create<PreferencesState>()(
     }),
     {
       name: 'preferences-storage',
+      storage: createJSONStorage(() => preferencesStorage),
     }
   )
 );

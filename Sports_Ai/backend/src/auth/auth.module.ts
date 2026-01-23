@@ -12,18 +12,27 @@ import { ApiRateLimitGuard } from './api-rate-limit.guard';
 import { AdminGuard } from './admin.guard';
 import { TwoFactorService } from './two-factor.service';
 import { DeviceSessionService } from './device-session.service';
+import { JwtRotationService } from './jwt-rotation.service';
 import { UsersModule } from '../users/users.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Global()
 @Module({
   imports: [
     UsersModule,
     PrismaModule,
+    ScheduleModule.forRoot(),
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'sportsai-secret-key-change-in-production',
-      signOptions: { expiresIn: '7d' },
+    JwtModule.registerAsync({
+      useFactory: async (jwtRotation: JwtRotationService) => {
+        const secret = await jwtRotation.getActiveSecret();
+        return {
+          secret,
+          signOptions: { expiresIn: '7d' },
+        };
+      },
+      inject: [JwtRotationService],
     }),
   ],
   controllers: [AuthController],
@@ -31,6 +40,8 @@ import { PrismaModule } from '../prisma/prisma.module';
     AuthService,
     GoogleOAuthService,
     JwtStrategy,
+    JwtMultiSecretGuard,
+    JwtRotationService,
     RateLimiterService,
     ApiRateLimiterService,
     AdminGuard,
@@ -43,6 +54,6 @@ import { PrismaModule } from '../prisma/prisma.module';
       useClass: ApiRateLimitGuard,
     },
   ],
-  exports: [AuthService, GoogleOAuthService, JwtModule, AdminGuard, ApiRateLimiterService, ApiRateLimitGuard, TwoFactorService, DeviceSessionService],
+  exports: [AuthService, GoogleOAuthService, JwtModule, AdminGuard, ApiRateLimiterService, ApiRateLimitGuard, TwoFactorService, DeviceSessionService, JwtRotationService, JwtMultiSecretGuard],
 })
 export class AuthModule {}

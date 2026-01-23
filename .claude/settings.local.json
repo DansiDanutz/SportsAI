@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx markdownlint-cli:*)"
+      "Bash(npx markdownlint-cli:*)",
+      "Skill(gsd:new-milestone)",
+      "WebSearch"
     ]
   }
 }

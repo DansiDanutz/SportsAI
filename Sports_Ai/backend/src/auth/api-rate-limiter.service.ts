@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 interface RateLimitBucket {
   tokens: number;
@@ -11,32 +12,97 @@ interface RateLimitConfig {
   refillInterval: number; // ms
 }
 
+type SubscriptionTier = 'free' | 'premium' | 'pro' | 'admin';
+
 /**
  * General API Rate Limiter using Token Bucket algorithm
  * This provides per-user rate limiting across all API endpoints
  */
 @Injectable()
-export class ApiRateLimiterService {
+export class ApiRateLimiterService implements OnModuleInit {
   // Store buckets per user (userId) or IP for unauthenticated requests
   private readonly buckets = new Map<string, RateLimitBucket>();
 
-  // Default configuration: 100 requests per minute per user
+  // Tiered default configurations
+  private readonly tieredConfigs: Map<SubscriptionTier, RateLimitConfig> = new Map([
+    ['free', {
+      maxTokens: 60, // 60 requests per minute
+      refillRate: 60 / 60, // 1 token per second
+      refillInterval: 60 * 1000,
+    }],
+    ['premium', {
+      maxTokens: 200, // 200 requests per minute
+      refillRate: 200 / 60, // ~3.33 tokens per second
+      refillInterval: 60 * 1000,
+    }],
+    ['pro', {
+      maxTokens: 500, // 500 requests per minute
+      refillRate: 500 / 60, // ~8.33 tokens per second
+      refillInterval: 60 * 1000,
+    }],
+    ['admin', {
+      maxTokens: 1000, // 1000 requests per minute
+      refillRate: 1000 / 60, // ~16.67 tokens per second
+      refillInterval: 60 * 1000,
+    }],
+  ]);
+
+  // Default configuration for unauthenticated users
   private readonly defaultConfig: RateLimitConfig = {
-    maxTokens: 100, // max requests
-    refillRate: 100 / 60, // ~1.67 tokens per second
-    refillInterval: 60 * 1000, // full refill every minute
+    maxTokens: 30, // 30 requests per minute for unauthenticated
+    refillRate: 30 / 60, // 0.5 tokens per second
+    refillInterval: 60 * 1000,
   };
 
-  // Endpoint-specific rate limits (some endpoints may have stricter limits)
-  private readonly endpointConfigs: Map<string, RateLimitConfig> = new Map([
-    // Auth endpoints - stricter limits
-    ['/v1/auth/login', { maxTokens: 5, refillRate: 5 / 900, refillInterval: 15 * 60 * 1000 }],
-    ['/v1/auth/signup', { maxTokens: 3, refillRate: 3 / 3600, refillInterval: 60 * 60 * 1000 }],
-    ['/v1/auth/forgot-password', { maxTokens: 3, refillRate: 3 / 3600, refillInterval: 60 * 60 * 1000 }],
-    // Credit purchase - moderate limits
-    ['/v1/credits/purchase', { maxTokens: 10, refillRate: 10 / 3600, refillInterval: 60 * 60 * 1000 }],
-    // Arbitrage unlock - moderate limits
-    ['/v1/arbitrage/unlock', { maxTokens: 20, refillRate: 20 / 3600, refillInterval: 60 * 60 * 1000 }],
+  // Endpoint-specific rate limits (overrides tiered configs)
+  // Format: { endpoint: { free: config, premium: config, pro: config, admin: config } }
+  private readonly endpointConfigs: Map<string, Partial<Record<SubscriptionTier, RateLimitConfig>>> = new Map([
+    // Auth endpoints - strict limits for all tiers
+    ['/v1/auth/login', {
+      free: { maxTokens: 5, refillRate: 5 / 900, refillInterval: 15 * 60 * 1000 },
+      premium: { maxTokens: 10, refillRate: 10 / 900, refillInterval: 15 * 60 * 1000 },
+      pro: { maxTokens: 20, refillRate: 20 / 900, refillInterval: 15 * 60 * 1000 },
+      admin: { maxTokens: 50, refillRate: 50 / 900, refillInterval: 15 * 60 * 1000 },
+    }],
+    ['/v1/auth/signup', {
+      free: { maxTokens: 3, refillRate: 3 / 3600, refillInterval: 60 * 60 * 1000 },
+      premium: { maxTokens: 5, refillRate: 5 / 3600, refillInterval: 60 * 60 * 1000 },
+      pro: { maxTokens: 10, refillRate: 10 / 3600, refillInterval: 60 * 60 * 1000 },
+      admin: { maxTokens: 20, refillRate: 20 / 3600, refillInterval: 60 * 60 * 1000 },
+    }],
+    ['/v1/auth/forgot-password', {
+      free: { maxTokens: 3, refillRate: 3 / 3600, refillInterval: 60 * 60 * 1000 },
+      premium: { maxTokens: 5, refillRate: 5 / 3600, refillInterval: 60 * 60 * 1000 },
+      pro: { maxTokens: 10, refillRate: 10 / 3600, refillInterval: 60 * 60 * 1000 },
+      admin: { maxTokens: 20, refillRate: 20 / 3600, refillInterval: 60 * 60 * 1000 },
+    }],
+    // Credit purchase - tiered limits
+    ['/v1/credits/purchase', {
+      free: { maxTokens: 5, refillRate: 5 / 3600, refillInterval: 60 * 60 * 1000 },
+      premium: { maxTokens: 20, refillRate: 20 / 3600, refillInterval: 60 * 60 * 1000 },
+      pro: { maxTokens: 50, refillRate: 50 / 3600, refillInterval: 60 * 60 * 1000 },
+      admin: { maxTokens: 100, refillRate: 100 / 3600, refillInterval: 60 * 60 * 1000 },
+    }],
+    // Arbitrage unlock - tiered limits
+    ['/v1/arbitrage/unlock', {
+      free: { maxTokens: 10, refillRate: 10 / 3600, refillInterval: 60 * 60 * 1000 },
+      premium: { maxTokens: 50, refillRate: 50 / 3600, refillInterval: 60 * 60 * 1000 },
+      pro: { maxTokens: 200, refillRate: 200 / 3600, refillInterval: 60 * 60 * 1000 },
+      admin: { maxTokens: 500, refillRate: 500 / 3600, refillInterval: 60 * 60 * 1000 },
+    }],
+    // AI endpoints - tiered limits
+    ['/v1/ai/advice', {
+      free: { maxTokens: 10, refillRate: 10 / 3600, refillInterval: 60 * 60 * 1000 },
+      premium: { maxTokens: 100, refillRate: 100 / 3600, refillInterval: 60 * 60 * 1000 },
+      pro: { maxTokens: 500, refillRate: 500 / 3600, refillInterval: 60 * 60 * 1000 },
+      admin: { maxTokens: 1000, refillRate: 1000 / 3600, refillInterval: 60 * 60 * 1000 },
+    }],
+    ['/v1/ai/tips', {
+      free: { maxTokens: 5, refillRate: 5 / 3600, refillInterval: 60 * 60 * 1000 },
+      premium: { maxTokens: 50, refillRate: 50 / 3600, refillInterval: 60 * 60 * 1000 },
+      pro: { maxTokens: 200, refillRate: 200 / 3600, refillInterval: 60 * 60 * 1000 },
+      admin: { maxTokens: 500, refillRate: 500 / 3600, refillInterval: 60 * 60 * 1000 },
+    }],
   ]);
 
   /**
@@ -94,11 +160,13 @@ export class ApiRateLimiterService {
   checkAndConsume(
     userId: string | null,
     ip: string,
-    endpoint: string
+    endpoint: string,
+    subscriptionTier?: SubscriptionTier | null
   ): { allowed: boolean; remaining: number; retryAfter?: number; limit: number } {
     // Use userId if authenticated, otherwise use IP
     const identifier = userId ? `user:${userId}:${endpoint}` : `ip:${ip}:${endpoint}`;
-    const config = this.getConfig(endpoint);
+    const tier = subscriptionTier || (userId ? 'free' : null);
+    const config = this.getConfig(endpoint, tier);
     const bucket = this.getBucket(identifier, config);
 
     if (bucket.tokens > 0) {
@@ -127,10 +195,12 @@ export class ApiRateLimiterService {
   getStatus(
     userId: string | null,
     ip: string,
-    endpoint: string
+    endpoint: string,
+    subscriptionTier?: SubscriptionTier | null
   ): { remaining: number; limit: number; reset: number } {
     const identifier = userId ? `user:${userId}:${endpoint}` : `ip:${ip}:${endpoint}`;
-    const config = this.getConfig(endpoint);
+    const tier = subscriptionTier || (userId ? 'free' : null);
+    const config = this.getConfig(endpoint, tier);
     const bucket = this.getBucket(identifier, config);
 
     // Calculate when the bucket will be fully refilled
@@ -145,16 +215,58 @@ export class ApiRateLimiterService {
   }
 
   /**
-   * Clean up old buckets periodically (call this from a scheduled job)
+   * Clean up old buckets periodically
    */
+  @Cron(CronExpression.EVERY_HOUR)
   cleanup(): void {
     const now = Date.now();
     const maxAge = 24 * 60 * 60 * 1000; // 24 hours
 
+    let cleaned = 0;
     for (const [key, bucket] of this.buckets) {
       if (now - bucket.lastRefill > maxAge) {
         this.buckets.delete(key);
+        cleaned++;
       }
     }
+
+    if (cleaned > 0) {
+      console.log(`Rate limiter: Cleaned up ${cleaned} old buckets`);
+    }
+  }
+
+  onModuleInit() {
+    // Initial cleanup on startup
+    this.cleanup();
+  }
+
+  /**
+   * Get statistics for monitoring
+   */
+  getStats(): {
+    totalBuckets: number;
+    activeBuckets: number;
+    memoryUsage: number;
+  } {
+    const now = Date.now();
+    const maxAge = 24 * 60 * 60 * 1000;
+    let activeBuckets = 0;
+
+    for (const bucket of this.buckets.values()) {
+      if (now - bucket.lastRefill <= maxAge) {
+        activeBuckets++;
+      }
+    }
+
+    // Estimate memory usage (rough calculation)
+    const avgKeySize = 50; // bytes
+    const avgBucketSize = 16; // bytes (tokens: 8, lastRefill: 8)
+    const memoryUsage = this.buckets.size * (avgKeySize + avgBucketSize);
+
+    return {
+      totalBuckets: this.buckets.size,
+      activeBuckets,
+      memoryUsage,
+    };
   }
 }

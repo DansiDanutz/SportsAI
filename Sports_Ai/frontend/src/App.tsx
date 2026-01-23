@@ -1,32 +1,55 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useScrollRestoration } from './hooks/useScrollRestoration';
 import { OfflineBanner } from './components/OfflineBanner';
 import { PWAUpdatePrompt } from './components/PWAUpdatePrompt';
 import { GlobalFreshnessBadge } from './components/GlobalFreshnessBadge';
 import { api } from './services/api';
-import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage, OAuthCallbackPage } from './screens/auth';
-import { HomePage } from './screens/home';
-import { ArbitragePage, ArbitrageDetailPage } from './screens/arbitrage';
-import { SettingsPage, SportSettingsPage } from './screens/settings';
-import { FavoritesPage } from './screens/favorites';
-import { CreditsPage } from './screens/credits';
-import { SportsPage, SportEventsPage } from './screens/sports';
-import { EventDetailPage } from './screens/events';
-import { AdminPage, ApifyPage } from './screens/admin';
-import { PresetsPage } from './screens/presets';
-import { LineMovementPage } from './screens/line-movement';
-import { AiInsightsPage } from './screens/ai-insights';
-import { BookmakersPage, BookmakerDetailPage } from './screens/bookmakers';
-import { TeamDetailPage } from './screens/teams';
-import { NotFoundPage } from './screens/not-found';
-import { TermsPage, PrivacyPage } from './screens/legal';
-import { AlertsPage } from './screens/alerts';
-import { SetupPage } from './screens/setup';
-import { DailyAiPage } from './screens/daily-ai';
-import { ChatPage } from './screens/chat';
+
+// Lazy load all page components for code splitting
+const LoginPage = lazy(() => import('./screens/auth').then(m => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() => import('./screens/auth').then(m => ({ default: m.RegisterPage })));
+const ForgotPasswordPage = lazy(() => import('./screens/auth').then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import('./screens/auth').then(m => ({ default: m.ResetPasswordPage })));
+const OAuthCallbackPage = lazy(() => import('./screens/auth').then(m => ({ default: m.OAuthCallbackPage })));
+const HomePage = lazy(() => import('./screens/home').then(m => ({ default: m.HomePage })));
+const ArbitragePage = lazy(() => import('./screens/arbitrage').then(m => ({ default: m.ArbitragePage })));
+const ArbitrageDetailPage = lazy(() => import('./screens/arbitrage').then(m => ({ default: m.ArbitrageDetailPage })));
+const SettingsPage = lazy(() => import('./screens/settings').then(m => ({ default: m.SettingsPage })));
+const SportSettingsPage = lazy(() => import('./screens/settings').then(m => ({ default: m.SportSettingsPage })));
+const FavoritesPage = lazy(() => import('./screens/favorites').then(m => ({ default: m.FavoritesPage })));
+const CreditsPage = lazy(() => import('./screens/credits').then(m => ({ default: m.CreditsPage })));
+const SportsPage = lazy(() => import('./screens/sports').then(m => ({ default: m.SportsPage })));
+const SportEventsPage = lazy(() => import('./screens/sports').then(m => ({ default: m.SportEventsPage })));
+const EventDetailPage = lazy(() => import('./screens/events').then(m => ({ default: m.EventDetailPage })));
+const AdminPage = lazy(() => import('./screens/admin').then(m => ({ default: m.AdminPage })));
+const ApifyPage = lazy(() => import('./screens/admin').then(m => ({ default: m.ApifyPage })));
+const PresetsPage = lazy(() => import('./screens/presets').then(m => ({ default: m.PresetsPage })));
+const LineMovementPage = lazy(() => import('./screens/line-movement').then(m => ({ default: m.LineMovementPage })));
+const AiInsightsPage = lazy(() => import('./screens/ai-insights').then(m => ({ default: m.AiInsightsPage })));
+const BookmakersPage = lazy(() => import('./screens/bookmakers').then(m => ({ default: m.BookmakersPage })));
+const BookmakerDetailPage = lazy(() => import('./screens/bookmakers').then(m => ({ default: m.BookmakerDetailPage })));
+const TeamDetailPage = lazy(() => import('./screens/teams').then(m => ({ default: m.TeamDetailPage })));
+const NotFoundPage = lazy(() => import('./screens/not-found').then(m => ({ default: m.NotFoundPage })));
+const TermsPage = lazy(() => import('./screens/legal').then(m => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import('./screens/legal').then(m => ({ default: m.PrivacyPage })));
+const AlertsPage = lazy(() => import('./screens/alerts').then(m => ({ default: m.AlertsPage })));
+const SetupPage = lazy(() => import('./screens/setup').then(m => ({ default: m.SetupPage })));
+const DailyAiPage = lazy(() => import('./screens/daily-ai').then(m => ({ default: m.DailyAiPage })));
+const ChatPage = lazy(() => import('./screens/chat').then(m => ({ default: m.ChatPage })));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-900">
+    <div className="flex flex-col items-center gap-4">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      <p className="text-gray-400">Loading...</p>
+    </div>
+  </div>
+);
 
 function App() {
   const { checkAuth, isAuthenticated, user } = useAuthStore();
@@ -82,25 +105,28 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* PWA Offline Banner */}
-      <OfflineBanner />
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-900">
+        {/* PWA Offline Banner */}
+        <OfflineBanner />
 
-      {/* PWA Update Prompt */}
-      <PWAUpdatePrompt />
+        {/* PWA Update Prompt */}
+        <PWAUpdatePrompt />
 
-      {/* Global update timestamp (public + private routes) */}
-      <GlobalFreshnessBadge />
+        {/* Global update timestamp (public + private routes) */}
+        <GlobalFreshnessBadge />
 
-      {/* Non-blocking onboarding check indicator */}
-      {isCheckingOnboarding && isAuthenticated && user && (
-        <div className="fixed top-3 right-3 z-50 flex items-center gap-2 bg-gray-800/90 border border-gray-700 text-gray-200 px-3 py-2 rounded-lg">
-          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-green-500" />
-          <span className="text-xs font-medium">Syncing profile…</span>
-        </div>
-      )}
+        {/* Non-blocking onboarding check indicator */}
+        {isCheckingOnboarding && isAuthenticated && user && (
+          <div className="fixed top-3 right-3 z-50 flex items-center gap-2 bg-gray-800/90 border border-gray-700 text-gray-200 px-3 py-2 rounded-lg">
+            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-green-500" />
+            <span className="text-xs font-medium">Syncing profile…</span>
+          </div>
+        )}
 
-      <Routes>
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
         {/* Public Routes */}
         <Route path="/login" element={
           isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />
@@ -243,8 +269,11 @@ function App() {
             <NotFoundPage />
           </ProtectedRoute>
         } />
-      </Routes>
-    </div>
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
+      </div>
+    </ErrorBoundary>
   );
 }
 

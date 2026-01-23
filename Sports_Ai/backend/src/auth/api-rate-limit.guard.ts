@@ -25,14 +25,17 @@ export class ApiRateLimitGuard implements CanActivate {
     // Get user ID from JWT if authenticated
     const userId = request.user?.id || request.user?.userId || null;
 
+    // Get subscription tier from user (if authenticated)
+    const subscriptionTier = request.user?.subscriptionTier || request.user?.role === 'admin' ? 'admin' : null;
+
     // Get IP address (handle proxies)
     const ip = this.getClientIp(request);
 
     // Get endpoint path
     const endpoint = request.url?.split('?')[0] || '/'; // Remove query params
 
-    // Check rate limit
-    const result = this.rateLimiter.checkAndConsume(userId, ip, endpoint);
+    // Check rate limit with tier
+    const result = this.rateLimiter.checkAndConsume(userId, ip, endpoint, subscriptionTier);
 
     // Set rate limit headers on response (Fastify uses .header())
     // These headers are standard for rate limiting APIs
