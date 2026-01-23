@@ -148,6 +148,14 @@ api.interceptors.response.use(
         url.includes('/v1/auth/refresh') ||
         url.includes('/v1/auth/google/');
 
+      const isMeEndpoint = url.includes('/v1/auth/me');
+      const isPublicPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(window.location.pathname);
+
+      // Don't redirect if we're on a public page and it's just the profile check failing
+      if (isMeEndpoint && isPublicPage) {
+        return Promise.reject(error);
+      }
+
       if (!isAuthEndpoint) {
         originalRequest._retry = true;
         return refreshSessionOnce()
