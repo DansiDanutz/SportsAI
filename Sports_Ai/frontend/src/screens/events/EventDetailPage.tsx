@@ -808,67 +808,21 @@ function StatsTab({ event }: { event: EventDetailModel }) {
       <h2 className="text-xl font-semibold text-white mb-4">Stats & History</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Head to Head */}
-        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-          <h3 className="text-lg font-medium text-white mb-4">Head to Head</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">Total Matches</span>
-              <span className="text-white font-medium">48</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">{event.homeTeam} Wins</span>
-              <span className="text-green-400 font-medium">22</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">Draws</span>
-              <span className="text-yellow-400 font-medium">12</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">{event.awayTeam} Wins</span>
-              <span className="text-blue-400 font-medium">14</span>
-            </div>
-          </div>
+        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6 text-center py-12">
+          <div className="text-4xl mb-4">📊</div>
+          <h3 className="text-lg font-medium text-white mb-2">H2H Data Unavailable</h3>
+          <p className="text-gray-400 text-sm">
+            Head-to-head statistics require a premium data provider connection.
+          </p>
         </div>
 
         {/* Recent Form */}
-        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-          <h3 className="text-lg font-medium text-white mb-4">Recent Form</h3>
-          <div className="space-y-4">
-            <div>
-              <div className="text-gray-400 text-sm mb-2">{event.homeTeam}</div>
-              <div className="flex gap-1">
-                {['W', 'W', 'D', 'W', 'L'].map((result, i) => (
-                  <span
-                    key={i}
-                    className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold ${
-                      result === 'W' ? 'bg-green-500/20 text-green-400' :
-                      result === 'D' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-red-500/20 text-red-400'
-                    }`}
-                  >
-                    {result}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-sm mb-2">{event.awayTeam}</div>
-              <div className="flex gap-1">
-                {['L', 'W', 'W', 'D', 'W'].map((result, i) => (
-                  <span
-                    key={i}
-                    className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold ${
-                      result === 'W' ? 'bg-green-500/20 text-green-400' :
-                      result === 'D' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-red-500/20 text-red-400'
-                    }`}
-                  >
-                    {result}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
+        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6 text-center py-12">
+          <div className="text-4xl mb-4">📈</div>
+          <h3 className="text-lg font-medium text-white mb-2">Form Data Unavailable</h3>
+          <p className="text-gray-400 text-sm">
+            Recent form history requires a professional data subscription.
+          </p>
         </div>
       </div>
 
@@ -943,81 +897,8 @@ function StatsTab({ event }: { event: EventDetailModel }) {
       </div>
 
       {/* Injuries Panel */}
-      <div className="mt-6 bg-gray-800 rounded-xl border border-gray-700 p-6" data-testid="injuries-panel">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-white">Team Injuries</h3>
-          <span className="text-xs text-gray-500" data-testid="injuries-update-date">
-            Updated 2 hours ago
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Home Team Injuries */}
-          <div>
-            <h4 className="text-sm font-medium text-green-400 mb-3">{event.homeTeam}</h4>
-            <div className="space-y-3">
-              {/* Real Liverpool FC injuries - realistic data */}
-              <InjuryRow
-                playerName="Diogo Jota"
-                position="Forward"
-                injuryType="Knee Ligament Injury"
-                expectedReturn="Feb 15, 2025"
-                status="out"
-              />
-              <InjuryRow
-                playerName="Curtis Jones"
-                position="Midfielder"
-                injuryType="Muscle Strain"
-                expectedReturn="Jan 18, 2025"
-                status="doubtful"
-              />
-              <InjuryRow
-                playerName="Joe Gomez"
-                position="Defender"
-                injuryType="Hamstring Injury"
-                expectedReturn="Jan 20, 2025"
-                status="doubtful"
-              />
-            </div>
-          </div>
-
-          {/* Away Team Injuries */}
-          <div>
-            <h4 className="text-sm font-medium text-blue-400 mb-3">{event.awayTeam}</h4>
-            <div className="space-y-3">
-              {/* Real Manchester United injuries - realistic data */}
-              <InjuryRow
-                playerName="Luke Shaw"
-                position="Defender"
-                injuryType="Calf Muscle Injury"
-                expectedReturn="Feb 28, 2025"
-                status="out"
-              />
-              <InjuryRow
-                playerName="Tyrell Malacia"
-                position="Defender"
-                injuryType="Knee Surgery Recovery"
-                expectedReturn="Mar 15, 2025"
-                status="out"
-              />
-              <InjuryRow
-                playerName="Leny Yoro"
-                position="Defender"
-                injuryType="Metatarsal Fracture"
-                expectedReturn="Jan 25, 2025"
-                status="doubtful"
-              />
-              <InjuryRow
-                playerName="Mason Mount"
-                position="Midfielder"
-                injuryType="Head Injury"
-                expectedReturn="Jan 14, 2025"
-                status="questionable"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* We intentionally only show this panel if real data is available from an injury provider */}
+      {/* (In this version, it's hidden to avoid displaying mock data) */}
     </div>
   );
 }

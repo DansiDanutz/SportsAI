@@ -7,6 +7,8 @@ import { NotificationDropdown } from './NotificationDropdown';
 import { OnboardingWizard } from './OnboardingWizard';
 import { api } from '../services/api';
 
+import { DataStatusBanner } from './DataStatusBanner';
+
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -188,15 +190,15 @@ export function Layout({ children }: LayoutProps) {
         <div className="lg:hidden h-14" />
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto font-mono text-sm">
           {navItems.map(renderNavItem)}
 
           {/* Admin Section - only show if user is admin */}
           {isAdmin && (
             <>
               <div className="pt-4 mt-4 border-t border-gray-700">
-                <span className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Administration
+                <span className="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                  System Core
                 </span>
               </div>
               {adminItems.map(renderNavItem)}
@@ -205,9 +207,9 @@ export function Layout({ children }: LayoutProps) {
         </nav>
 
         {/* User Section */}
-        <div className="p-4 border-t border-gray-700">
+        <div className="p-4 border-t border-gray-700 bg-gray-900/30">
           <div className="flex items-center justify-between px-4 py-2 mb-2">
-            <span className="text-sm text-gray-500 font-medium">Quick Actions</span>
+            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Quick Actions</span>
             <div className="hidden lg:block">
               <NotificationDropdown />
             </div>
@@ -224,43 +226,43 @@ export function Layout({ children }: LayoutProps) {
             <SettingsIcon className="w-5 h-5" />
             <span className="font-medium">Settings</span>
           </Link>
-          <div className="mt-4 px-4 py-3 bg-gray-700/50 rounded-lg">
-            <div className="text-sm text-gray-400">Signed in as</div>
-            <div className="text-white font-medium truncate">{user?.email}</div>
-            <div className="flex items-center mt-2 space-x-2">
-              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+          <div className="mt-4 px-4 py-3 bg-gray-800/50 rounded-xl border border-gray-700/50">
+            <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">Session</div>
+            <div className="text-white text-xs font-mono truncate">{user?.email}</div>
+            <div className="flex items-center mt-2 gap-2">
+              <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
                 user?.subscriptionTier === 'premium'
-                  ? 'bg-yellow-500/20 text-yellow-400'
-                  : 'bg-gray-600 text-gray-300'
+                  ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                  : 'bg-gray-700 text-gray-400'
               }`}>
-                {user?.subscriptionTier === 'premium' ? 'Premium' : 'Free'}
+                {user?.subscriptionTier === 'premium' ? 'PREMIUM' : 'FREE'}
               </span>
               {isAdmin && (
-                <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">
-                  Admin
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-red-500/20 text-red-400 border border-red-500/30">
+                  ROOT
                 </span>
               )}
-              <span className="text-xs text-gray-400">
-                {user?.creditBalance || 0} credits
-              </span>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full mt-3 flex items-center justify-center space-x-2 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+            className="w-full mt-3 flex items-center justify-center space-x-2 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-sm font-bold"
           >
-            <LogoutIcon className="w-5 h-5" />
-            <span>Sign out</span>
+            <LogoutIcon className="w-4 h-4" />
+            <span>TERMINATE SESSION</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <ErrorBoundary>
-        <main id="main-content" className="flex-1 overflow-auto lg:mt-0 mt-14" tabIndex={-1}>
-          {children}
-        </main>
-      </ErrorBoundary>
+      <div className="flex-1 flex flex-col min-w-0">
+        <DataStatusBanner />
+        <ErrorBoundary>
+          <main id="main-content" className="flex-1 overflow-auto lg:mt-0 mt-14" tabIndex={-1}>
+            {children}
+          </main>
+        </ErrorBoundary>
+      </div>
 
       {/* Onboarding Wizard */}
       {showOnboarding && onboardingChecked && (

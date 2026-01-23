@@ -24,7 +24,7 @@ export function AdminPage() {
               </div>
               <p className="text-gray-400 text-sm mb-4">Manage users, subscriptions, and permissions</p>
               <div className="flex space-x-4 text-sm">
-                <span className="text-gray-500">Total Users: <span className="text-white font-semibold">1,234</span></span>
+                <span className="text-gray-500">System is active and monitoring connected accounts.</span>
               </div>
             </div>
 
@@ -40,7 +40,7 @@ export function AdminPage() {
               </div>
               <p className="text-gray-400 text-sm mb-4">Platform usage and performance metrics</p>
               <div className="flex space-x-4 text-sm">
-                <span className="text-gray-500">Active Today: <span className="text-green-400 font-semibold">543</span></span>
+                <span className="text-gray-500">Real-time telemetry is enabled.</span>
               </div>
             </div>
 
