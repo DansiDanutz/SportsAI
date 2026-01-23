@@ -1,15 +1,9 @@
-import { Controller, Get, Post, Patch, Body, UseGuards, ForbiddenException, Request, Ip, Query, Inject, forwardRef } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, ForbiddenException, Request, Ip, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { UsersService } from '../users/users.service';
-import { LlmService } from './llm.service';
+import { AiFacadeService } from './ai.facade.service';
+import { AiQueueService } from './ai-queue.service';
 import { AiAdvice } from './openrouter.service';
-import { DailyTipsService } from './daily-tips.service';
-import { SharpMoneyService } from './sharp-money.service';
-import { StrangeBetsService } from './strange-bets.service';
-import { TicketGeneratorService } from './ticket-generator.service';
-import { NewsService } from '../integrations/news.service';
-import { LanguageService, SUPPORTED_LANGUAGES } from './language.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { SUPPORTED_LANGUAGES } from './language.service';
 
 interface AiSettings {
   sportScope: string[];
@@ -33,16 +27,8 @@ export class AiController {
   private adviceCache = new Map<string, { fetchedAt: number; payload: any }>();
 
   constructor(
-    private usersService: UsersService,
-    private llmService: LlmService,
-    private dailyTipsService: DailyTipsService,
-    private sharpMoneyService: SharpMoneyService,
-    private strangeBetsService: StrangeBetsService,
-    private ticketGeneratorService: TicketGeneratorService,
-    private languageService: LanguageService,
-    @Inject(forwardRef(() => NewsService))
-    private newsService: NewsService,
-    private prisma: PrismaService,
+    private readonly aiFacade: AiFacadeService,
+    private readonly aiQueue: AiQueueService,
   ) {}
 
   private withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -62,17 +48,17 @@ export class AiController {
 
   @Get('strange-bets')
   async getStrangeBets() {
-    return this.strangeBetsService.detectStrangeBets();
+    return this.aiFacade.detectStrangeBets();
   }
 
   @Get('tickets/daily')
   async getDailyTickets(@Request() req: any, @Ip() ipAddress: string, @Query('type') type: string) {
     // Premium check
-    const user = await this.usersService.findById(req.user.id);
+    const user = await this.aiFacade.findUserById(req.user.id);
     const isPremium = user?.subscriptionTier === 'premium';
     
-    const languageCode = await this.getUserLanguage(req.user.id, ipAddress);
-    const tickets = await this.dailyTipsService.getDailyTickets(req.user.id);
+    const languageCode = await this.aiFacade.getUserLanguage(req.user.id, ipAddress);
+    const tickets = await this.aiFacade.getDailyTickets(req.user.id);
     
     // Add AI explanations for each match in the ticket
     for (const ticket of tickets) {
@@ -92,7 +78,7 @@ export class AiController {
     Focus on form and statistical trends. Keep it to 2 concise sentences.`;
     
     try {
-      const advice = await this.llmService.generateAdvice(
+      const advice = await this.aiFacade.generateAdvice(
         { sportKey: 'soccer', countries: [], leagues: [], markets: [] },
         [{
           homeTeam: match.homeTeam,
@@ -100,8 +86,7 @@ export class AiController {
           league: match.league,
           startTime: match.startTime,
           odds: { home: match.odds, away: 2.0 },
-        }],
-        languageCode
+        }]
       );
       return advice[0]?.content || match.analysis.summary;
     } catch (e) {
@@ -114,22 +99,12 @@ export class AiController {
    * Priority: 1. User preference, 2. IP-based detection, 3. Default (English)
    */
   private async getUserLanguage(userId: string, ipAddress: string): Promise<string> {
-    // Check user preferences first
-    const user = await this.usersService.findById(userId);
-    const preferences = JSON.parse(user?.preferences || '{}');
-
-    if (preferences.display?.language) {
-      return preferences.display.language;
-    }
-
-    // Fall back to IP-based detection
-    const ipLanguage = await this.languageService.getLanguageFromIP(ipAddress);
-    return ipLanguage.code;
+    return this.aiFacade.getUserLanguage(userId, ipAddress);
   }
 
   @Get('settings')
   async getAiSettings(@Request() req: any) {
-    const user = await this.usersService.findById(req.user.id);
+    const user = await this.aiFacade.findUserById(req.user.id);
 
     // Get AI settings from user preferences or return defaults
     const preferences = JSON.parse(user?.preferences || '{}');
@@ -152,7 +127,7 @@ export class AiController {
 
   @Patch('settings')
   async updateAiSettings(@Request() req: any, @Body() settings: Partial<AiSettings>) {
-    const user = await this.usersService.findById(req.user.id);
+    const user = await this.aiFacade.findUserById(req.user.id);
 
     // Get current preferences and merge AI settings
     const preferences = JSON.parse(user?.preferences || '{}');
@@ -166,9 +141,13 @@ export class AiController {
         : currentAiSettings.variableWeights,
     };
 
-    // Update user preferences
-    await this.usersService.updatePreferences(req.user.id, {
-      aiSettings: newAiSettings,
+    // Update user preferences via facade
+    const user = await this.aiFacade.findUserById(req.user.id);
+    const preferences = JSON.parse(user?.preferences || '{}');
+    preferences.aiSettings = newAiSettings;
+    await this.aiFacade.db.user.update({
+      where: { id: req.user.id },
+      data: { preferences: JSON.stringify(preferences) },
     });
 
     return {
@@ -179,7 +158,7 @@ export class AiController {
 
   @Get('tips')
   async getAiTips(@Request() req: any) {
-    const user = await this.usersService.findById(req.user.id);
+    const user = await this.aiFacade.findUserById(req.user.id);
 
     // Get user's AI settings for filtering
     const preferences = JSON.parse(user?.preferences || '{}');
@@ -190,7 +169,7 @@ export class AiController {
     };
 
     // Get ALL configurations so we can generate tips for each one.
-    const configs = await this.prisma.aiConfiguration.findMany({
+      const configs = await this.aiFacade.db.aiConfiguration.findMany({
       where: { userId: req.user.id },
       orderBy: [{ isActive: 'desc' }, { updatedAt: 'desc' }],
     });
@@ -216,7 +195,7 @@ export class AiController {
         continue;
       }
 
-      const events = await this.prisma.event.findMany({
+      const events = await this.aiFacade.db.event.findMany({
         where: {
           sport: { key: sportKey },
           status: { in: ['upcoming', 'live'] },
@@ -319,13 +298,13 @@ export class AiController {
 
   @Get('advice')
   async getAiAdvice(@Request() req: any, @Ip() ipAddress: string) {
-    const user = await this.usersService.findById(req.user.id);
+    const user = await this.aiFacade.findUserById(req.user.id);
 
     // Get user's language preference
     const languageCode = await this.getUserLanguage(req.user.id, ipAddress);
 
     // Get user's active AI configuration
-    const activeConfig = await this.prisma.aiConfiguration.findFirst({
+    const activeConfig = await this.aiFacade.db.aiConfiguration.findFirst({
       where: { userId: req.user.id, isActive: true },
     });
 
@@ -353,7 +332,7 @@ export class AiController {
     }
 
     // Get upcoming matches based on configuration
-    const events = await this.prisma.event.findMany({
+    const events = await this.aiFacade.db.event.findMany({
       where: {
         sport: { key: configuration.sportKey },
         status: { in: ['upcoming', 'live'] },
@@ -404,7 +383,7 @@ export class AiController {
       // Hard-cap the AI provider time so this endpoint stays snappy even on provider issues.
       const timeoutMs = Number(process.env.AI_ADVICE_TIMEOUT_MS || 8000);
       advice = await this.withTimeout(
-        this.llmService.generateAdvice(configuration, matches, languageCode),
+        this.aiFacade.generateAdvice(configuration, matches),
         timeoutMs
       );
     } catch (e) {
@@ -463,14 +442,14 @@ export class AiController {
     const languageCode = await this.getUserLanguage(req.user.id, ipAddress);
 
     // Get user's preferences for sport scope
-    const user = await this.usersService.findById(req.user.id);
+    const user = await this.aiFacade.findUserById(req.user.id);
     const preferences = JSON.parse(user?.preferences || '{}');
     const aiSettings = preferences.aiSettings || {
       sportScope: ['soccer', 'basketball', 'tennis', 'american_football'],
     };
 
     // Also check for active configuration
-    const activeConfig = await this.prisma.aiConfiguration.findFirst({
+    const activeConfig = await this.aiFacade.db.aiConfiguration.findFirst({
       where: { userId: req.user.id, isActive: true },
     });
 
@@ -489,12 +468,12 @@ export class AiController {
     ).slice(0, 4);
 
     // Try fetching from dedicated NewsAPI first if configured
-    let news: any[] = await this.newsService.getLatestSportsNews(cappedSportKeys);
+    let news: any[] = await this.aiFacade.getLatestSportsNews(cappedSportKeys);
 
     // If NewsAPI returned nothing (not configured or error), fall back to OpenRouter with Search
     if (news.length === 0) {
       try {
-        const aiNews = await this.llmService.generateNews(cappedSportKeys, languageCode);
+        const aiNews = await this.aiFacade.generateNews(cappedSportKeys, languageCode);
         const mappedNews: any[] = aiNews.map((item) => ({
           id: item.id,
           headline: item.headline,
@@ -523,7 +502,7 @@ export class AiController {
 
   @Get('daily-tips')
   async getDailyTipsList(@Request() req: any) {
-    const tickets = await this.dailyTipsService.getDailyTickets(req.user.id);
+    const tickets = await this.aiFacade.getDailyTickets(req.user.id);
 
     return {
       tickets,
@@ -538,7 +517,7 @@ export class AiController {
     @Ip() ipAddress: string,
   ) {
     // Check if user is premium
-    const user = await this.usersService.findById(req.user.id);
+    const user = await this.aiFacade.findUserById(req.user.id);
     const isPremium = user?.subscriptionTier === 'premium';
 
     if (!isPremium) {
@@ -559,7 +538,7 @@ export class AiController {
       });
     }
 
-    const ticket = await this.dailyTipsService.getCustomTicket(req.user.id, {
+    const ticket = await this.aiFacade.getCustomTicket(req.user.id, {
       targetOdds: body.targetOdds,
       sportKey: body.sportKey,
       maxMatches: body.maxMatches || 5,
@@ -583,7 +562,7 @@ export class AiController {
 
   @Get('sharp-money')
   async getSharpMoneyAlerts(@Request() req: any) {
-    const alerts = await this.sharpMoneyService.getSharpMoneyAlerts(req.user.id);
+    const alerts = await this.aiFacade.getSharpMoneyAlerts(req.user.id);
 
     return {
       alerts,
@@ -594,7 +573,7 @@ export class AiController {
 
   @Get('sharp-money/live')
   async getLiveSharpAction() {
-    const alerts = await this.sharpMoneyService.getLiveSharpAction();
+    const alerts = await this.aiFacade.getLiveSharpAction();
 
     return {
       alerts,
@@ -606,7 +585,7 @@ export class AiController {
 
   @Get('sharp-money/summary')
   async getSharpMoneySummary() {
-    const summary = await this.sharpMoneyService.getSteamMovesSummary();
+    const summary = await this.aiFacade.getSteamMovesSummary();
 
     return {
       summary,
@@ -624,7 +603,7 @@ export class AiController {
 
   @Get('language/detect')
   async detectLanguageFromIP(@Ip() ipAddress: string) {
-    const language = await this.languageService.getLanguageFromIP(ipAddress);
+    const language = await this.aiFacade.getLanguageFromIP(ipAddress);
     return {
       detectedLanguage: language,
       ipAddress: ipAddress,
@@ -640,7 +619,7 @@ export class AiController {
     const languageCode = await this.getUserLanguage(userId, ipAddress);
 
     // 2. Get user preferences and AI settings
-    const user = await this.usersService.findById(userId);
+    const user = await this.aiFacade.findUserById(userId);
     const preferences = JSON.parse(user?.preferences || '{}');
 
     // 3. Extract team/player keywords (simple extraction for now, LLM will handle better)
@@ -656,7 +635,7 @@ export class AiController {
 
     if (keywords.length > 0) {
       // Fetch upcoming events that might be relevant
-      upcomingEvents = await this.prisma.event.findMany({
+      upcomingEvents = await this.aiFacade.db.event.findMany({
         where: {
           status: { in: ['upcoming', 'live'] },
           OR: keywords.map(kw => ({
@@ -687,7 +666,7 @@ export class AiController {
       });
 
       if (teamIds.length > 0) {
-        standings = await this.prisma.standing.findMany({
+        standings = await this.aiFacade.db.standing.findMany({
           where: { teamId: { in: teamIds } },
           include: { team: true, league: true },
           orderBy: { updatedAt: 'desc' },
@@ -697,10 +676,10 @@ export class AiController {
     }
 
     // Fetch news for relevant sports
-    const news = await this.newsService.getLatestSportsNews(['soccer', 'basketball']);
+    const news = await this.aiFacade.getLatestSportsNews(['soccer', 'basketball']);
 
     // 5. Call OpenRouter chat
-    const response = await this.llmService.chat(message, {
+    const response = await this.aiFacade.chat(message, {
       userPreferences: preferences,
       relevantMatches: upcomingEvents.map(e => ({
         home: e.home?.name,
@@ -730,6 +709,179 @@ export class AiController {
         { label: 'View Next Match', action: upcomingEvents[0] ? `/event/${upcomingEvents[0].id}` : '/sports' },
         { label: 'Check Arbitrage', action: '/arbitrage' },
       ],
+    };
+  }
+
+  // ========== Async Job Queue Endpoints ==========
+
+  /**
+   * Create an async job for AI advice generation
+   * Returns immediately with a job ID
+   */
+  @Post('advice/async')
+  async createAdviceJob(@Request() req: any, @Ip() ipAddress: string) {
+    const user = await this.aiFacade.findUserById(req.user.id);
+    const languageCode = await this.getUserLanguage(req.user.id, ipAddress);
+
+    // Get user's active AI configuration
+    const activeConfig = await this.aiFacade.db.aiConfiguration.findFirst({
+      where: { userId: req.user.id, isActive: true },
+    });
+
+    const configuration = activeConfig
+      ? {
+          sportKey: activeConfig.sportKey,
+          countries: JSON.parse(activeConfig.countries || '[]'),
+          leagues: JSON.parse(activeConfig.leagues || '[]'),
+          markets: JSON.parse(activeConfig.markets || '[]'),
+        }
+      : {
+          sportKey: 'soccer',
+          countries: [],
+          leagues: [],
+          markets: [],
+        };
+
+    // Get upcoming matches
+    const events = await this.aiFacade.db.event.findMany({
+      where: {
+        sport: { key: configuration.sportKey },
+        status: { in: ['upcoming', 'live'] },
+        startTimeUtc: { gte: new Date() },
+        ...(configuration.leagues.length > 0 && {
+          league: {
+            OR: [
+              { name: { in: configuration.leagues } },
+              { id: { in: configuration.leagues } },
+            ],
+          },
+        }),
+      },
+      include: {
+        home: true,
+        away: true,
+        league: true,
+        oddsQuotes: {
+          where: { market: { marketKey: 'h2h' } },
+          orderBy: { timestamp: 'desc' },
+          take: 3,
+        },
+      },
+      orderBy: { startTimeUtc: 'asc' },
+      take: 10,
+    });
+
+    const matches = events.map((event) => {
+      const homeOdds = event.oddsQuotes.find((q) => q.outcomeKey === 'home')?.odds || 2.0;
+      const drawOdds = event.oddsQuotes.find((q) => q.outcomeKey === 'draw')?.odds;
+      const awayOdds = event.oddsQuotes.find((q) => q.outcomeKey === 'away')?.odds || 3.0;
+
+      return {
+        homeTeam: event.home?.name || 'TBD',
+        awayTeam: event.away?.name || 'TBD',
+        league: event.league?.name || 'Unknown',
+        startTime: event.startTimeUtc.toISOString(),
+        odds: {
+          home: homeOdds,
+          draw: drawOdds,
+          away: awayOdds,
+        },
+      };
+    });
+
+    const jobId = await this.aiQueue.createJob(req.user.id, 'advice', {
+      configuration,
+      matches,
+      languageCode,
+      userId: req.user.id,
+      ipAddress,
+    });
+
+    return {
+      jobId,
+      status: 'pending',
+      message: 'AI advice generation started. Use GET /v1/ai/jobs/:jobId to check status.',
+    };
+  }
+
+  /**
+   * Create an async job for AI news generation
+   */
+  @Post('news/async')
+  async createNewsJob(@Request() req: any, @Ip() ipAddress: string) {
+    const languageCode = await this.getUserLanguage(req.user.id, ipAddress);
+    const user = await this.aiFacade.findUserById(req.user.id);
+    const preferences = JSON.parse(user?.preferences || '{}');
+    const aiSettings = preferences.aiSettings || {
+      sportScope: ['soccer', 'basketball', 'tennis', 'american_football'],
+    };
+
+    const activeConfig = await this.aiFacade.db.aiConfiguration.findFirst({
+      where: { userId: req.user.id, isActive: true },
+    });
+
+    const sportKeys = activeConfig
+      ? [activeConfig.sportKey, ...aiSettings.sportScope.filter((s: string) => s !== activeConfig.sportKey)]
+      : aiSettings.sportScope;
+
+    const cappedSportKeys: string[] = Array.from(
+      new Set(
+        (Array.isArray(sportKeys) ? sportKeys : [])
+          .map((s: any) => String(s || '').trim())
+          .filter(Boolean)
+      )
+    ).slice(0, 4);
+
+    const jobId = await this.aiQueue.createJob(req.user.id, 'news', {
+      sportKeys: cappedSportKeys,
+      languageCode,
+      userId: req.user.id,
+    });
+
+    return {
+      jobId,
+      status: 'pending',
+      message: 'AI news generation started. Use GET /v1/ai/jobs/:jobId to check status.',
+    };
+  }
+
+  /**
+   * Get job status and result
+   */
+  @Get('jobs/:jobId')
+  async getJobStatus(@Request() req: any, @Param('jobId') jobId: string) {
+    const job = this.aiQueue.getJob(jobId, req.user.id);
+    if (!job) {
+      throw new NotFoundException('Job not found');
+    }
+
+    return {
+      id: job.id,
+      type: job.type,
+      status: job.status,
+      createdAt: job.createdAt,
+      startedAt: job.startedAt,
+      completedAt: job.completedAt,
+      result: job.status === JobStatus.COMPLETED ? job.result : undefined,
+      error: job.status === JobStatus.FAILED ? job.error : undefined,
+      progress: job.progress,
+    };
+  }
+
+  /**
+   * Cancel a pending job
+   */
+  @Post('jobs/:jobId/cancel')
+  async cancelJob(@Request() req: any, @Param('jobId') jobId: string) {
+    const cancelled = this.aiQueue.cancelJob(jobId, req.user.id);
+    if (!cancelled) {
+      throw new NotFoundException('Job not found or cannot be cancelled');
+    }
+
+    return {
+      jobId,
+      status: 'cancelled',
+      message: 'Job cancelled successfully',
     };
   }
 }
