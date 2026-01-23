@@ -1,0 +1,43 @@
+name: Vercel Deployment Notification
+
+on:
+  deployment_status:
+    types: [success, failure, cancelled]
+
+jobs:
+  deployment-notification:
+    name: Deployment Status Notification
+    runs-on: ubuntu-latest
+    if: github.event.deployment_status.environment == 'Production'
+    steps:
+      - name: Send Deployment Notification
+        run: |
+          echo "=========================================="
+          echo "Vercel Deployment Status Update"
+          echo "=========================================="
+          echo "Deployment Status: ${{ github.event.deployment_status.state }}"
+          echo "Deployment Environment: ${{ github.event.deployment_status.environment }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "View deployment at: ${{ github.event.deployment_status.target_url }}"
+          echo "=========================================="
+
+      - name: Deployment Success
+        if: github.event.deployment_status.state == 'success'
+        run: |
+          echo "SUCCESS: Deployment to production completed successfully!"
+          echo "The sports-ai-one frontend has been deployed to Vercel."
+
+      - name: Deployment Failed
+        if: github.event.deployment_status.state == 'failure'
+        run: |
+          echo "FAILURE: Deployment to production failed!"
+          echo "Please check Vercel dashboard for build logs."
+          exit 1
+
+      - name: Deployment Cancelled
+        if: github.event.deployment_status.state == 'cancelled'
+        run: |
+          echo "CANCELLED: Deployment was cancelled."
+          echo "This may be due to a manual cancellation or timeout."
