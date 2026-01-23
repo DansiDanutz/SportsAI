@@ -21,6 +21,7 @@
     "@radix-ui/react-toast": "^1.0.0",
     "@radix-ui/react-tooltip": "^1.0.0",
     "@tailwindcss/typography": "^0.5.19",
+    "@vercel/analytics": "^1.0.0",
     "@tanstack/query-sync-storage-persister": "^5.90.18",
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-query-persist-client": "^5.90.18",
