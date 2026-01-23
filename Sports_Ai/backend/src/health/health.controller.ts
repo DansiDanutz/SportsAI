@@ -1,12 +1,14 @@
 import { Controller, Get } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SyncService } from '../integrations/sync.service';
+import { ApifyService } from '../apify/apify.service';
 
 @Controller()
 export class HealthController {
   constructor(
     private prisma: PrismaService,
     private syncService: SyncService,
+    private apify: ApifyService,
   ) {}
 
   @Get('healthz')
@@ -58,6 +60,7 @@ export class HealthController {
         lastSyncError: this.syncService.lastSyncError,
         lastSyncedSports: this.syncService.lastSyncedSports,
       },
+      apify: this.apify.getStatus(),
     };
   }
 

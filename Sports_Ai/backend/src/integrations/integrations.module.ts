@@ -9,6 +9,7 @@ import { NewsService } from './news.service';
 import { SyncService } from './sync.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
+import { ApifyModule } from '../apify/apify.module';
 
 @Global()
 @Module({
@@ -16,6 +17,7 @@ import { ConfigModule } from '@nestjs/config';
     PrismaModule,
     ConfigModule,
     ScheduleModule.forRoot(),
+    ApifyModule,
   ],
   controllers: [],
   providers: [
