@@ -31,17 +31,14 @@
       "master": true
     }
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "https://sportsapiai.onrender.com/$1"
+      "source": "/api/(.*)",
+      "destination": "https://sportsapiai.onrender.com/$1"
     },
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
