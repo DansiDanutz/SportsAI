@@ -51,19 +51,22 @@ A dual-purpose development workspace containing:
 
 <!-- Current scope. Building toward these. -->
 
-**Post-Launch Tasks (User Actions Required):**
+**Current Milestone: v5.2 - Custom Domain & SSL**
 
-- [ ] Manual browser testing at https://sports-ai-one.vercel.app
-- [ ] Enable Vercel Analytics in dashboard
-- [ ] Configure deployment notifications in Vercel
-- [ ] Complete SettingsPage.tsx refactor (components created, main integration pending)
+**Goal:** Configure custom domain infrastructure for Vercel frontend with SSL certificates
 
-**Potential Next Milestone v5.2:**
+**Target features:**
+- Custom domain configuration (infrastructure ready, domain to be added by user)
+- SSL certificate setup and HTTPS enforcement
+- DNS configuration guidance
+- Vercel domain settings documentation
 
-- Custom domain configuration
+**Future Milestones:**
+
 - Performance optimization (CDN caching)
 - Automated backup strategy
 - CI/CD pipeline with automated testing
+- SettingsPage.tsx refactor completion
 
 ### Out of Scope
 
@@ -166,4 +169,4 @@ Vercel Analytics + Error Tracking | Zero-config monitoring for frontend | ✓ Go
 
 ### Last Updated
 
-2026-01-23 after v5.1 milestone completion (production deployment shipped)
+2026-01-23 after starting v5.2 milestone (Custom Domain & SSL)

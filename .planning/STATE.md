@@ -5,20 +5,32 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Detect betting arbitrage opportunities in real-time across multiple sportsbooks
-**Current focus:** Post-launch - Planning next milestone
+**Current focus:** Defining milestone v5.2 - Custom Domain & SSL
 
 ## Current Position
 
-Milestone: v5.1 - Production Deployment ✅ SHIPPED
-Status: Milestone complete
-Last activity: 2026-01-23 — v5.1 milestone archived, production deployments live
+Milestone: v5.2 - Custom Domain & SSL
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-01-23 — Milestone v5.2 started
 
-Progress: [██████████] 100% (8/8 plans complete, milestone v5.1)
+Progress: [░░░░░░░░░░] 0% (defining requirements, milestone v5.2)
 
-## Production Deployments
+## Current Milestone: v5.2 - Custom Domain & SSL
+
+**Goal:** Configure custom domain infrastructure for Vercel frontend with SSL certificates
+
+**Target features:**
+- Custom domain configuration (infrastructure ready, domain to be added by user)
+- SSL certificate setup and HTTPS enforcement
+- DNS configuration guidance
+- Vercel domain settings documentation
+
+## Production Deployments (from v5.1)
 
 **Frontend (Vercel):**
-- URL: https://sports-ai-one.vercel.app
+- URL: https://sports-ai-one.vercel.app (to be replaced with custom domain)
 - Status: ✅ Live
 - Analytics: Integrated (pending dashboard activation)
 
@@ -26,29 +38,6 @@ Progress: [██████████] 100% (8/8 plans complete, milestone v
 - URL: https://sportsapiai.onrender.com
 - Status: ✅ Live
 - Health check: PASSING (200 OK)
-
-## Milestone v5.1 Summary
-
-**Delivered:**
-- 3 phases, 8 plans
-- 37/37 requirements complete (100%)
-- 429/429 features passing
-- Production deployments live
-- Monitoring infrastructure configured
-
-**Technical Debt Resolved:**
-- ✅ React Error Boundaries
-- ✅ CORS auto-configuration
-- ✅ Database query optimization
-- ✅ Frontend code splitting
-- ✅ AI Controller Facade pattern
-- ✅ JWT rotation service
-- ✅ Tiered rate limiting
-
-**Archived:**
-- `.planning/milestones/v5.1-ROADMAP.md`
-- `.planning/milestones/v5.1-REQUIREMENTS.md`
-- `.planning/milestones/v5.1-MILESTONE-AUDIT.md`
 
 ## Pending User Actions
 
