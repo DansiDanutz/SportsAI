@@ -108,17 +108,36 @@ export class ApiRateLimiterService implements OnModuleInit {
   /**
    * Get the configuration for a specific endpoint
    */
-  private getConfig(endpoint: string): RateLimitConfig {
+  private getConfig(endpoint: string, tier: SubscriptionTier | null): RateLimitConfig {
     // Check for exact match
     if (this.endpointConfigs.has(endpoint)) {
-      return this.endpointConfigs.get(endpoint)!;
+      const endpointConfig = this.endpointConfigs.get(endpoint)!;
+      const tierConfig = endpointConfig[tier || 'free'];
+      if (tierConfig) {
+        return tierConfig;
+      }
+      // Fallback to free tier for this endpoint
+      if (endpointConfig.free) {
+        return endpointConfig.free;
+      }
     }
 
     // Check for prefix match (for parameterized routes)
-    for (const [pattern, config] of this.endpointConfigs) {
+    for (const [pattern, configs] of this.endpointConfigs) {
       if (endpoint.startsWith(pattern.replace(/\/:[^/]+/g, ''))) {
-        return config;
+        const tierConfig = configs[tier || 'free'];
+        if (tierConfig) {
+          return tierConfig;
+        }
+        if (configs.free) {
+          return configs.free;
+        }
       }
+    }
+
+    // Use tiered default or general default
+    if (tier && this.tieredConfigs.has(tier)) {
+      return this.tieredConfigs.get(tier)!;
     }
 
     return this.defaultConfig;

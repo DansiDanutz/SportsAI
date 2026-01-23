@@ -35,8 +35,15 @@ export class AiFacadeService {
     return this.usersService.findById(id);
   }
 
-  async getUserLanguage(userId: string, ipAddress: string) {
-    return this.languageService.getUserLanguage(userId, ipAddress);
+  async getUserLanguage(userId: string, ipAddress: string): Promise<string> {
+    const user = await this.usersService.findById(userId);
+    const preferences = JSON.parse(user?.preferences || '{}');
+    if (preferences.language) {
+      return preferences.language;
+    }
+
+    const detected = await this.languageService.getLanguageFromIP(ipAddress);
+    return detected.code;
   }
 
   // LLM operations
@@ -60,8 +67,8 @@ export class AiFacadeService {
   }
 
   // Ticket generator operations
-  async generateTicket(userId: string, preferences: any) {
-    return this.ticketGeneratorService.generateTicket(userId, preferences);
+  async generateTicket(targetOdds: 2 | 3) {
+    return this.ticketGeneratorService.generateDailyTicket(targetOdds);
   }
 
   // Daily tips operations (extended)
@@ -93,10 +100,6 @@ export class AiFacadeService {
   }
 
   // News operations
-  async getNewsForEvent(eventId: string) {
-    return this.newsService.getNewsForEvent(eventId);
-  }
-
   async getLatestSportsNews(sports: string[]) {
     return this.newsService.getLatestSportsNews(sports);
   }

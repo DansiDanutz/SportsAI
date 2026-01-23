@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Patch, Body, UseGuards, ForbiddenException, Request, Ip, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, ForbiddenException, Request, Ip, Query, Param, NotFoundException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AiFacadeService } from './ai.facade.service';
-import { AiQueueService } from './ai-queue.service';
+import { AiQueueService, JobStatus } from './ai-queue.service';
 import { AiAdvice } from './openrouter.service';
 import { SUPPORTED_LANGUAGES } from './language.service';
 
@@ -142,8 +142,6 @@ export class AiController {
     };
 
     // Update user preferences via facade
-    const user = await this.aiFacade.findUserById(req.user.id);
-    const preferences = JSON.parse(user?.preferences || '{}');
     preferences.aiSettings = newAiSettings;
     await this.aiFacade.db.user.update({
       where: { id: req.user.id },

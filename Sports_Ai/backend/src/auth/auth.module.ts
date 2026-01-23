@@ -13,6 +13,7 @@ import { AdminGuard } from './admin.guard';
 import { TwoFactorService } from './two-factor.service';
 import { DeviceSessionService } from './device-session.service';
 import { JwtRotationService } from './jwt-rotation.service';
+import { JwtMultiSecretGuard } from './jwt-multi-secret.guard';
 import { UsersModule } from '../users/users.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ScheduleModule } from '@nestjs/schedule';
