@@ -331,3 +331,9 @@ model JwtSecret {
   @@index([version])
   @@index([expiresAt])
 }
+
+model SystemConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

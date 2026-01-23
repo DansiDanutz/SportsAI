@@ -1,50 +1,33 @@
-import { Controller, Get, Post, Param, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, UseGuards, Request, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard, RequireAdmin } from '../auth/admin.guard';
-import { AdminService } from './admin.service';
+import { SyncService } from '../integrations/sync.service';
+import { UsersService } from '../users/users.service';
 
 @Controller('v1/admin')
-@UseGuards(JwtAuthGuard, AdminGuard)
-@RequireAdmin()
+@UseGuards(JwtAuthGuard)
 export class AdminController {
-  constructor(private adminService: AdminService) {}
+  constructor(
+    private readonly syncService: SyncService,
+    private readonly usersService: UsersService,
+  ) {}
 
-  @Get('env-status')
-  async getEnvStatus() {
-    return this.adminService.getEnvStatus();
-  }
+  @Post('sync')
+  async triggerSync(@Request() req: any) {
+    const user = await this.usersService.findById(req.user.id);
+    if (user?.role !== 'admin') {
+      throw new ForbiddenException('Admin access required');
+    }
 
-  @Get('users')
-  async listUsers() {
-    return this.adminService.listUsers();
-  }
+    // Trigger async sync
+    const sports = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'basketball_nba'];
+    this.syncService.syncOddsForSports(sports).catch(err => {
+      console.error('Manual sync failed:', err);
+    });
 
-  @Get('stats')
-  async getStats() {
-    return this.adminService.getStats();
-  }
-
-  @Post('users/:id/role')
-  @HttpCode(HttpStatus.OK)
-  async updateUserRole(
-    @Param('id') userId: string,
-    @Body() body: { role: string },
-  ) {
-    return this.adminService.updateUserRole(userId, body.role);
-  }
-
-  @Post('users/:id/subscription')
-  @HttpCode(HttpStatus.OK)
-  async updateUserSubscription(
-    @Param('id') userId: string,
-    @Body() body: { tier: string },
-  ) {
-    return this.adminService.updateUserSubscription(userId, body.tier);
-  }
-
-  @Post('seed-data')
-  @HttpCode(HttpStatus.OK)
-  async seedData() {
-    return this.adminService.seedDemoData();
+    return {
+      success: true,
+      message: 'Sync process initiated for major leagues.',
+      timestamp: new Date().toISOString(),
+    };
   }
 }

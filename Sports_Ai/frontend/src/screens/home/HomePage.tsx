@@ -1,541 +1,227 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Layout } from '../../components/Layout';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { useAuthStore } from '../../store/authStore';
-import { eventsApi, Event, api, AiAdvice, AiNewsItem, SharpMoneyAlert, getErrorMessage } from '../../services/api';
-import { useArbitrage } from '../../hooks/useArbitrage';
+import { eventsApi, api, getErrorMessage } from '../../services/api';
+import { formatDistanceToNow } from 'date-fns';
 
-// ... (keep interface definitions)
+interface IntelligenceItem {
+  id: string;
+  type: 'tip' | 'arbitrage' | 'alert' | 'news';
+  priority: number;
+  title: string;
+  summary: string;
+  logic: string;
+  confidence: number;
+  timestamp: string;
+  isStale?: boolean;
+  data: any;
+}
 
 export function HomePage() {
   const { user } = useAuthStore();
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
 
-  // Fetch Arbitrage Data
-  const { data: arbitrageData } = useArbitrage();
-
-  // Fetch AI Advice ...
-
-  // Fetch AI Advice
-  const adviceQuery = useQuery({
-    queryKey: ['ai-advice'],
+  // 1. Intelligence Feed (The Brain)
+  const feedQuery = useQuery<IntelligenceItem[]>({
+    queryKey: ['intelligence-feed'],
     queryFn: async () => {
-      const response = await api.get<{ advice: AiAdvice[]; configuration: any; matchCount: number }>('/v1/ai/advice');
+      const response = await api.get('/v1/ai/feed');
       return response.data;
     },
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    retry: 1,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    refetchInterval: 1000 * 60 * 5, // Auto-refresh every 5 mins
   });
-  const adviceData = adviceQuery.data;
 
-  // Fetch AI News
-  const newsQuery = useQuery({
-    queryKey: ['ai-news'],
-    queryFn: async () => {
-      const response = await api.get<{ news: AiNewsItem[]; sportScope: string[]; refreshedAt: string }>('/v1/ai/news');
-      return response.data;
-    },
-    staleTime: 1000 * 60 * 10, // Cache for 10 minutes
-    retry: 1,
-  });
-  const newsData = newsQuery.data;
-
-  // Fetch Sharp Money Alerts
-  const sharpMoneyQuery = useQuery({
-    queryKey: ['sharp-money'],
-    queryFn: async () => {
-      const response = await api.get<{ alerts: SharpMoneyAlert[]; total: number }>('/v1/ai/sharp-money');
-      return response.data;
-    },
-    staleTime: 1000 * 60 * 2, // Cache for 2 minutes (more frequent updates for sharp money)
-    retry: 1,
-  });
-  const sharpMoneyData = sharpMoneyQuery.data;
-
-  const favoritesCountQuery = useQuery({
-    queryKey: ['favoritesCount'],
-    queryFn: async () => {
-      const response = await api.get('/v1/favorites');
-      return response.data.total || 0;
-    },
+  // 2. Live Events (The Action)
+  const liveQuery = useQuery({
+    queryKey: ['live-events'],
+    queryFn: () => eventsApi.getLive({ limit: 5 }),
     staleTime: 1000 * 30,
-    retry: 1,
-    placeholderData: (prev) => prev ?? 0,
   });
 
-  const eventsQuery = useQuery({
-    queryKey: ['homeEvents', favoritesOnly],
-    queryFn: async () => {
-      const [upcomingRes, liveRes] = await Promise.all([
-        eventsApi.getUpcoming({ favoritesOnly, limit: 10 }),
-        eventsApi.getLive({ favoritesOnly, limit: 5 }),
-      ]);
-      return {
-        upcoming: upcomingRes.events,
-        live: liveRes.events,
-      };
-    },
-    staleTime: 1000 * 30,
-    retry: 1,
-    placeholderData: (prev) => prev,
+  // 3. Sharp Money (The Smart Money)
+  const sharpQuery = useQuery({
+    queryKey: ['sharp-money-summary'],
+    queryFn: () => api.get('/v1/ai/sharp-money/summary'),
+    staleTime: 1000 * 60,
   });
 
-  // Pull to refresh handler
   const handleRefresh = useCallback(async () => {
-    await Promise.all([eventsQuery.refetch(), favoritesCountQuery.refetch()]);
-  }, [eventsQuery, favoritesCountQuery]);
+    await Promise.all([
+      feedQuery.refetch(),
+      liveQuery.refetch(),
+      sharpQuery.refetch()
+    ]);
+  }, [feedQuery, liveQuery, sharpQuery]);
 
-  const favoritesCount = favoritesCountQuery.data ?? 0;
-  const upcomingEvents = eventsQuery.data?.upcoming ?? [];
-  const liveEvents = eventsQuery.data?.live ?? [];
-  const loading = eventsQuery.isLoading || eventsQuery.isFetching;
-  const error = eventsQuery.error;
-
-  const lastUpdatedLabel = useMemo(() => {
-    const updatedAt = eventsQuery.dataUpdatedAt;
-    if (!updatedAt) return null;
-    const diffMs = Date.now() - updatedAt;
-    const mins = Math.floor(diffMs / 60000);
-    if (mins <= 0) return 'just now';
-    if (mins === 1) return '1 minute ago';
-    if (mins < 60) return `${mins} minutes ago`;
-    const hrs = Math.floor(mins / 60);
-    return hrs === 1 ? '1 hour ago' : `${hrs} hours ago`;
-  }, [eventsQuery.dataUpdatedAt]);
-
-  const formatEventTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const isToday = date.toDateString() === now.toDateString();
-    const isTomorrow = date.toDateString() === tomorrow.toDateString();
-
-    const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-    if (isToday) return `Today ${timeStr}`;
-    if (isTomorrow) return `Tomorrow ${timeStr}`;
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ` ${timeStr}`;
-  };
+  const feed = feedQuery.data || [];
+  const heroItem = feed[0];
+  const remainingFeed = feed.slice(1);
+  const liveEvents = liveQuery.data?.events || [];
 
   return (
     <Layout>
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="p-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-white">
-              Welcome back{user?.email ? `, ${user.email.split('@')[0]}` : ''}!
-            </h1>
-            <p className="text-gray-400 mt-2">
-              Your personalized sports intelligence feed
-            </p>
-            {lastUpdatedLabel && (
-              <p className="text-gray-500 text-sm mt-2">
-                Updated {lastUpdatedLabel}
+        <div className="p-6 lg:p-8 max-w-[1600px] mx-auto">
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2 text-green-500">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                <span className="text-[10px] font-black tracking-[0.2em] uppercase">Intelligence Live</span>
+              </div>
+              <h1 className="text-4xl font-extrabold text-white tracking-tight">
+                Command Center
+              </h1>
+              <p className="text-gray-400 mt-1 font-medium">
+                Real-time sports modeling & arbitrage detection.
               </p>
-            )}
+            </div>
+            
+            <div className="flex items-center gap-6 bg-gray-800/50 border border-gray-700/50 px-6 py-3 rounded-2xl">
+              <StatItem label="Active Arbs" value={feed.filter(i => i.type === 'arbitrage').length.toString()} />
+              <div className="w-px h-8 bg-gray-700" />
+              <StatItem label="High Conf Tips" value={feed.filter(i => i.type === 'tip' && i.confidence >= 85).length.toString()} />
+              <div className="w-px h-8 bg-gray-700" />
+              <StatItem label="Credits" value={user?.creditBalance?.toString() || '0'} color="text-yellow-500" />
+            </div>
           </div>
 
-          {/* Filter Chips */}
-          <div className="flex flex-wrap gap-3 mb-6">
-            <button
-              onClick={() => setFavoritesOnly(!favoritesOnly)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                favoritesOnly
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              <svg className="w-4 h-4" fill={favoritesOnly ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-              </svg>
-              Favorites Only
-            </button>
-            <span className="text-gray-500 flex items-center text-sm">
-              {favoritesOnly ? 'Showing events with your favorite teams' : 'Showing all events'}
-            </span>
-          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            {/* Main Intelligence Column */}
+            <div className="xl:col-span-8 space-y-8">
+              
+              {/* Hero Intelligence */}
+              {heroItem ? (
+                <div className="relative group">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-green-500 to-blue-600 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
+                  <div className="relative bg-gray-800 border border-white/10 rounded-3xl p-8 overflow-hidden">
+                    <div className="absolute top-0 right-0 p-8 opacity-10">
+                      <IntelligenceIcon type={heroItem.type} size="w-32 h-32" />
+                    </div>
+                    
+                    <div className="flex items-center gap-3 mb-6">
+                      <TypeBadge type={heroItem.type} />
+                      <span className={`text-xs font-mono ${heroItem.isStale ? 'text-red-500 animate-pulse' : 'text-gray-500'}`}>
+                        {heroItem.isStale ? 'STALE DATA' : `DETECTED ${formatDistanceToNow(new Date(heroItem.timestamp), { addSuffix: true }).toUpperCase()}`}
+                      </span>
+                    </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-            <StatCard
-              title="Active Arbitrage"
-              value={arbitrageData?.count?.toString() || '0'}
-              change={arbitrageData?.summary?.bestROI ? `+${arbitrageData.summary.bestROI.toFixed(1)}%` : ''}
-              changeType="positive"
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              }
-            />
-            <StatCard
-              title="Your Favorites"
-              value={favoritesCount.toString()}
-              change=""
-              changeType="neutral"
-              testId="favorites-count"
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              }
-            />
-            <StatCard
-              title="Upcoming Events"
-              value={upcomingEvents.length.toString()}
-              change={favoritesOnly ? 'Filtered' : ''}
-              changeType="neutral"
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              }
-            />
-            <StatCard
-              title="Your Credits"
-              value={user?.creditBalance?.toString() || '0'}
-              change=""
-              changeType="neutral"
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              }
-            />
-            <StatCard
-              title="Live Events"
-              value={liveEvents.length.toString()}
-              change=""
-              changeType="neutral"
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-              }
-            />
-          </div>
+                    <h2 className="text-3xl font-black text-white mb-4 leading-tight">
+                      {heroItem.title}
+                    </h2>
+                    <p className="text-xl text-gray-300 mb-6 max-w-2xl leading-relaxed">
+                      {heroItem.summary}
+                    </p>
 
-          {/* AI News & Advice Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* AI News */}
-            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-gray-700 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">📰</span>
-                  <h2 className="text-xl font-semibold text-white">AI News</h2>
-                </div>
-                <span className="text-xs text-gray-500">
-                  {newsQuery.isLoading
-                    ? 'Loading…'
-                    : newsData?.refreshedAt
-                      ? `Updated ${new Date(newsData.refreshedAt).toLocaleTimeString()}`
-                      : newsQuery.dataUpdatedAt
-                        ? `Updated ${new Date(newsQuery.dataUpdatedAt).toLocaleTimeString()}`
-                        : '—'}
-                </span>
-              </div>
+                    <div className="bg-white/5 border-l-4 border-l-green-500 p-4 mb-8 rounded-r-xl">
+                      <span className="text-[10px] font-black text-green-500 uppercase tracking-widest block mb-1">Execution Logic</span>
+                      <p className="text-sm text-gray-400 italic">"{heroItem.logic}"</p>
+                    </div>
 
-              {newsQuery.isError ? (
-                <div className="text-center py-6 text-gray-400">
-                  <p className="text-sm">AI news is unavailable right now.</p>
-                  <p className="text-xs text-gray-500 mt-2">{getErrorMessage(newsQuery.error)}</p>
-                  <button
-                    onClick={() => newsQuery.refetch()}
-                    className="mt-3 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-medium"
-                  >
-                    Retry
-                  </button>
-                </div>
-              ) : newsData?.news && newsData.news.length > 0 ? (
-                <div className="space-y-3">
-                  {newsData.news.slice(0, 3).map((news) => (
-                    <div key={news.id} className="p-3 bg-gray-700/40 rounded-lg border-l-4 border-l-blue-500">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                              news.impact === 'high' ? 'bg-red-500/20 text-red-400' :
-                              news.impact === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                              'bg-gray-500/20 text-gray-400'
-                            }`}>
-                              {news.impact.toUpperCase()}
-                            </span>
-                            <span className="text-xs text-gray-500">{news.sport}</span>
-                          </div>
-                          <h4 className="text-white font-medium text-sm leading-tight">{news.headline}</h4>
-                          <p className="text-gray-400 text-xs mt-1 line-clamp-2">{news.summary}</p>
-                        </div>
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <Link 
+                        to={heroItem.type === 'arbitrage' ? `/arbitrage/${heroItem.data.arbId}` : `/event/${heroItem.data.eventId}`}
+                        className="w-full sm:w-auto px-8 py-4 bg-white text-black font-black rounded-2xl hover:bg-green-400 transition-all text-center tracking-tight"
+                      >
+                        EXECUTE STRATEGY
+                      </Link>
+                      <div className="flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-2xl">
+                        <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Confidence</div>
+                        <div className="text-2xl font-black text-green-400">{heroItem.confidence}%</div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-gray-400">
-                  <p className="text-sm">{newsQuery.isLoading ? 'Loading news…' : 'No news available yet.'}</p>
-                </div>
-              )}
-            </div>
-
-            {/* AI Advice */}
-            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-gray-700 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">🤖</span>
-                  <h2 className="text-xl font-semibold text-white">AI Advice</h2>
-                </div>
-                {adviceData?.configuration && (
-                  <Link to="/setup" className="text-xs text-green-500 hover:text-green-400">
-                    {adviceData.configuration.name}
-                  </Link>
-                )}
-              </div>
-
-              {adviceQuery.isError ? (
-                <div className="text-center py-6 text-gray-400">
-                  <p className="text-sm">AI advice is unavailable right now.</p>
-                  <p className="text-xs text-gray-500 mt-2">{getErrorMessage(adviceQuery.error)}</p>
-                  <div className="mt-3 flex items-center justify-center gap-2">
-                    <button
-                      onClick={() => adviceQuery.refetch()}
-                      className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-medium"
-                    >
-                      Retry
-                    </button>
-                    <Link
-                      to="/setup"
-                      className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium"
-                    >
-                      Configure AI
-                    </Link>
                   </div>
                 </div>
-              ) : adviceData?.advice && adviceData.advice.length > 0 ? (
-                <div className="space-y-3">
-                  {adviceData.advice.slice(0, 3).map((advice) => (
-                    <div key={advice.id} className={`p-3 bg-gray-700/40 rounded-lg border-l-4 ${
-                      advice.category === 'opportunity' ? 'border-l-green-500' :
-                      advice.category === 'warning' ? 'border-l-red-500' :
-                      advice.category === 'strategy' ? 'border-l-purple-500' :
-                      'border-l-blue-500'
-                    }`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm">
-                              {advice.category === 'opportunity' ? '💎' :
-                               advice.category === 'warning' ? '⚠️' :
-                               advice.category === 'strategy' ? '🎯' : '💡'}
-                            </span>
-                            <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                              advice.category === 'opportunity' ? 'bg-green-500/20 text-green-400' :
-                              advice.category === 'warning' ? 'bg-red-500/20 text-red-400' :
-                              advice.category === 'strategy' ? 'bg-purple-500/20 text-purple-400' :
-                              'bg-blue-500/20 text-blue-400'
-                            }`}>
-                              {advice.category.toUpperCase()}
-                            </span>
-                            <span className="text-xs text-gray-500">{advice.confidence}% confidence</span>
-                          </div>
-                          <h4 className="text-white font-medium text-sm leading-tight">{advice.title}</h4>
-                          <p className="text-gray-400 text-xs mt-1 line-clamp-2">{advice.content}</p>
-                          {advice.relatedMatch && (
-                            <p className="text-green-400 text-xs mt-1">📍 {advice.relatedMatch}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              ) : feedQuery.isLoading ? (
+                <div className="h-64 bg-gray-800/50 rounded-3xl animate-pulse flex items-center justify-center border border-dashed border-gray-700">
+                  <span className="text-gray-500 font-mono tracking-widest">ANALYZING MARKET DATA...</span>
                 </div>
               ) : (
-                <div className="text-center py-6 text-gray-400">
-                  <p className="text-sm">{adviceQuery.isLoading ? 'Loading advice…' : 'No advice available yet.'}</p>
-                  <Link to="/setup" className="text-green-500 hover:text-green-400 text-xs mt-2 inline-block">
-                    Configure your AI preferences
-                  </Link>
-                </div>
-              )}
-
-              {!adviceData?.configuration && (
-                <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                  <p className="text-blue-400 text-xs">
-                    <Link to="/setup" className="font-medium hover:underline">Set up your AI configuration</Link> to get personalized betting advice based on your preferences.
+                <div className="bg-gray-800/50 rounded-3xl p-12 text-center border border-dashed border-gray-700">
+                  <div className="text-4xl mb-4">🌑</div>
+                  <h3 className="text-xl font-bold text-white mb-2">No Active Intelligence</h3>
+                  <p className="text-gray-400 max-w-md mx-auto">
+                    The intelligence engine is currently scanning for opportunities. Check back shortly or adjust your AI filters.
                   </p>
                 </div>
               )}
+
+              {/* Secondary Feed */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {remainingFeed.map((item) => (
+                  <IntelligenceCard key={item.id} item={item} />
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Sharp Money Alerts Section */}
-          {sharpMoneyData?.alerts && sharpMoneyData.alerts.length > 0 && (
-            <div className="mb-8">
-              <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 rounded-xl border border-orange-500/30 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-orange-500/20 rounded-lg">
-                      <span className="text-2xl">🔥</span>
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold text-white">Sharp Money Alerts</h2>
-                      <p className="text-xs text-orange-300">Unusual betting activity detected</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
-                    <span className="text-xs text-orange-400">{sharpMoneyData.total} Active</span>
-                  </div>
+            {/* Sidebar Column */}
+            <div className="xl:col-span-4 space-y-8">
+              
+              {/* Live Action Sidebar */}
+              <div className="bg-gray-800/30 border border-gray-700/50 rounded-3xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-black text-white uppercase tracking-tighter flex items-center gap-2">
+                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                    Live Action
+                  </h3>
+                  <Link to="/sports" className="text-xs font-bold text-green-500 hover:underline">VIEW ALL</Link>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {sharpMoneyData.alerts.slice(0, 3).map((alert) => (
-                    <Link
-                      key={alert.id}
-                      to={`/event/${alert.eventId}`}
-                      className={`p-4 rounded-lg border transition-all hover:scale-[1.02] ${
-                        alert.severity === 'high' ? 'bg-red-900/30 border-red-500/50' :
-                        alert.severity === 'medium' ? 'bg-orange-900/30 border-orange-500/50' :
-                        'bg-yellow-900/30 border-yellow-500/50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                          alert.alertType === 'steam_move' ? 'bg-red-500/20 text-red-400' :
-                          alert.alertType === 'reverse_line_movement' ? 'bg-purple-500/20 text-purple-400' :
-                          alert.alertType === 'sharp_action' ? 'bg-orange-500/20 text-orange-400' :
-                          'bg-blue-500/20 text-blue-400'
-                        }`}>
-                          {alert.alertType === 'steam_move' ? '🔥 STEAM' :
-                           alert.alertType === 'reverse_line_movement' ? '↩️ RLM' :
-                           alert.alertType === 'sharp_action' ? '💰 SHARP' : '📊 VOLUME'}
-                        </span>
-                        <span className={`text-xs font-medium ${
-                          alert.severity === 'high' ? 'text-red-400' :
-                          alert.severity === 'medium' ? 'text-orange-400' :
-                          'text-yellow-400'
-                        }`}>
-                          {alert.severity.toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="mb-2">
-                        <h4 className="text-white font-medium text-sm">
-                          {alert.homeTeam} vs {alert.awayTeam}
-                        </h4>
-                        <p className="text-gray-400 text-xs">{alert.league}</p>
-                      </div>
-                      <p className="text-gray-300 text-xs mb-2 line-clamp-2">{alert.description}</p>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500">
-                          {alert.details.previousOdds.toFixed(2)} → {alert.details.currentOdds.toFixed(2)}
-                        </span>
-                        <span className={alert.details.oddsChange < 0 ? 'text-green-400' : 'text-red-400'}>
-                          {alert.details.oddsChange > 0 ? '+' : ''}{alert.details.percentageChange.toFixed(1)}%
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-
-                {sharpMoneyData.alerts.length > 3 && (
-                  <div className="mt-4 text-center">
-                    <Link
-                      to="/daily-ai"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      View All {sharpMoneyData.total} Alerts
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </Link>
+                {liveEvents.length > 0 ? (
+                  <div className="space-y-4">
+                    {liveEvents.map((event) => (
+                      <LiveMiniCard key={event.id} event={event} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center bg-gray-900/50 rounded-2xl border border-gray-800">
+                    <p className="text-xs text-gray-500 font-mono italic">NO LIVE EVENTS TRACKED</p>
                   </div>
                 )}
               </div>
-            </div>
-          )}
 
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Upcoming Events */}
-            <div className="lg:col-span-2 bg-gray-800 rounded-xl border border-gray-700 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-white">
-                  Upcoming Events
-                  {favoritesOnly && <span className="ml-2 text-sm text-green-500">(Favorites)</span>}
-                </h2>
-                <a href="/sports" className="text-green-500 hover:text-green-400 text-sm font-medium">
-                  View all
-                </a>
-              </div>
-
-              {error ? (
-                <ErrorDisplay error={error} onRetry={() => eventsQuery.refetch()} />
-              ) : loading && upcomingEvents.length === 0 ? (
-                <div className="text-gray-400 text-center py-8">
-                  <div className="inline-flex items-center gap-3">
-                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
-                    <span>Loading your events…</span>
+              {/* Smart Money Flows */}
+              <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border border-purple-500/20 rounded-3xl p-6">
+                <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-6 flex items-center gap-2 text-purple-400">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.184a4.535 4.535 0 00-1.676.662C6.602 13.234 6 14.009 6 15c0 .99.602 1.765 1.324 2.246A4.535 4.535 0 009 17.908V18a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 16.766 14 15.991 14 15c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 12.092v-1.184a4.535 4.535 0 001.676-.662C13.398 9.766 14 8.991 14 8c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 5.092V5z" clipRule="evenodd"/></svg>
+                  Sharp Money Summary
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-900/50 rounded-2xl border border-gray-800">
+                    <div className="text-[10px] text-gray-500 font-bold uppercase mb-1">Steam Moves</div>
+                    <div className="text-2xl font-black text-white">{sharpQuery.data?.summary?.steamMoves || 0}</div>
                   </div>
-                  <p className="text-gray-500 text-sm mt-2">
-                    This is live data. If this is your first login, it may take a moment to populate.
-                  </p>
-                </div>
-              ) : upcomingEvents.length === 0 ? (
-                <div className="text-gray-400 text-center py-8">
-                  {favoritesOnly
-                    ? 'No upcoming events for your favorite teams. Add more favorites or turn off the filter.'
-                    : 'No upcoming events found.'
-                  }
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {upcomingEvents.map((event) => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      formatTime={formatEventTime}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Live Events */}
-            <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-white">Live Events</h2>
-                <span className="flex items-center text-red-500 text-sm">
-                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
-                  Live
-                </span>
-              </div>
-
-              {loading && liveEvents.length === 0 ? (
-                <div className="flex items-center justify-center py-8 text-gray-400">
-                  <div className="inline-flex items-center gap-3">
-                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
-                    <span>Loading live events…</span>
+                  <div className="p-4 bg-gray-900/50 rounded-2xl border border-gray-800">
+                    <div className="text-[10px] text-gray-500 font-bold uppercase mb-1">RLM</div>
+                    <div className="text-2xl font-black text-white">{sharpQuery.data?.summary?.reverseLineMovements || 0}</div>
                   </div>
                 </div>
-              ) : liveEvents.length === 0 ? (
-                <div className="text-gray-400 text-center py-8">
-                  {favoritesOnly
-                    ? 'No live events for your favorite teams right now.'
-                    : 'No live events right now.'
-                  }
+                
+                <button className="w-full mt-6 py-3 bg-purple-500/10 text-purple-400 font-bold rounded-xl border border-purple-500/20 hover:bg-purple-500/20 transition-all text-xs tracking-widest">
+                  ANALYZE FLOWS
+                </button>
+              </div>
+
+              {/* Favorites Quick Access */}
+              <div className="bg-gray-800/30 border border-gray-700/50 rounded-3xl p-6">
+                <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-6">Your Favorites</h3>
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm text-gray-500 italic font-medium">Monitoring matches for your favorited teams...</p>
+                  <Link to="/favorites" className="inline-flex items-center gap-2 text-xs font-bold text-green-500 hover:text-green-400">
+                    Manage Favorites
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                  </Link>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {liveEvents.map((event) => (
-                    <LiveEventCard
-                      key={event.id}
-                      event={event}
-                    />
-                  ))}
-                </div>
-              )}
+              </div>
+
             </div>
           </div>
         </div>
@@ -544,95 +230,94 @@ export function HomePage() {
   );
 }
 
-interface StatCardProps {
-  title: string;
-  value: string;
-  change: string;
-  changeType: 'positive' | 'negative' | 'neutral';
-  icon: React.ReactNode;
-  testId?: string;
+function StatItem({ label, value, color = "text-white" }: { label: string, value: string, color?: string }) {
+  return (
+    <div className="flex flex-col items-center sm:items-start">
+      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">{label}</span>
+      <span className={`text-xl font-black ${color}`}>{value}</span>
+    </div>
+  );
 }
 
-function StatCard({ title, value, change, changeType, icon, testId }: StatCardProps) {
+function TypeBadge({ type }: { type: IntelligenceItem['type'] }) {
+  const styles = {
+    tip: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    arbitrage: 'bg-green-500/20 text-green-400 border-green-500/30',
+    alert: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    news: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+  };
+  
   return (
-    <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-      <div className="flex items-center justify-between">
-        <div className="p-2 bg-green-500/20 rounded-lg text-green-500">
-          {icon}
-        </div>
-        {change && (
-          <span className={`text-sm font-medium ${
-            changeType === 'positive' ? 'text-green-500' :
-            changeType === 'negative' ? 'text-red-500' : 'text-gray-400'
-          }`}>
-            {change}
-          </span>
-        )}
+    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${styles[type]}`}>
+      {type === 'alert' ? 'CRITICAL SIGNAL' : type}
+    </span>
+  );
+}
+
+function IntelligenceIcon({ type, size = "w-6 h-6" }: { type: IntelligenceItem['type'], size?: string }) {
+  if (type === 'arbitrage') return <svg className={size} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>;
+  if (type === 'tip') return <svg className={size} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>;
+  if (type === 'alert') return <svg className={size} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>;
+  return <svg className={size} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>;
+}
+
+function IntelligenceCard({ item }: { item: IntelligenceItem }) {
+  return (
+    <div className="bg-gray-800/50 border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-all group">
+      <div className="flex items-center justify-between mb-4">
+        <TypeBadge type={item.type} />
+        <div className="text-[10px] font-mono text-gray-500">CONFIDENCE: {item.confidence}%</div>
       </div>
-      <div className="mt-4">
-        <div className="text-3xl font-bold text-white" data-testid={testId}>{value}</div>
-        <div className="text-gray-400 text-sm mt-1">{title}</div>
+      
+      <h4 className="text-lg font-bold text-white mb-2 group-hover:text-green-400 transition-colors">
+        {item.title}
+      </h4>
+      <p className="text-sm text-gray-400 line-clamp-2 mb-4 leading-relaxed font-medium">
+        {item.summary}
+      </p>
+
+      {item.logic && (
+        <div className="mb-4 text-[11px] text-gray-500 bg-gray-900/50 p-2 rounded-lg border border-white/5 italic">
+          {item.logic}
+        </div>
+      )}
+      
+      <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
+        <span className={`text-[10px] font-mono uppercase ${item.isStale ? 'text-red-500 animate-pulse' : 'text-gray-500'}`}>
+          {item.isStale ? 'STALE' : formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
+        </span>
+        <Link 
+          to={item.type === 'arbitrage' ? `/arbitrage/${item.data.arbId}` : `/event/${item.data.eventId}`}
+          className="text-xs font-bold text-white hover:text-green-400 flex items-center gap-1"
+        >
+          VIEW LOGIC
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+        </Link>
       </div>
     </div>
   );
 }
 
-interface EventCardProps {
-  event: Event;
-  formatTime: (date: string) => string;
-}
-
-function EventCard({ event, formatTime }: EventCardProps) {
+function LiveMiniCard({ event }: { event: any }) {
   return (
-    <a
-      href={`/event/${event.id}`}
-      className="block p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
+    <Link 
+      to={`/event/${event.id}`}
+      className="block p-4 bg-gray-900/50 border border-gray-800 rounded-2xl hover:border-red-500/30 transition-all group"
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="text-xs text-gray-400 mb-1">
-            {event.league} - {event.sport}
-          </div>
-          <div className="font-medium text-white">
-            {event.homeTeam} vs {event.awayTeam}
-          </div>
-          <div className="text-sm text-gray-400 mt-1">
-            {formatTime(event.startTime)}
-          </div>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{event.league}</span>
+        <span className="flex h-1.5 w-1.5 rounded-full bg-red-500"></span>
+      </div>
+      <div className="flex justify-between items-center">
+        <div className="space-y-1">
+          <div className="text-xs font-black text-white uppercase group-hover:text-red-400 transition-colors">{event.homeTeam}</div>
+          <div className="text-xs font-black text-white uppercase group-hover:text-red-400 transition-colors">{event.awayTeam}</div>
         </div>
-        <div className="flex items-center">
-          <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded text-xs font-medium">
-            View Odds
-          </span>
+        <div className="text-right">
+          <div className="text-xs font-mono text-gray-500 tracking-tighter">LIVE</div>
+          <div className="text-[10px] font-bold text-green-500 uppercase mt-1">Odds Available</div>
         </div>
       </div>
-    </a>
-  );
-}
-
-interface LiveEventCardProps {
-  event: Event;
-}
-
-function LiveEventCard({ event }: LiveEventCardProps) {
-  return (
-    <a
-      href={`/event/${event.id}`}
-      className="block p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
-    >
-      <div className="text-xs text-gray-400 mb-2">{event.league}</div>
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="text-white font-medium text-sm">{event.homeTeam}</div>
-          <div className="text-white font-medium text-sm">{event.awayTeam}</div>
-        </div>
-        <div className="text-center px-3">
-          <span className="flex items-center text-red-500 text-xs">
-            <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-1.5 animate-pulse"></span>
-            LIVE
-          </span>
-        </div>
-      </div>
-    </a>
+    </Link>
   );
 }

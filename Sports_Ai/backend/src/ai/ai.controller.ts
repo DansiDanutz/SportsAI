@@ -51,6 +51,11 @@ export class AiController {
     return this.aiFacade.detectStrangeBets();
   }
 
+  @Get('feed')
+  async getIntelligenceFeed(@Request() req: any) {
+    return this.aiFacade.getIntelligenceFeed(req.user.id);
+  }
+
   @Get('tickets/daily')
   async getDailyTickets(@Request() req: any, @Ip() ipAddress: string, @Query('type') type: string) {
     // Premium check
