@@ -50,7 +50,7 @@ Auto Coder has been configured to use Z.AI's GLM models globally.
 ### Environment Variables (Set for Current Session)
 
 ```bash
-ZAI_API_KEY=***REMOVED***
+ZAI_API_KEY=your-zai-api-key-here
 AUTOCODER_MODEL=glm-4
 CLI_COMMAND=zai
 ZAI_MODEL=glm-4
@@ -78,7 +78,7 @@ chmod +x setup_autocoder_zai.sh
 Add to your `.env` file or system environment:
 
 ```bash
-ZAI_API_KEY=***REMOVED***
+ZAI_API_KEY=your-zai-api-key-here
 AUTOCODER_MODEL=glm-4
 CLI_COMMAND=zai
 ZAI_MODEL=glm-4

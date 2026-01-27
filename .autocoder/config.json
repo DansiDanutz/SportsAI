@@ -3,7 +3,7 @@
   "defaultModel": "glm-4",
   "defaultCliCommand": "zai",
   "zai": {
-    "apiKey": "***REMOVED***",
+    "apiKey": "your-zai-api-key-here",
     "model": "glm-4",
     "apiUrl": "https://api.z.ai/v1/chat/completions",
     "timeoutMs": 12000

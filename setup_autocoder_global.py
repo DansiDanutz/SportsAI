@@ -10,7 +10,7 @@ from pathlib import Path
 from registry import get_config_dir, set_setting, get_setting
 
 # Z.AI Configuration
-ZAI_API_KEY = "***REMOVED***"
+ZAI_API_KEY = "your-zai-api-key-here"
 DEFAULT_MODEL = "glm-4"
 CLI_COMMAND = "zai"
 

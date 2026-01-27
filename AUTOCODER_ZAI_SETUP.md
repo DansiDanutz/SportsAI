@@ -35,7 +35,7 @@ Add these to your system environment variables or `.env` file:
 
 ```bash
 # Z.AI Configuration for Auto Coder
-ZAI_API_KEY=***REMOVED***
+ZAI_API_KEY=your-zai-api-key-here
 AUTOCODER_MODEL=glm-4
 CLI_COMMAND=zai  # Use ZAI CLI instead of Claude CLI
 
@@ -86,7 +86,7 @@ The system automatically:
 
 ```bash
 # Set environment variables
-export ZAI_API_KEY=***REMOVED***
+export ZAI_API_KEY=your-zai-api-key-here
 export AUTOCODER_MODEL=glm-4
 export CLI_COMMAND=zai
 
@@ -154,7 +154,7 @@ zai --version
 
    ```bash
    # Add to your .env file or system environment
-   ZAI_API_KEY=***REMOVED***
+   ZAI_API_KEY=your-zai-api-key-here
    AUTOCODER_MODEL=glm-4
    ```
 

@@ -619,7 +619,7 @@ SPORTMONKS_KEY=
 NEWS_API_KEY=
 
 # Z.AI Configuration (Primary LLM Provider)
-ZAI_API_KEY=***REMOVED***
+ZAI_API_KEY=your-zai-api-key-here
 LLM_PROVIDER=auto
 ZAI_MODEL=glm-4
 ZAI_API_URL=https://api.z.ai/v1/chat/completions

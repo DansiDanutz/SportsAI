@@ -15,7 +15,7 @@ Claude Code has been configured to use Z.AI's GLM models. The configuration is s
 ```json
 {
   "env": {
-    "ANTHROPIC_AUTH_TOKEN": "***REMOVED***",
+    "ANTHROPIC_AUTH_TOKEN": "your-zai-api-key-here",
     "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
     "API_TIMEOUT_MS": "3000000",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7",
@@ -91,7 +91,7 @@ If you see API errors:
 
    ```bash
    # Test the API key
-   curl -H "Authorization: Bearer ***REMOVED***" \
+   curl -H "Authorization: Bearer your-zai-api-key-here" \
         https://api.z.ai/api/anthropic/v1/models
    ```
 

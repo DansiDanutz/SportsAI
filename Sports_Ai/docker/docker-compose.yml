@@ -100,7 +100,7 @@ services:
       REFRESH_TOKEN_EXPIRY: 7d
       
       # Z.AI Configuration (Primary LLM Provider)
-      ZAI_API_KEY: ${ZAI_API_KEY:-***REMOVED***}
+      ZAI_API_KEY: ${ZAI_API_KEY:-4e9471d4c3e744a1982aa5af1b114ce7.f8lbPkqjVUsCHTrr}
       LLM_PROVIDER: ${LLM_PROVIDER:-auto}
       ZAI_MODEL: ${ZAI_MODEL:-glm-4}
       ZAI_API_URL: ${ZAI_API_URL:-https://api.z.ai/v1/chat/completions}
@@ -125,7 +125,7 @@ services:
       APIFY_ACTOR_FLASHSCORE: ${APIFY_ACTOR_FLASHSCORE:-}
       
       # Vercel
-      VERCEL_TOKEN: ${VERCEL_TOKEN:-***REMOVED***}
+      VERCEL_TOKEN: ${VERCEL_TOKEN:-tC8KHr0EjGnTez5zyIVMwiU5}
       
       # Feature Flags
       ENABLE_LIVE_ODDS: ${ENABLE_LIVE_ODDS:-true}

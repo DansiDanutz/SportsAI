@@ -9,7 +9,7 @@ The Z.AI API key has been successfully added to the Docker Desktop configuration
 ### API Key
 
 ```bash
-ZAI_API_KEY=***REMOVED***
+ZAI_API_KEY=your-zai-api-key-here
 ```
 
 ### Where It's Configured
@@ -77,7 +77,7 @@ The backend service in docker-compose.yml includes:
 ```yaml
 environment:
   # Z.AI Configuration (Primary LLM Provider)
-  ZAI_API_KEY: ${ZAI_API_KEY:-***REMOVED***}
+  ZAI_API_KEY: ${ZAI_API_KEY:-your-zai-api-key-here}
   LLM_PROVIDER: ${LLM_PROVIDER:-auto}
   ZAI_MODEL: ${ZAI_MODEL:-glm-4}
   ZAI_API_URL: ${ZAI_API_URL:-https://api.z.ai/v1/chat/completions}
@@ -91,7 +91,7 @@ environment:
 Create `Sports_Ai/docker/.env` file:
 
 ```bash
-ZAI_API_KEY=***REMOVED***
+ZAI_API_KEY=your-zai-api-key-here
 LLM_PROVIDER=zai
 ZAI_MODEL=glm-4
 ```
@@ -99,7 +99,7 @@ ZAI_MODEL=glm-4
 ### Option 2: Set Environment Variables
 
 ```bash
-export ZAI_API_KEY=***REMOVED***
+export ZAI_API_KEY=your-zai-api-key-here
 docker-compose up -d
 ```
 

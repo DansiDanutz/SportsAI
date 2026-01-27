@@ -17,7 +17,7 @@
 GRAPHITI_ENABLED=true
 GRAPHITI_LLM_PROVIDER=openai
 GRAPHITI_EMBEDDER_PROVIDER=openai
-OPENAI_API_KEY=***REMOVED***... (configured)
+OPENAI_API_KEY=(configured))
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 GRAPHITI_DATABASE=auto_claude_memory

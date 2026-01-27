@@ -42,7 +42,7 @@ The Auto Coder uses the **Claude Agent SDK** which is designed specifically for 
 ### Environment Variables (Set Globally)
 
 ```bash
-ZAI_API_KEY=***REMOVED***
+ZAI_API_KEY=your-zai-api-key-here
 AUTOCODER_MODEL=glm-4
 CLI_COMMAND=zai
 ZAI_MODEL=glm-4

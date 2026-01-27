@@ -7,7 +7,7 @@ echo ========================================
 echo.
 
 REM Set Z.AI environment variables for current session
-setx ZAI_API_KEY "***REMOVED***"
+setx ZAI_API_KEY "your-zai-api-key-here"
 setx AUTOCODER_MODEL "glm-4"
 setx CLI_COMMAND "zai"
 setx ZAI_MODEL "glm-4"
@@ -16,7 +16,7 @@ setx ZAI_TIMEOUT_MS "12000"
 
 echo.
 echo Environment variables set:
-echo   ZAI_API_KEY=***REMOVED***
+echo   ZAI_API_KEY=your-zai-api-key-here
 echo   AUTOCODER_MODEL=glm-4
 echo   CLI_COMMAND=zai
 echo   ZAI_MODEL=glm-4

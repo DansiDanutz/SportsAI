@@ -76,7 +76,7 @@ The backend service uses environment variables from:
 
 The Z.AI API key is already configured:
 
-- **API Key:** `***REMOVED***`
+- **API Key:** `your-zai-api-key-here`
 - **Provider:** Auto (uses Z.AI if configured, falls back to OpenRouter)
 - **Model:** glm-4
 - **API URL:** <https://api.z.ai/v1/chat/completions>
