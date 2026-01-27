@@ -1,0 +1,24 @@
+name: SportsAI
+type: product
+owner: DansiDanutz
+status: active
+marketplace: true
+brain_contribution: true
+stack:
+  - TypeScript
+  - Python
+  - FastAPI
+  - React
+  - Apify
+  - Vercel
+tags:
+  - sports
+  - betting
+  - arbitrage
+  - ai
+  - trading
+  - real-time
+description: >
+  Sports betting arbitrage detection system. Real-time detection and delivery
+  of sports betting opportunities across multiple sportsbooks and sports.
+  Includes autonomous agent for automated opportunity capture.
