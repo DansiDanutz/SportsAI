@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { GoogleOAuthService } from './google-oauth.service';
+import { GitHubOAuthService } from './github-oauth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { RateLimiterService } from './rate-limiter.service';
 import { ApiRateLimiterService } from './api-rate-limiter.service';
@@ -40,6 +41,7 @@ import { ScheduleModule } from '@nestjs/schedule';
   providers: [
     AuthService,
     GoogleOAuthService,
+    GitHubOAuthService,
     JwtStrategy,
     JwtMultiSecretGuard,
     JwtRotationService,
@@ -55,6 +57,6 @@ import { ScheduleModule } from '@nestjs/schedule';
       useClass: ApiRateLimitGuard,
     },
   ],
-  exports: [AuthService, GoogleOAuthService, JwtModule, AdminGuard, ApiRateLimiterService, ApiRateLimitGuard, TwoFactorService, DeviceSessionService, JwtRotationService, JwtMultiSecretGuard],
+  exports: [AuthService, GoogleOAuthService, GitHubOAuthService, JwtModule, AdminGuard, ApiRateLimiterService, ApiRateLimitGuard, TwoFactorService, DeviceSessionService, JwtRotationService, JwtMultiSecretGuard],
 })
 export class AuthModule {}

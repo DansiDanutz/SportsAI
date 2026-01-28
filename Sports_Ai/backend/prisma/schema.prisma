@@ -24,6 +24,7 @@ model User {
 
   // OAuth fields
   googleId         String?  @unique // Google OAuth user ID
+  githubId         String?  @unique // GitHub OAuth user ID
 
   // Two-Factor Authentication fields
   twoFactorEnabled Boolean  @default(false)

@@ -2,6 +2,7 @@ import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, HttpStatus, 
 import type { FastifyReply } from 'fastify';
 import { AuthService, AuthResponse, TwoFactorRequiredResponse, AuthSessionResponse } from './auth.service';
 import { GoogleOAuthService } from './google-oauth.service';
+import { GitHubOAuthService } from './github-oauth.service';
 import { TwoFactorService } from './two-factor.service';
 import { DeviceSessionService, SessionResponse } from './device-session.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -117,6 +118,7 @@ export class AuthController {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
     @Inject(GoogleOAuthService) private readonly googleOAuthService: GoogleOAuthService,
+    @Inject(GitHubOAuthService) private readonly githubOAuthService: GitHubOAuthService,
     @Inject(TwoFactorService) private readonly twoFactorService: TwoFactorService,
     @Inject(DeviceSessionService) private readonly deviceSessionService: DeviceSessionService,
   ) {}
@@ -409,6 +411,62 @@ export class AuthController {
       console.error('[OAuth] Callback error:', err);
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+    }
+  }
+
+  // GitHub OAuth Endpoints
+
+  /**
+   * Check if GitHub OAuth is configured
+   */
+  @Get('github/status')
+  getGitHubOAuthStatus(): { configured: boolean } {
+    return { configured: this.githubOAuthService.isConfigured() };
+  }
+
+  /**
+   * Get GitHub OAuth authorization URL
+   */
+  @Get('github/url')
+  getGitHubAuthUrl(): { authUrl: string; state: string } {
+    return this.githubOAuthService.generateAuthUrl();
+  }
+
+  /**
+   * Handle GitHub OAuth callback
+   */
+  @Get('github/callback')
+  async handleGitHubCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Query('error') error: string,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+    @Res() res: FastifyReply,
+  ): Promise<void> {
+    if (error) {
+      console.error('[GitHub OAuth] GitHub returned error:', error);
+      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=github_oauth_failed`);
+      return;
+    }
+
+    if (!code || !state) {
+      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=missing_params`);
+      return;
+    }
+
+    try {
+      const authResponse = await this.githubOAuthService.handleCallback(code, state, ip, userAgent);
+
+      res.setCookie(ACCESS_TOKEN_COOKIE, authResponse.accessToken, getCookieOptions({ maxAge: authResponse.expiresIn }));
+      res.setCookie(REFRESH_TOKEN_COOKIE, authResponse.refreshToken, getCookieOptions({ maxAge: 7 * 24 * 60 * 60 }));
+
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      res.redirect(`${frontendUrl}/oauth/callback?status=success`);
+    } catch (err) {
+      console.error('[GitHub OAuth] Callback error:', err);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      res.redirect(`${frontendUrl}/login?error=github_oauth_failed`);
     }
   }
 }
