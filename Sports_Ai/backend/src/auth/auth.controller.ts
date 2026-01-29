@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, HttpStatus, Inject, UnauthorizedException, Param, Headers, Ip, Query, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
+import '@fastify/cookie';
 import { AuthService, AuthResponse, TwoFactorRequiredResponse, AuthSessionResponse } from './auth.service';
 import { GoogleOAuthService } from './google-oauth.service';
 import { GitHubOAuthService } from './github-oauth.service';
