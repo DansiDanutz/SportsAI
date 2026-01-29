@@ -93,7 +93,7 @@ export class ApifyService {
   // Apify Actor IDs from the store
   private readonly actors = {
     // Odds API - Scrapes odds from BetMGM, Caesars, DraftKings, FanDuel, Bet365
-    oddsApi: process.env.APIFY_ACTOR_ODDS_API || 'api/odds-api',
+    oddsApi: process.env.APIFY_ACTOR_ODDS_API || 'harvest/sportsbook-odds-scraper',
     // SofaScore Scraper PRO - Match stats, live scores, players, teams
     sofaScore: process.env.APIFY_ACTOR_SOFASCORE || 'azzouzana/sofascore-scraper-pro',
     // Flashscore actor (optional). Provide your own actor ID via env.
