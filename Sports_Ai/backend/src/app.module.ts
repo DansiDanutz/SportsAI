@@ -21,6 +21,7 @@ import { ApifyModule } from './apify/apify.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { HealthModule } from './health/health.module';
 import { FlashscoreModule } from './flashscore/flashscore.module';
+import { StrategyModule } from './strategy/strategy.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { FlashscoreModule } from './flashscore/flashscore.module';
     SetupModule,
     ApifyModule,
     FlashscoreModule,
+    StrategyModule,
     AdminModule,
     HealthModule,
   ],
