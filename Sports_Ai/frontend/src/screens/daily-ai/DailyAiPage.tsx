@@ -60,7 +60,7 @@ export function DailyAiPage() {
 
   return (
     <Layout>
-      <div className="p-8 max-w-7xl mx-auto">
+      <div className="p-3 sm:p-4 lg:p-6 xl:p-8 max-w-7xl mx-auto">
         <header className="mb-10">
           <div className="flex items-center space-x-3 mb-2">
             <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/20">
@@ -76,7 +76,7 @@ export function DailyAiPage() {
         </header>
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-1 bg-gray-800/50 p-1 rounded-xl mb-8 w-fit border border-gray-700">
+        <div className="flex flex-wrap gap-1 bg-gray-800/50 p-1 rounded-xl mb-8 w-full sm:w-fit border border-gray-700">
           {(['tickets', 'strange', 'arbitrage'] as const).map((tab) => (
             <button
               key={tab}
@@ -96,7 +96,7 @@ export function DailyAiPage() {
         <div className="grid grid-cols-1 gap-8">
           {/* Daily Tickets Section */}
           {activeTab === 'tickets' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {tickets?.map((ticket) => (
                 <div key={ticket.id} className="bg-gray-800 rounded-3xl p-8 border border-gray-700 hover:border-green-500/50 transition-all group overflow-hidden relative">
                   <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -150,7 +150,7 @@ export function DailyAiPage() {
           {activeTab === 'strange' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {strangeBets?.length ? strangeBets.map((bet, i) => (
-                <div key={i} className="bg-gray-800 rounded-3xl p-6 border border-purple-500/30 flex flex-col md:flex-row gap-6 items-center">
+                <div key={i} className="bg-gray-800 rounded-3xl p-4 sm:p-6 border border-purple-500/30 flex flex-col lg:flex-row gap-4 lg:gap-6 items-center">
                   <div className="w-20 h-20 bg-purple-500/10 rounded-2xl flex items-center justify-center flex-shrink-0">
                     <svg className="w-10 h-10 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
@@ -167,8 +167,8 @@ export function DailyAiPage() {
                       Odds plummeted <span className="text-green-500 font-black">{bet.drop}</span> in institutional markets.
                     </p>
                   </div>
-                  <div className="w-full md:w-auto">
-                    <button className="w-full px-8 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-xl transition-all">
+                  <div className="w-full lg:w-auto">
+                    <button className="w-full lg:w-auto px-8 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-xl transition-all">
                       ANALYZE LINE
                     </button>
                   </div>
@@ -185,7 +185,7 @@ export function DailyAiPage() {
           {activeTab === 'arbitrage' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {arbs?.opportunities?.map((arb) => (
-                <div key={arb.id} className="bg-gray-800 rounded-3xl p-8 border border-blue-500/30 flex flex-col md:flex-row justify-between items-center gap-8">
+                <div key={arb.id} className="bg-gray-800 rounded-3xl p-4 sm:p-6 lg:p-8 border border-blue-500/30 flex flex-col lg:flex-row justify-between items-center gap-6 lg:gap-8">
                   <div className="flex-grow">
                     <div className="flex items-center space-x-2 mb-3">
                       <span className="px-3 py-1 bg-blue-500 text-white text-[10px] font-black rounded-full uppercase">Guaranteed Profit</span>
@@ -194,7 +194,7 @@ export function DailyAiPage() {
                     <h3 className="text-2xl font-black text-white mb-2">{arb.event}</h3>
                     <p className="text-gray-400 italic">"Market inefficiency detected between {arb.legs?.map((l) => l.bookmaker).join(' and ')}."</p>
                   </div>
-                  <div className="text-center md:text-right flex-shrink-0">
+                  <div className="text-center lg:text-right flex-shrink-0">
                     <div className="text-4xl font-black text-green-500">+{arb.profit}%</div>
                     <div className="text-gray-500 text-sm font-bold mt-1 uppercase tracking-tighter">Net ROI</div>
                     <button 

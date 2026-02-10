@@ -84,7 +84,7 @@ export function SportsPage() {
 
   return (
     <Layout>
-      <div className="p-8">
+      <div className="p-3 sm:p-4 lg:p-6 xl:p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Sports Hub</h1>
           <p className="text-gray-400 mt-2">
@@ -171,7 +171,7 @@ export function SportsPage() {
         {/* Popular Leagues */}
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-white mb-4">Popular Leagues</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
             <LeagueCard
               name="Premier League"
               sport="Soccer"
@@ -219,7 +219,7 @@ function SportGrid() {
   const navigate = useNavigate();
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
       {sports.map((sport) => (
         <button
           key={sport.key}

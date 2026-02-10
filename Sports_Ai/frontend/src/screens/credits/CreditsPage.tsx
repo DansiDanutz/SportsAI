@@ -70,7 +70,7 @@ export function CreditsPage() {
 
   return (
     <Layout>
-      <div className="p-8">
+      <div className="p-3 sm:p-4 lg:p-6 xl:p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Credits</h1>
           <p className="text-gray-400 mt-2">
@@ -110,7 +110,7 @@ export function CreditsPage() {
 
         {/* Credit Packages */}
         <h2 className="text-xl font-semibold text-white mb-4">Buy Credit Packages</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-8">
           <CreditPackage
             credits={50}
             price={4.99}
@@ -149,7 +149,7 @@ export function CreditsPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
             </div>
           ) : transactions.length === 0 ? (
-            <div className="p-12 text-center">
+            <div className="p-6 lg:p-12 text-center">
               <svg className="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
@@ -157,7 +157,8 @@ export function CreditsPage() {
               <p className="text-gray-500 text-sm">Purchase credits to get started!</p>
             </div>
           ) : (
-            <table className="w-full">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-gray-700">
                   <th className="text-left p-4 text-gray-400 font-medium">Date</th>
@@ -198,7 +199,8 @@ export function CreditsPage() {
                   );
                 })}
               </tbody>
-            </table>
+              </table>
+            </div>
           )}
         </div>
       </div>

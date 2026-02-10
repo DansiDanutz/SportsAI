@@ -86,13 +86,13 @@ export const LineMovementChart: React.FC<LineMovementChartProps> = ({ movements,
             <XAxis 
               dataKey="time" 
               stroke="#9ca3af" 
-              fontSize={12}
+              fontSize={10}
               tickLine={false}
               axisLine={false}
             />
             <YAxis 
               stroke="#9ca3af" 
-              fontSize={12}
+              fontSize={10}
               tickLine={false}
               axisLine={false}
               domain={['auto', 'auto']}

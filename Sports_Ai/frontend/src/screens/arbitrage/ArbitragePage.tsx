@@ -259,7 +259,7 @@ export function ArbitragePage() {
 
   return (
     <Layout>
-      <div className="p-8">
+      <div className="p-3 sm:p-4 lg:p-6 xl:p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Arbitrage Opportunities</h1>
           <p className="text-gray-400 mt-2">
@@ -268,7 +268,7 @@ export function ArbitragePage() {
         </div>
 
         {/* Stats bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4 mb-6">
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
             <div className="text-2xl font-bold text-green-500">
               {arbitrageData?.summary?.totalOpportunities || opportunities.length}
@@ -298,7 +298,8 @@ export function ArbitragePage() {
         {/* Advanced Filters - Premium Only */}
         <div className="mb-6">
           {isPremium ? (
-            <div className="flex flex-wrap gap-4 items-center">
+            <div className="overflow-x-auto">
+              <div className="flex flex-wrap gap-4 items-center min-w-max lg:min-w-0">
               {/* Multi-select sport filter */}
               <div className="relative" ref={sportDropdownRef}>
                 <button
@@ -531,6 +532,7 @@ export function ArbitragePage() {
                 <option>Sort by Time</option>
                 <option>Sort by Confidence</option>
               </select>
+              </div>
             </div>
           ) : (
             <div className="relative">
@@ -851,7 +853,7 @@ function ArbitrageDetailCard({
         <div className="text-sm font-medium text-gray-400 mb-3">Recommended bets (for $100 total stake):</div>
         {showFullDetails ? (
           <>
-            <div className={`grid grid-cols-1 ${legs.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-3`}>
+            <div className={`grid grid-cols-1 ${legs.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3'} gap-3`}>
               {legs.map((leg, index) => (
                 <div key={index} className="bg-gray-700/50 rounded-lg p-4" data-testid={`leg-${index}`}>
                   <div className="text-white font-medium">{leg.outcome}</div>
@@ -891,7 +893,7 @@ function ArbitrageDetailCard({
         ) : (
           <div className="relative">
             {/* Blurred preview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 blur-sm pointer-events-none select-none">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 blur-sm pointer-events-none select-none">
               {legs.map((_, index) => (
                 <div key={index} className="bg-gray-700/50 rounded-lg p-4">
                   <div className="text-white font-medium">••••••••</div>

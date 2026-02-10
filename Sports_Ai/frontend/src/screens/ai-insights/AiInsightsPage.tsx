@@ -144,7 +144,7 @@ export function AiInsightsPage() {
 
   return (
     <Layout>
-      <div className="p-8">
+      <div className="p-3 sm:p-4 lg:p-6 xl:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white">AI Insights</h1>
@@ -152,7 +152,7 @@ export function AiInsightsPage() {
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
             <button
               onClick={() => setActiveTab('tips')}
               className={`px-6 py-3 rounded-lg font-medium transition-colors ${
@@ -177,7 +177,7 @@ export function AiInsightsPage() {
           </div>
 
           {activeTab === 'tips' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               {/* Tips List */}
               <div className="lg:col-span-2 bg-gray-800 border border-gray-700 rounded-xl p-6">
                 <h2 className="text-xl font-semibold text-white mb-4">Today's AI Tips</h2>
@@ -284,7 +284,7 @@ export function AiInsightsPage() {
                     <p className="text-gray-400 text-sm mb-4">
                       Select which sports to include in AI recommendations
                     </p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {SPORTS.map((sport) => (
                         <button
                           key={sport.key}
@@ -334,7 +334,7 @@ export function AiInsightsPage() {
                     <p className="text-gray-400 text-sm mb-4">
                       Determines how tips are ranked and presented
                     </p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {(['conservative', 'balanced', 'aggressive'] as const).map((profile) => (
                         <button
                           key={profile}

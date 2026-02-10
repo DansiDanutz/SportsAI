@@ -104,8 +104,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-3 sm:p-4">
+      <div className="bg-gray-800 rounded-2xl max-w-lg w-full max-h-[90vh] shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="bg-gradient-to-r from-green-600 to-green-500 p-6 text-white">
           <h2 className="text-2xl font-bold">Welcome to SportsAI! 🎉</h2>
@@ -124,7 +124,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
           {step === 1 && (
             <div>
               <h3 className="text-lg font-semibold text-white mb-2">
@@ -133,7 +133,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               <p className="text-gray-400 text-sm mb-4">
                 Select your favorite sports to see relevant arbitrage opportunities first.
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {SPORTS_OPTIONS.map(sport => (
                   <button
                     key={sport.key}
@@ -160,7 +160,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               <p className="text-gray-400 text-sm mb-4">
                 We'll highlight opportunities from your preferred sportsbooks.
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {BOOKMAKER_OPTIONS.map(bookmaker => (
                   <button
                     key={bookmaker.key}
@@ -287,7 +287,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-6 pt-0 flex items-center justify-between">
+        <div className="p-4 sm:p-6 pt-0 flex items-center justify-between">
           <div>
             {step === 1 ? (
               <button

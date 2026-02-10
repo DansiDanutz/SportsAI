@@ -65,9 +65,9 @@ export function HomePage() {
   return (
     <Layout>
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="p-6 lg:p-8 max-w-[1600px] mx-auto">
+        <div className="p-3 sm:p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
           {/* Header Section */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-6 lg:mb-8 gap-4">
             <div>
               <div className="flex items-center gap-2 mb-2 text-green-500">
                 <span className="relative flex h-2 w-2">
@@ -76,32 +76,32 @@ export function HomePage() {
                 </span>
                 <span className="text-[10px] font-black tracking-[0.2em] uppercase">Intelligence Live</span>
               </div>
-              <h1 className="text-4xl font-extrabold text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
                 Command Center
               </h1>
-              <p className="text-gray-400 mt-1 font-medium">
+              <p className="text-gray-400 mt-1 font-medium text-sm lg:text-base">
                 Real-time sports modeling & arbitrage detection.
               </p>
             </div>
             
-            <div className="flex items-center gap-6 bg-gray-800/50 border border-gray-700/50 px-6 py-3 rounded-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 bg-gray-800/50 border border-gray-700/50 px-4 sm:px-6 py-3 rounded-2xl w-full lg:w-auto">
               <StatItem label="Active Arbs" value={feed.filter(i => i.type === 'arbitrage').length.toString()} />
-              <div className="w-px h-8 bg-gray-700" />
+              <div className="hidden sm:block w-px h-8 bg-gray-700" />
               <StatItem label="High Conf Tips" value={feed.filter(i => i.type === 'tip' && i.confidence >= 85).length.toString()} />
-              <div className="w-px h-8 bg-gray-700" />
+              <div className="hidden sm:block w-px h-8 bg-gray-700" />
               <StatItem label="Credits" value={user?.creditBalance?.toString() || '0'} color="text-yellow-500" />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
             {/* Main Intelligence Column */}
-            <div className="xl:col-span-8 space-y-8">
+            <div className="xl:col-span-8 space-y-6 lg:space-y-8">
               
               {/* Hero Intelligence */}
               {heroItem ? (
                 <div className="relative group">
                   <div className="absolute -inset-1 bg-gradient-to-r from-green-500 to-blue-600 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
-                  <div className="relative bg-gray-800 border border-white/10 rounded-3xl p-8 overflow-hidden">
+                  <div className="relative bg-gray-800 border border-white/10 rounded-3xl p-4 sm:p-6 lg:p-8 overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-10">
                       <IntelligenceIcon type={heroItem.type} size="w-32 h-32" />
                     </div>
@@ -144,7 +144,7 @@ export function HomePage() {
                   <span className="text-gray-500 font-mono tracking-widest">ANALYZING MARKET DATA...</span>
                 </div>
               ) : (
-                <div className="bg-gray-800/50 rounded-3xl p-12 text-center border border-dashed border-gray-700">
+                <div className="bg-gray-800/50 rounded-3xl p-6 lg:p-12 text-center border border-dashed border-gray-700">
                   <div className="text-4xl mb-4">🌑</div>
                   <h3 className="text-xl font-bold text-white mb-2">No Active Intelligence</h3>
                   <p className="text-gray-400 max-w-md mx-auto">
@@ -162,7 +162,7 @@ export function HomePage() {
             </div>
 
             {/* Sidebar Column */}
-            <div className="xl:col-span-4 space-y-8">
+            <div className="xl:col-span-4 space-y-6 lg:space-y-8">
               
               {/* Live Action Sidebar */}
               <div className="bg-gray-800/30 border border-gray-700/50 rounded-3xl p-6">
@@ -232,9 +232,9 @@ export function HomePage() {
 
 function StatItem({ label, value, color = "text-white" }: { label: string, value: string, color?: string }) {
   return (
-    <div className="flex flex-col items-center sm:items-start">
+    <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
       <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">{label}</span>
-      <span className={`text-xl font-black ${color}`}>{value}</span>
+      <span className={`text-lg sm:text-xl font-black ${color}`}>{value}</span>
     </div>
   );
 }
