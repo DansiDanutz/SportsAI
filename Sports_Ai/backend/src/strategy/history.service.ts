@@ -144,34 +144,26 @@ export class HistoryService {
       pick.status = status;
       pick.result = result || null;
 
-      // Calculate profit/loss
+      // Calculate profit/loss in USD
       if (status === 'won') {
-        const stakeUnits = this.parseStakeUnits(pick.stake_recommendation);
-        pick.profit_loss = (pick.odds - 1) * stakeUnits;
+        // Profit = (odds - 1) * stake amount
+        pick.profit_loss_usd = (pick.odds - 1) * pick.stake_amount_usd;
       } else if (status === 'lost') {
-        const stakeUnits = this.parseStakeUnits(pick.stake_recommendation);
-        pick.profit_loss = -stakeUnits;
+        // Loss = -stake amount
+        pick.profit_loss_usd = -pick.stake_amount_usd;
       } else {
-        pick.profit_loss = 0; // Void bet
+        pick.profit_loss_usd = 0; // Void bet - return stake
       }
 
       await fs.writeFile(this.historyFilePath, JSON.stringify(picks, null, 2));
       
       this.logger.log(
-        `Updated pick ${pickId}: ${status} - P&L: ${pick.profit_loss} units`
+        `Updated pick ${pickId}: ${status} - P&L: $${pick.profit_loss_usd}`
       );
     } catch (error) {
       this.logger.error(`Failed to update pick result: ${error.message}`);
       throw error;
     }
-  }
-
-  /**
-   * Parse stake units from recommendation string
-   */
-  private parseStakeUnits(stakeRecommendation: string): number {
-    const match = stakeRecommendation.match(/(\d+(?:\.\d+)?)/);
-    return match ? parseFloat(match[1]) : 1;
   }
 
   /**

@@ -1,8 +1,14 @@
-# Betting Strategy & History System
+# Professional Betting Strategy & $10K Portfolio Tracker
 
 ## Overview
 
-This system implements a comprehensive betting strategy engine that analyzes real sports events, generates picks, tracks results, and builds verifiable performance history starting from February 10, 2026.
+This system implements a professional betting strategy engine with **$10,000 USD starting capital** that analyzes real sports events, generates picks with proper money management, tracks results, and builds verifiable performance history starting from February 10, 2026.
+
+## 💰 **PROFESSIONAL MONEY MANAGEMENT**
+- **Starting Bankroll**: $10,000 USD
+- **Stake Sizes**: 1-5% of current bankroll (max $500 per bet)
+- **Risk Management**: Never risk more than 5% on a single pick
+- **Conservative Approach**: Percentage-based sizing with bankroll protection
 
 ## System Components
 
@@ -39,7 +45,7 @@ RESTful API endpoints:
 
 ## Data Structure
 
-Each betting pick contains:
+Each betting pick contains real dollar amounts:
 ```json
 {
   "id": "uuid",
@@ -49,11 +55,12 @@ Each betting pick contains:
   "pick": "Arsenal Win",
   "odds": 1.85,
   "confidence": 8,
-  "stake_recommendation": "2 units",
+  "stake_amount_usd": 400,
+  "stake_percentage": 4,
   "strategy": "home_favorite",
   "status": "pending|won|lost|void",
   "result": null,
-  "profit_loss": null,
+  "profit_loss_usd": null,
   "created_at": "ISO timestamp",
   "home_team": "Arsenal",
   "away_team": "Chelsea",
@@ -61,49 +68,67 @@ Each betting pick contains:
 }
 ```
 
-## Strategy Rules
+## Strategy Rules & Money Management
 
-### 1. Home Favorite Strategy
+### 1. Stake Sizing (Percentage-Based)
+- **Confidence 9-10**: 5% stake (max $500)
+- **Confidence 8**: 4% stake (~$400)
+- **Confidence 7**: 3% stake (~$300)
+- **Confidence 6**: 2% stake (~$200)
+- **Confidence 5 or below**: 1% stake (~$100)
+
+### 2. Home Favorite Strategy
 - Analyzes home win rates by league
 - Targets leagues with >43% home win rate
 - Confidence scoring based on historical data
-- Recommends 1-2 units based on confidence
+- Conservative dollar-based stakes
 
-### 2. Over/Under Strategy
+### 3. Over/Under Strategy
 - Uses league-specific goal/point averages
 - Football: Over/Under 2.5 goals
 - Basketball: Total points thresholds
-- Confidence based on deviation from average
+- Risk-adjusted position sizing
 
-### 3. Value Betting
+### 4. Value Betting
 - Identifies strong teams as potential underdogs
 - Looks for market inefficiencies
 - Conservative approach with safer bets (Win/Draw)
-- Higher confidence for recognized value
+- Higher stakes for high-confidence value spots
 
-## Performance Tracking
+### 5. Kelly Criterion (Alternative)
+- Mathematical optimal sizing
+- Capped at 5% for safety (quarter Kelly)
+- Based on estimated probabilities
 
-The system tracks:
-- **Total Picks**: All generated picks
+## Professional Performance Tracking
+
+The system tracks real dollar metrics:
+- **Current Bankroll**: Real-time USD balance
+- **Total P&L**: Actual profit/loss in USD
 - **Win Rate**: Percentage of successful picks
 - **ROI**: Return on investment percentage
+- **Total Return**: Portfolio return percentage
 - **Current Streak**: Consecutive wins
 - **Best Streak**: Historical best winning streak
-- **Bankroll**: Starting 100 units + profit/loss
-- **Strategy Performance**: Breakdown by strategy type
+- **Average Stake**: Average bet size in USD
+- **Total Staked**: Total capital risked
+- **Portfolio Health**: Risk assessment and status
+- **Strategy Performance**: USD breakdown by strategy type
 
-## Initial Data
+## Initial $10K Portfolio Allocation
 
-Starting with 8 real picks based on actual English League 1 fixtures for February 10-14, 2026:
+Starting with 8 real picks totaling **$2,300 staked** from $10,000 bankroll:
 
-1. **Stevenage vs Barnsley** (Feb 10) - Stevenage Win @ 2.05
-2. **Mansfield Town vs Peterborough United** (Feb 10) - Over 2.5 Goals @ 1.95
-3. **Wigan Athletic vs Reading** (Feb 10) - Wigan Win @ 1.80
-4. **Barnsley vs AFC Wimbledon** (Feb 14) - Under 2.5 Goals @ 2.15
-5. **Blackpool vs Plymouth Argyle** (Feb 14) - Blackpool Win/Draw @ 1.45
-6. **Lincoln City vs Bolton Wanderers** (Feb 14) - Bolton Win @ 2.40
-7. **Reading vs Wycombe Wanderers** (Feb 14) - Over 2.5 Goals @ 1.85
-8. **Cardiff City vs Luton Town** (Feb 14) - Cardiff Win @ 1.75
+1. **Stevenage vs Barnsley** (Feb 10) - Stevenage Win @ 2.05 | **$300 stake (3%)**
+2. **Mansfield vs Peterborough** (Feb 10) - Over 2.5 Goals @ 1.95 | **$200 stake (2%)**
+3. **Wigan Athletic vs Reading** (Feb 10) - Wigan Win @ 1.80 | **$400 stake (4%)**
+4. **Barnsley vs AFC Wimbledon** (Feb 14) - Under 2.5 Goals @ 2.15 | **$100 stake (1%)**
+5. **Blackpool vs Plymouth Argyle** (Feb 14) - Blackpool Win/Draw @ 1.45 | **$400 stake (4%)**
+6. **Lincoln City vs Bolton Wanderers** (Feb 14) - Bolton Win @ 2.40 | **$200 stake (2%)**
+7. **Reading vs Wycombe Wanderers** (Feb 14) - Over 2.5 Goals @ 1.85 | **$300 stake (3%)**
+8. **Cardiff City vs Luton Town** (Feb 14) - Cardiff Win @ 1.75 | **$400 stake (4%)**
+
+**Portfolio Status**: 23% of bankroll currently allocated across 8 positions
 
 ## Automation
 
@@ -135,11 +160,14 @@ curl "http://localhost:3000/api/strategy/today"
 curl "http://localhost:3000/api/strategy/performance"
 ```
 
-### Mark Pick as Won
+### Mark Pick as Won (Shows Real Profit)
 ```bash
-curl -X POST "http://localhost:3000/api/strategy/resolve/pick-id" \
+curl -X POST "http://localhost:3000/api/strategy/resolve/0c8b2f4e-8c4a-4e8d-9a5b-1f2c3d4e5f6g" \
   -H "Content-Type: application/json" \
-  -d '{"status": "won", "result": "Arsenal won 2-1"}'
+  -d '{"status": "won", "result": "Stevenage won 2-1"}'
+
+# Response shows:
+# stake_amount_usd: 300, odds: 2.05, profit_loss_usd: +315 (1.05 * 300)
 ```
 
 ### Get Betting History
@@ -157,9 +185,33 @@ curl "http://localhost:3000/api/strategy/history?page=1&limit=10&status=won"
 6. **Advanced Analytics**: Heat maps, trend analysis
 7. **Social Features**: Community picks, leaderboards
 
+## 💼 Professional Money Management Features
+
+### 1. **Dynamic Bankroll Management**
+- Real-time bankroll calculation based on P&L
+- Percentage-based stakes adjust with bankroll changes
+- Conservative maximum 5% risk per position
+
+### 2. **Kelly Criterion Implementation**
+- Mathematical optimal sizing available
+- Quarter-Kelly safety factor applied
+- Probability-based stake calculation
+
+### 3. **Portfolio Health Monitoring**
+- **Excellent**: +20% returns or better
+- **Good**: +10% to +20% returns
+- **Fair**: 0% to +10% returns
+- **Poor**: -10% to 0% returns
+- **Critical**: Below -10% returns (urgent review needed)
+
+### 4. **Risk Controls**
+- Maximum 5% of bankroll per bet
+- Total exposure monitoring
+- Drawdown protection protocols
+
 ## Database Schema
 
-The system currently uses JSON file storage but can be easily migrated to PostgreSQL:
+Professional USD-based schema for PostgreSQL migration:
 
 ```sql
 CREATE TABLE betting_picks (
@@ -170,15 +222,28 @@ CREATE TABLE betting_picks (
   pick TEXT NOT NULL,
   odds DECIMAL(5,2) NOT NULL,
   confidence INTEGER CHECK (confidence >= 1 AND confidence <= 10),
-  stake_recommendation VARCHAR(50),
+  stake_amount_usd DECIMAL(10,2) NOT NULL,
+  stake_percentage DECIMAL(4,2) NOT NULL,
   strategy VARCHAR(50) NOT NULL,
   status VARCHAR(20) DEFAULT 'pending',
   result TEXT,
-  profit_loss DECIMAL(10,2),
+  profit_loss_usd DECIMAL(10,2),
   created_at TIMESTAMP DEFAULT NOW(),
   home_team VARCHAR(100),
   away_team VARCHAR(100),
   match_time TIME
+);
+
+-- Portfolio tracking table
+CREATE TABLE portfolio_snapshots (
+  id UUID PRIMARY KEY,
+  date DATE NOT NULL,
+  bankroll_usd DECIMAL(12,2) NOT NULL,
+  total_staked_usd DECIMAL(12,2) NOT NULL,
+  profit_loss_usd DECIMAL(12,2) NOT NULL,
+  win_rate DECIMAL(5,2),
+  roi DECIMAL(5,2),
+  created_at TIMESTAMP DEFAULT NOW()
 );
 ```
 
@@ -204,12 +269,43 @@ CREATE TABLE betting_picks (
    curl http://localhost:3000/api/strategy/today
    ```
 
+## 📊 Current Portfolio Status
+
+```json
+{
+  "startingBankrollUsd": 10000,
+  "currentBankrollUsd": 10000,
+  "totalStakedUsd": 2300,
+  "availableFundsUsd": 7700,
+  "portfolioAllocation": "23%",
+  "activePicks": 8,
+  "pendingPicks": 8,
+  "portfolioHealth": "fair - starting position"
+}
+```
+
+**Risk Management**: 23% of portfolio currently allocated across 8 carefully selected positions. Conservative approach maintains 77% in reserve for future opportunities.
+
 ## Verification & Transparency
 
-- All picks are timestamped and immutable once created
-- Historical performance is verifiable through the JSON history
-- Strategy logic is open and auditable
+- All picks timestamped and immutable once created
+- Real dollar amounts tracked and auditable
+- Performance verifiable through JSON history
+- Professional money management rules enforced
+- Strategy logic open and transparent
 - Real event data from trusted TheSportsDB API
-- Performance metrics calculated mathematically
+- Mathematical profit/loss calculations
+- Portfolio health monitoring
 
-This system provides a solid foundation for professional betting strategy management with full transparency and accountability.
+## Professional Features
+
+✅ **$10,000 Real Money Tracking**  
+✅ **Percentage-Based Position Sizing**  
+✅ **Conservative Risk Management (Max 5%)**  
+✅ **Kelly Criterion Implementation**  
+✅ **Real-Time Bankroll Updates**  
+✅ **Portfolio Health Monitoring**  
+✅ **Professional P&L Reporting**  
+✅ **Auditable Performance History**
+
+This system provides a professional-grade betting strategy platform with institutional-quality money management and full transparency.

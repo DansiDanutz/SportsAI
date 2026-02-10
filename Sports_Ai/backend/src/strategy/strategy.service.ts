@@ -11,11 +11,12 @@ export interface BettingPick {
   pick: string;
   odds: number;
   confidence: number; // 1-10
-  stake_recommendation: string;
+  stake_amount_usd: number; // Actual dollar amount
+  stake_percentage: number; // Percentage of bankroll (1-5%)
   strategy: string;
   status: 'pending' | 'won' | 'lost' | 'void';
   result: string | null;
-  profit_loss: number | null;
+  profit_loss_usd: number | null; // Profit/loss in USD
   created_at: string;
   home_team?: string;
   away_team?: string;
@@ -38,6 +39,9 @@ interface SportsEvent {
 @Injectable()
 export class StrategyService {
   private readonly logger = new Logger(StrategyService.name);
+  private readonly STARTING_BANKROLL_USD = 10000; // $10,000 starting capital
+  private readonly MAX_STAKE_PERCENTAGE = 5; // Never risk more than 5%
+  private readonly MIN_STAKE_PERCENTAGE = 1; // Minimum 1%
 
   constructor(private historyService: HistoryService) {}
 
@@ -160,6 +164,9 @@ export class StrategyService {
       // Strategy 1: Home Favorite Analysis
       const homeFavoritePick = this.analyzeHomeFavorite(event);
       if (homeFavoritePick) {
+        const currentBankroll = await this.getCurrentBankroll();
+        const stakeInfo = this.calculateStakeAmount(homeFavoritePick.confidence, currentBankroll);
+        
         picks.push({
           id: uuidv4(),
           date: matchDate,
@@ -168,11 +175,12 @@ export class StrategyService {
           pick: homeFavoritePick.pick,
           odds: homeFavoritePick.odds,
           confidence: homeFavoritePick.confidence,
-          stake_recommendation: homeFavoritePick.stakeRecommendation,
+          stake_amount_usd: stakeInfo.amount,
+          stake_percentage: stakeInfo.percentage,
           strategy: 'home_favorite',
           status: 'pending',
           result: null,
-          profit_loss: null,
+          profit_loss_usd: null,
           created_at: new Date().toISOString(),
           home_team: homeTeam,
           away_team: awayTeam,
@@ -183,6 +191,9 @@ export class StrategyService {
       // Strategy 2: Over/Under Analysis
       const overUnderPick = this.analyzeOverUnder(event);
       if (overUnderPick) {
+        const currentBankroll = await this.getCurrentBankroll();
+        const stakeInfo = this.calculateStakeAmount(overUnderPick.confidence, currentBankroll);
+        
         picks.push({
           id: uuidv4(),
           date: matchDate,
@@ -191,11 +202,12 @@ export class StrategyService {
           pick: overUnderPick.pick,
           odds: overUnderPick.odds,
           confidence: overUnderPick.confidence,
-          stake_recommendation: overUnderPick.stakeRecommendation,
+          stake_amount_usd: stakeInfo.amount,
+          stake_percentage: stakeInfo.percentage,
           strategy: 'over_under',
           status: 'pending',
           result: null,
-          profit_loss: null,
+          profit_loss_usd: null,
           created_at: new Date().toISOString(),
           home_team: homeTeam,
           away_team: awayTeam,
@@ -206,6 +218,9 @@ export class StrategyService {
       // Strategy 3: Value Bet Detection
       const valueBet = this.detectValueBet(event);
       if (valueBet) {
+        const currentBankroll = await this.getCurrentBankroll();
+        const stakeInfo = this.calculateStakeAmount(valueBet.confidence, currentBankroll);
+        
         picks.push({
           id: uuidv4(),
           date: matchDate,
@@ -214,11 +229,12 @@ export class StrategyService {
           pick: valueBet.pick,
           odds: valueBet.odds,
           confidence: valueBet.confidence,
-          stake_recommendation: valueBet.stakeRecommendation,
+          stake_amount_usd: stakeInfo.amount,
+          stake_percentage: stakeInfo.percentage,
           strategy: 'value_bet',
           status: 'pending',
           result: null,
-          profit_loss: null,
+          profit_loss_usd: null,
           created_at: new Date().toISOString(),
           home_team: homeTeam,
           away_team: awayTeam,
@@ -262,8 +278,7 @@ export class StrategyService {
       return {
         pick: `${event.strHomeTeam} Win`,
         odds: Math.round(baseOdds * 100) / 100,
-        confidence: Math.min(confidence, 8),
-        stakeRecommendation: confidence >= 7 ? '2 units' : '1 unit'
+        confidence: Math.min(confidence, 8)
       };
     }
 
@@ -307,8 +322,7 @@ export class StrategyService {
         return {
           pick: pick,
           odds: Math.round(odds * 100) / 100,
-          confidence: Math.floor(5 + Math.abs(overProbability - 0.5) * 10),
-          stakeRecommendation: '1 unit'
+          confidence: Math.floor(5 + Math.abs(overProbability - 0.5) * 10)
         };
       } else if (sport?.includes('basketball')) {
         // For basketball, analyze total points
@@ -318,8 +332,7 @@ export class StrategyService {
         return {
           pick: pick,
           odds: 1.90 + Math.random() * 0.20,
-          confidence: 6,
-          stakeRecommendation: '1 unit'
+          confidence: 6
         };
       }
     }
@@ -356,8 +369,7 @@ export class StrategyService {
         return {
           pick: pick,
           odds: 1.40 + Math.random() * 0.30, // Lower odds for safer bet
-          confidence: 8,
-          stakeRecommendation: '2 units'
+          confidence: 8
         };
       }
     }
@@ -413,11 +425,84 @@ export class StrategyService {
   }
 
   /**
-   * Calculate performance metrics
+   * Calculate current bankroll based on starting amount + profit/loss
+   */
+  async getCurrentBankroll(): Promise<number> {
+    const allPicks = await this.historyService.getAllPicks();
+    const completedPicks = allPicks.filter(pick => pick.status === 'won' || pick.status === 'lost');
+    
+    const totalProfitLoss = completedPicks.reduce((sum, pick) => sum + (pick.profit_loss_usd || 0), 0);
+    return this.STARTING_BANKROLL_USD + totalProfitLoss;
+  }
+
+  /**
+   * Calculate stake amount based on confidence and current bankroll
+   * Uses conservative percentage-based staking (1-5% max)
+   */
+  calculateStakeAmount(confidence: number, currentBankroll: number): {
+    amount: number;
+    percentage: number;
+  } {
+    // Map confidence (1-10) to stake percentage (1-5%)
+    // Conservative approach: Higher confidence = higher stake
+    let stakePercentage: number;
+    
+    if (confidence >= 9) {
+      stakePercentage = 5; // Maximum 5%
+    } else if (confidence >= 8) {
+      stakePercentage = 4; // 4%
+    } else if (confidence >= 7) {
+      stakePercentage = 3; // 3%
+    } else if (confidence >= 6) {
+      stakePercentage = 2; // 2%
+    } else {
+      stakePercentage = 1; // Minimum 1%
+    }
+
+    const stakeAmount = Math.round((currentBankroll * stakePercentage) / 100);
+    
+    return {
+      amount: stakeAmount,
+      percentage: stakePercentage
+    };
+  }
+
+  /**
+   * Kelly Criterion calculation (alternative staking method)
+   * Formula: f = (bp - q) / b
+   * where f = fraction to bet, b = odds-1, p = probability, q = 1-p
+   */
+  calculateKellyStake(odds: number, confidence: number, currentBankroll: number): {
+    amount: number;
+    percentage: number;
+  } {
+    // Convert confidence (1-10) to probability estimate
+    const probability = Math.min(0.95, Math.max(0.45, (confidence + 40) / 100));
+    
+    const b = odds - 1; // Net odds
+    const p = probability; // Win probability
+    const q = 1 - p; // Loss probability
+    
+    const kellyFraction = (b * p - q) / b;
+    
+    // Cap Kelly at 5% for safety (quarter Kelly or less)
+    const safeKellyPercentage = Math.max(1, Math.min(5, kellyFraction * 25));
+    const stakeAmount = Math.round((currentBankroll * safeKellyPercentage) / 100);
+    
+    return {
+      amount: stakeAmount,
+      percentage: Math.round(safeKellyPercentage * 100) / 100
+    };
+  }
+
+  /**
+   * Calculate performance metrics in USD
    */
   async getPerformanceMetrics() {
     const allPicks = await this.historyService.getAllPicks();
     const completedPicks = allPicks.filter(pick => pick.status === 'won' || pick.status === 'lost');
+    
+    const currentBankroll = await this.getCurrentBankroll();
     
     if (completedPicks.length === 0) {
       return {
@@ -429,8 +514,10 @@ export class StrategyService {
         roi: 0,
         currentStreak: 0,
         bestStreak: 0,
-        totalProfit: 0,
-        bankroll: 100 // Starting bankroll
+        totalProfitUsd: 0,
+        currentBankrollUsd: currentBankroll,
+        startingBankrollUsd: this.STARTING_BANKROLL_USD,
+        totalReturn: 0
       };
     }
 
@@ -438,9 +525,10 @@ export class StrategyService {
     const losses = completedPicks.filter(pick => pick.status === 'lost').length;
     const winRate = (wins / completedPicks.length) * 100;
 
-    const totalProfit = completedPicks.reduce((sum, pick) => sum + (pick.profit_loss || 0), 0);
-    const totalStaked = completedPicks.length * 1; // Assuming average 1 unit per bet
-    const roi = totalStaked > 0 ? (totalProfit / totalStaked) * 100 : 0;
+    const totalProfitUsd = completedPicks.reduce((sum, pick) => sum + (pick.profit_loss_usd || 0), 0);
+    const totalStakedUsd = completedPicks.reduce((sum, pick) => sum + (pick.stake_amount_usd || 0), 0);
+    const roi = totalStakedUsd > 0 ? (totalProfitUsd / totalStakedUsd) * 100 : 0;
+    const totalReturn = ((currentBankroll - this.STARTING_BANKROLL_USD) / this.STARTING_BANKROLL_USD) * 100;
 
     // Calculate streaks
     let currentStreak = 0;
@@ -475,8 +563,35 @@ export class StrategyService {
       roi: Math.round(roi * 100) / 100,
       currentStreak,
       bestStreak,
-      totalProfit: Math.round(totalProfit * 100) / 100,
-      bankroll: Math.round((100 + totalProfit) * 100) / 100
+      totalProfitUsd: Math.round(totalProfitUsd * 100) / 100,
+      currentBankrollUsd: Math.round(currentBankroll * 100) / 100,
+      startingBankrollUsd: this.STARTING_BANKROLL_USD,
+      totalReturn: Math.round(totalReturn * 100) / 100,
+      totalStakedUsd: Math.round(totalStakedUsd * 100) / 100,
+      averageStakeUsd: completedPicks.length > 0 ? Math.round((totalStakedUsd / completedPicks.length) * 100) / 100 : 0,
+      portfolioHealth: this.getPortfolioHealth(currentBankroll, totalProfitUsd)
     };
+  }
+
+  /**
+   * Get portfolio health assessment
+   */
+  private getPortfolioHealth(currentBankroll: number, totalProfitUsd: number): {
+    status: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
+    description: string;
+  } {
+    const returnPercentage = ((currentBankroll - this.STARTING_BANKROLL_USD) / this.STARTING_BANKROLL_USD) * 100;
+    
+    if (returnPercentage >= 20) {
+      return { status: 'excellent', description: 'Outstanding performance, portfolio growing strongly' };
+    } else if (returnPercentage >= 10) {
+      return { status: 'good', description: 'Good returns, solid performance' };
+    } else if (returnPercentage >= 0) {
+      return { status: 'fair', description: 'Positive returns, steady progress' };
+    } else if (returnPercentage >= -10) {
+      return { status: 'poor', description: 'Minor losses, needs improvement' };
+    } else {
+      return { status: 'critical', description: 'Significant losses, review strategy urgently' };
+    }
   }
 }
