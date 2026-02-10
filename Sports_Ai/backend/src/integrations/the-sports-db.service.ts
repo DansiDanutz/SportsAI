@@ -57,4 +57,46 @@ export class TheSportsDbService implements OnModuleInit {
       throw error;
     }
   }
+
+  async getLeagueTable(leagueId: string, season?: string) {
+    try {
+      const params: any = { l: leagueId };
+      if (season) {
+        params.s = season;
+      }
+      
+      const response = await this.client.get('/lookuptable.php', { params });
+      return response.data.table || [];
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to get league table: ${msg}`);
+      throw error;
+    }
+  }
+
+  async getPastEvents(leagueId: string) {
+    try {
+      const response = await this.client.get('/eventspastleague.php', {
+        params: { id: leagueId },
+      });
+      return response.data.events || [];
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to get past events: ${msg}`);
+      throw error;
+    }
+  }
+
+  async getUpcomingEvents(leagueId: string) {
+    try {
+      const response = await this.client.get('/eventsnextleague.php', {
+        params: { id: leagueId },
+      });
+      return response.data.events || [];
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to get upcoming events: ${msg}`);
+      throw error;
+    }
+  }
 }

@@ -8,7 +8,6 @@ import { SportmonksService } from './sportmonks.service';
 import { NewsService } from './news.service';
 import { SyncService } from './sync.service';
 import { FreeApisService } from './free-apis.service';
-import { DemoDataService } from './demo-data.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { ApifyModule } from '../apify/apify.module';
@@ -31,7 +30,6 @@ import { ApifyModule } from '../apify/apify.module';
     NewsService,
     SyncService,
     FreeApisService,
-    DemoDataService,
   ],
   exports: [
     MappingService,
@@ -42,7 +40,6 @@ import { ApifyModule } from '../apify/apify.module';
     NewsService,
     SyncService,
     FreeApisService,
-    DemoDataService,
   ],
 })
 export class IntegrationsModule {}

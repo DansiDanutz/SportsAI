@@ -138,7 +138,7 @@ export class UsersService {
       throw new Error('User not found');
     }
 
-    // Calculate end of billing period (assume 30 days from now for demo)
+    // Calculate end of billing period (default 30 days from cancellation)
     const accessEndsAt = new Date();
     accessEndsAt.setDate(accessEndsAt.getDate() + 30);
 
