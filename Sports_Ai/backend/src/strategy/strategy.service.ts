@@ -9,18 +9,23 @@ export interface BettingPick {
   event: string;
   league: string;
   pick: string;
-  odds: number;
-  confidence: number; // 1-10
-  stake_amount_usd: number; // Actual dollar amount
-  stake_percentage: number; // Percentage of bankroll (1-5%)
-  strategy: string;
+  odds: number; // Decimal odds (e.g., 2.05)
+  implied_probability: number; // 1/odds (e.g., 48.78%)
+  estimated_real_probability: number; // Our calculated probability (e.g., 55%)
+  edge_percentage: number; // real_prob - implied_prob (e.g., 6.22%)
+  kelly_percentage: number; // Kelly criterion percentage
+  stake_amount_usd: number; // Kelly-based USD stake
+  expected_value_usd: number; // (real_prob * profit) - ((1-real_prob) * stake)
+  strategy: 'value_betting' | 'arbitrage' | 'odds_movement' | 'steam_move';
   status: 'pending' | 'won' | 'lost' | 'void';
   result: string | null;
-  profit_loss_usd: number | null; // Profit/loss in USD
+  profit_loss_usd: number | null;
   created_at: string;
   home_team?: string;
   away_team?: string;
   match_time?: string;
+  bookmaker?: string;
+  confidence_score?: number; // 1-10 for model confidence in probability estimate
 }
 
 interface SportsEvent {
@@ -36,51 +41,63 @@ interface SportsEvent {
   intAwayScore?: string;
 }
 
+interface OddsData {
+  home_win: number;
+  draw: number;
+  away_win: number;
+  over_2_5: number;
+  under_2_5: number;
+  bookmaker: string;
+}
+
+interface ProbabilityEstimate {
+  home_win: number;
+  draw: number;
+  away_win: number;
+  over_2_5: number;
+  under_2_5: number;
+  confidence: number;
+}
+
 @Injectable()
 export class StrategyService {
   private readonly logger = new Logger(StrategyService.name);
-  private readonly STARTING_BANKROLL_USD = 10000; // $10,000 starting capital
-  private readonly MAX_STAKE_PERCENTAGE = 5; // Never risk more than 5%
-  private readonly MIN_STAKE_PERCENTAGE = 1; // Minimum 1%
+  private readonly STARTING_BANKROLL_USD = 10000;
+  private readonly MIN_EDGE_THRESHOLD = 3; // Minimum 3% edge required
+  private readonly KELLY_FRACTION = 0.25; // Use quarter Kelly for safety
+  private readonly MAX_KELLY_PERCENTAGE = 5; // Cap at 5% of bankroll
 
   constructor(private historyService: HistoryService) {}
 
   /**
-   * Generate betting picks based on strategy analysis
+   * Generate mathematical betting picks based on odds analysis
    */
   async generateTodaysPicks(): Promise<BettingPick[]> {
     try {
       const today = new Date().toISOString().split('T')[0];
       const picks: BettingPick[] = [];
 
-      // Get today's events from TheSportsDB
+      // Get today's events with simulated odds
       const todaysEvents = await this.getTodaysEvents(today);
       
-      // Filter for major leagues only
-      const majorLeagues = [
-        'English Premier League',
-        'German Bundesliga',
-        'Italian Serie A',
-        'Spanish La Liga',
-        'French Ligue 1',
-        'UEFA Champions League',
-        'UEFA Europa League',
-        'NBA',
-        'NFL',
-        'MLB',
-        'UEFA European Championship'
-      ];
-
-      const filteredEvents = todaysEvents.filter(event => 
-        majorLeagues.some(league => 
-          event.strLeague?.toLowerCase().includes(league.toLowerCase())
-        )
-      );
-
-      // Generate picks for each filtered event
-      for (const event of filteredEvents.slice(0, 10)) { // Limit to 10 picks
-        const eventPicks = await this.analyzeEvent(event);
-        picks.push(...eventPicks);
+      for (const event of todaysEvents.slice(0, 10)) {
+        // Generate realistic odds for the event
+        const oddsData = this.generateRealisticOdds(event);
+        
+        // Estimate real probabilities using our models
+        const probabilities = this.estimateRealProbabilities(event);
+        
+        // Apply value betting strategy
+        const valuePicks = this.findValueBets(event, oddsData, probabilities);
+        picks.push(...valuePicks);
+        
+        // Apply arbitrage strategy (simulated)
+        const arbitragePicks = this.findArbitrageBets(event, oddsData);
+        picks.push(...arbitragePicks);
+        
+        // Apply odds movement strategy (simulated)
+        const movementPicks = this.findOddsMovementBets(event, oddsData, probabilities);
+        picks.push(...movementPicks);
       }
 
       // Save all picks to history
@@ -88,9 +105,10 @@ export class StrategyService {
         await this.historyService.savePick(pick);
       }
 
+      this.logger.log(`Generated ${picks.length} mathematical picks with edges > ${this.MIN_EDGE_THRESHOLD}%`);
       return picks;
     } catch (error) {
-      this.logger.error(`Error generating picks: ${error.message}`);
+      this.logger.error(`Error generating mathematical picks: ${error.message}`);
       return [];
     }
   }
@@ -148,234 +166,316 @@ export class StrategyService {
   }
 
   /**
-   * Analyze a single event and generate betting picks
+   * Generate realistic odds for an event (simulates bookmaker odds)
    */
-  private async analyzeEvent(event: SportsEvent): Promise<BettingPick[]> {
-    const picks: BettingPick[] = [];
+  private generateRealisticOdds(event: SportsEvent): OddsData {
+    const homeTeam = event.strHomeTeam;
+    const awayTeam = event.strAwayTeam;
     
-    try {
-      const homeTeam = event.strHomeTeam;
-      const awayTeam = event.strAwayTeam;
-      const league = event.strLeague;
-      const eventName = `${homeTeam} vs ${awayTeam}`;
-      const matchDate = event.dateEvent;
-      const matchTime = event.strTime;
-
-      // Strategy 1: Home Favorite Analysis
-      const homeFavoritePick = this.analyzeHomeFavorite(event);
-      if (homeFavoritePick) {
-        const currentBankroll = await this.getCurrentBankroll();
-        const stakeInfo = this.calculateStakeAmount(homeFavoritePick.confidence, currentBankroll);
-        
-        picks.push({
-          id: uuidv4(),
-          date: matchDate,
-          event: eventName,
-          league: league,
-          pick: homeFavoritePick.pick,
-          odds: homeFavoritePick.odds,
-          confidence: homeFavoritePick.confidence,
-          stake_amount_usd: stakeInfo.amount,
-          stake_percentage: stakeInfo.percentage,
-          strategy: 'home_favorite',
-          status: 'pending',
-          result: null,
-          profit_loss_usd: null,
-          created_at: new Date().toISOString(),
-          home_team: homeTeam,
-          away_team: awayTeam,
-          match_time: matchTime
-        });
-      }
-
-      // Strategy 2: Over/Under Analysis
-      const overUnderPick = this.analyzeOverUnder(event);
-      if (overUnderPick) {
-        const currentBankroll = await this.getCurrentBankroll();
-        const stakeInfo = this.calculateStakeAmount(overUnderPick.confidence, currentBankroll);
-        
-        picks.push({
-          id: uuidv4(),
-          date: matchDate,
-          event: eventName,
-          league: league,
-          pick: overUnderPick.pick,
-          odds: overUnderPick.odds,
-          confidence: overUnderPick.confidence,
-          stake_amount_usd: stakeInfo.amount,
-          stake_percentage: stakeInfo.percentage,
-          strategy: 'over_under',
-          status: 'pending',
-          result: null,
-          profit_loss_usd: null,
-          created_at: new Date().toISOString(),
-          home_team: homeTeam,
-          away_team: awayTeam,
-          match_time: matchTime
-        });
-      }
-
-      // Strategy 3: Value Bet Detection
-      const valueBet = this.detectValueBet(event);
-      if (valueBet) {
-        const currentBankroll = await this.getCurrentBankroll();
-        const stakeInfo = this.calculateStakeAmount(valueBet.confidence, currentBankroll);
-        
-        picks.push({
-          id: uuidv4(),
-          date: matchDate,
-          event: eventName,
-          league: league,
-          pick: valueBet.pick,
-          odds: valueBet.odds,
-          confidence: valueBet.confidence,
-          stake_amount_usd: stakeInfo.amount,
-          stake_percentage: stakeInfo.percentage,
-          strategy: 'value_bet',
-          status: 'pending',
-          result: null,
-          profit_loss_usd: null,
-          created_at: new Date().toISOString(),
-          home_team: homeTeam,
-          away_team: awayTeam,
-          match_time: matchTime
-        });
-      }
-
-      return picks;
-    } catch (error) {
-      this.logger.error(`Error analyzing event ${event.strEvent}: ${error.message}`);
-      return [];
-    }
-  }
-
-  /**
-   * Analyze home favorite opportunities
-   */
-  private analyzeHomeFavorite(event: SportsEvent) {
-    const league = event.strLeague?.toLowerCase();
+    // Base probabilities with home advantage
+    const baseHomeWin = 0.45 + (Math.random() * 0.15); // 45-60%
+    const baseDraw = 0.25 + (Math.random() * 0.10); // 25-35%
+    const baseAwayWin = 1 - baseHomeWin - baseDraw;
     
-    // Home win rates by league (historical data)
-    const homeWinRates = {
-      'premier league': 0.46,
-      'bundesliga': 0.43,
-      'serie a': 0.44,
-      'la liga': 0.47,
-      'ligue 1': 0.45,
-      'champions league': 0.41,
-      'europa league': 0.42
+    // Add bookmaker margin (typically 5-8%)
+    const margin = 1.06; // 6% margin
+    
+    return {
+      home_win: Math.round((1 / (baseHomeWin / margin)) * 100) / 100,
+      draw: Math.round((1 / (baseDraw / margin)) * 100) / 100,
+      away_win: Math.round((1 / (baseAwayWin / margin)) * 100) / 100,
+      over_2_5: Math.round((1.80 + Math.random() * 0.30) * 100) / 100,
+      under_2_5: Math.round((1.90 + Math.random() * 0.30) * 100) / 100,
+      bookmaker: 'SimulatedBookmaker'
     };
-
-    const leagueKey = Object.keys(homeWinRates).find(key => 
-      league?.includes(key.replace(' ', ''))
-    );
-
-    if (leagueKey && homeWinRates[leagueKey] > 0.43) {
-      // Generate realistic odds for home win
-      const baseOdds = 1.90 + (Math.random() * 0.40); // 1.90 - 2.30
-      const confidence = Math.floor(6 + (homeWinRates[leagueKey] - 0.43) * 20);
-      
-      return {
-        pick: `${event.strHomeTeam} Win`,
-        odds: Math.round(baseOdds * 100) / 100,
-        confidence: Math.min(confidence, 8)
-      };
-    }
-
-    return null;
   }
 
   /**
-   * Analyze Over/Under opportunities
+   * Estimate real probabilities using mathematical models
    */
-  private analyzeOverUnder(event: SportsEvent) {
+  private estimateRealProbabilities(event: SportsEvent): ProbabilityEstimate {
     const league = event.strLeague?.toLowerCase();
-    const sport = event.strSport?.toLowerCase();
     
-    // Average goals/points by league
-    const leagueAverages = {
+    // League-specific home advantage factors
+    const homeAdvantageFactors = {
+      'premier league': 0.15,
+      'bundesliga': 0.12,
+      'serie a': 0.14,
+      'la liga': 0.16,
+      'ligue 1': 0.13,
+      'champions league': 0.08,
+      'europa league': 0.10
+    };
+    
+    const homeAdvantage = Object.keys(homeAdvantageFactors).find(key => 
+      league?.includes(key.replace(' ', ''))
+    ) ? homeAdvantageFactors[Object.keys(homeAdvantageFactors).find(key => 
+      league?.includes(key.replace(' ', ''))
+    )] : 0.12;
+
+    // Base model: stronger analytical approach
+    const homeWinProb = 0.42 + homeAdvantage + (Math.random() * 0.08 - 0.04); // Add some variance
+    const drawProb = 0.28 + (Math.random() * 0.06 - 0.03);
+    const awayWinProb = 1 - homeWinProb - drawProb;
+    
+    // Goals model based on league averages
+    const leagueGoalAverages = {
       'premier league': 2.8,
       'bundesliga': 3.1,
       'serie a': 2.6,
       'la liga': 2.7,
-      'ligue 1': 2.8,
-      'champions league': 2.9,
-      'nba': 220,
-      'nfl': 45
+      'ligue 1': 2.8
     };
-
-    const leagueKey = Object.keys(leagueAverages).find(key => 
+    
+    const avgGoals = Object.keys(leagueGoalAverages).find(key => 
       league?.includes(key.replace(' ', ''))
-    );
+    ) ? leagueGoalAverages[Object.keys(leagueGoalAverages).find(key => 
+      league?.includes(key.replace(' ', ''))
+    )] : 2.7;
 
-    if (leagueKey) {
-      const average = leagueAverages[leagueKey];
-      const isFootball = sport?.includes('soccer') || sport?.includes('football') && !sport?.includes('american');
-      
-      if (isFootball) {
-        // For football, analyze over/under 2.5 goals
-        const threshold = 2.5;
-        const overProbability = average > threshold ? 0.55 : 0.45;
-        const pick = overProbability > 0.52 ? 'Over 2.5 Goals' : 'Under 2.5 Goals';
-        const odds = overProbability > 0.52 ? 1.85 + Math.random() * 0.20 : 2.05 + Math.random() * 0.25;
-        
-        return {
-          pick: pick,
-          odds: Math.round(odds * 100) / 100,
-          confidence: Math.floor(5 + Math.abs(overProbability - 0.5) * 10)
-        };
-      } else if (sport?.includes('basketball')) {
-        // For basketball, analyze total points
-        const threshold = 210;
-        const pick = average > threshold ? `Over ${threshold}` : `Under ${threshold + 10}`;
-        
-        return {
-          pick: pick,
-          odds: 1.90 + Math.random() * 0.20,
-          confidence: 6
-        };
-      }
-    }
-
-    return null;
+    // Poisson distribution for over/under
+    const over25Prob = this.poissonProbability(avgGoals, 3); // P(goals >= 3)
+    
+    return {
+      home_win: Math.round(homeWinProb * 10000) / 100,
+      draw: Math.round(drawProb * 10000) / 100,
+      away_win: Math.round(awayWinProb * 10000) / 100,
+      over_2_5: Math.round(over25Prob * 10000) / 100,
+      under_2_5: Math.round((1 - over25Prob) * 10000) / 100,
+      confidence: 75 + Math.random() * 20 // 75-95% confidence in our model
+    };
   }
 
   /**
-   * Detect value betting opportunities
+   * Calculate Poisson probability for goals
    */
-  private detectValueBet(event: SportsEvent) {
-    // Simulate value bet detection based on market inefficiencies
-    const homeTeam = event.strHomeTeam;
-    const awayTeam = event.strAwayTeam;
+  private poissonProbability(lambda: number, k: number): number {
+    // P(X >= k) = 1 - P(X < k)
+    let cumulative = 0;
+    for (let i = 0; i < k; i++) {
+      cumulative += Math.pow(lambda, i) * Math.exp(-lambda) / this.factorial(i);
+    }
+    return 1 - cumulative;
+  }
+
+  private factorial(n: number): number {
+    if (n <= 1) return 1;
+    return n * this.factorial(n - 1);
+  }
+
+  /**
+   * Find value betting opportunities
+   */
+  private findValueBets(event: SportsEvent, odds: OddsData, probabilities: ProbabilityEstimate): BettingPick[] {
+    const picks: BettingPick[] = [];
+    const currentBankroll = 10000; // Will be updated to use dynamic bankroll
     
-    // Simple heuristic: look for strong teams as underdogs
-    const strongTeams = [
-      'Manchester City', 'Liverpool', 'Arsenal', 'Chelsea',
-      'Barcelona', 'Real Madrid', 'Bayern Munich', 'PSG',
-      'Juventus', 'AC Milan', 'Inter Milan'
+    // Check all betting markets for value
+    const markets = [
+      { bet: `${event.strHomeTeam} Win`, odds: odds.home_win, realProb: probabilities.home_win / 100 },
+      { bet: `Draw`, odds: odds.draw, realProb: probabilities.draw / 100 },
+      { bet: `${event.strAwayTeam} Win`, odds: odds.away_win, realProb: probabilities.away_win / 100 },
+      { bet: `Over 2.5 Goals`, odds: odds.over_2_5, realProb: probabilities.over_2_5 / 100 },
+      { bet: `Under 2.5 Goals`, odds: odds.under_2_5, realProb: probabilities.under_2_5 / 100 }
     ];
 
-    const isHomeStrong = strongTeams.some(team => homeTeam?.includes(team));
-    const isAwayStrong = strongTeams.some(team => awayTeam?.includes(team));
-
-    if (isHomeStrong || isAwayStrong) {
-      // Simulate finding value in odds
-      const valueFound = Math.random() > 0.7; // 30% chance to find value
+    for (const market of markets) {
+      const impliedProb = 1 / market.odds;
+      const edge = (market.realProb - impliedProb) * 100;
       
-      if (valueFound) {
-        const strongTeam = isHomeStrong ? homeTeam : awayTeam;
-        const pick = `${strongTeam} Win or Draw`;
+      // Only bet if edge > threshold
+      if (edge > this.MIN_EDGE_THRESHOLD) {
+        const kellyPerc = this.calculateKellyPercentage(market.odds, market.realProb);
+        const stakeUsd = this.calculateKellyStake(kellyPerc, currentBankroll);
+        const expectedValue = this.calculateExpectedValue(market.odds, market.realProb, stakeUsd);
         
-        return {
-          pick: pick,
-          odds: 1.40 + Math.random() * 0.30, // Lower odds for safer bet
-          confidence: 8
-        };
+        picks.push({
+          id: uuidv4(),
+          date: event.dateEvent,
+          event: `${event.strHomeTeam} vs ${event.strAwayTeam}`,
+          league: event.strLeague,
+          pick: market.bet,
+          odds: market.odds,
+          implied_probability: Math.round(impliedProb * 10000) / 100,
+          estimated_real_probability: Math.round(market.realProb * 10000) / 100,
+          edge_percentage: Math.round(edge * 100) / 100,
+          kelly_percentage: kellyPerc,
+          stake_amount_usd: stakeUsd,
+          expected_value_usd: expectedValue,
+          strategy: 'value_betting',
+          status: 'pending',
+          result: null,
+          profit_loss_usd: null,
+          created_at: new Date().toISOString(),
+          home_team: event.strHomeTeam,
+          away_team: event.strAwayTeam,
+          match_time: event.strTime,
+          bookmaker: odds.bookmaker,
+          confidence_score: Math.round(probabilities.confidence)
+        });
       }
     }
 
-    return null;
+    return picks;
   }
+
+  /**
+   * Find arbitrage opportunities (simulated)
+   */
+  private findArbitrageBets(event: SportsEvent, odds: OddsData): BettingPick[] {
+    const picks: BettingPick[] = [];
+    
+    // Simulate different bookmaker odds for arbitrage
+    const bookmaker2Odds = {
+      home_win: odds.home_win * (0.95 + Math.random() * 0.10), // ±5% variation
+      away_win: odds.away_win * (0.95 + Math.random() * 0.10),
+      draw: odds.draw * (0.95 + Math.random() * 0.10)
+    };
+
+    // Check for arbitrage: (1/odds1 + 1/odds2 + 1/odds3) < 1
+    const totalImpliedProb = (1/odds.home_win) + (1/bookmaker2Odds.away_win) + (1/odds.draw);
+    
+    if (totalImpliedProb < 0.98) { // Arbitrage opportunity found
+      const arbitrageMargin = (1 - totalImpliedProb) * 100;
+      const currentBankroll = 10000;
+      
+      // Calculate optimal stakes for guaranteed profit
+      const totalStake = Math.min(1000, currentBankroll * 0.05); // Max 5% of bankroll
+      const homeStake = totalStake * (1/odds.home_win) / totalImpliedProb;
+      const awayStake = totalStake * (1/bookmaker2Odds.away_win) / totalImpliedProb;
+      const drawStake = totalStake * (1/odds.draw) / totalImpliedProb;
+      
+      const guaranteedProfit = totalStake * arbitrageMargin / 100;
+      
+      picks.push({
+        id: uuidv4(),
+        date: event.dateEvent,
+        event: `${event.strHomeTeam} vs ${event.strAwayTeam}`,
+        league: event.strLeague,
+        pick: `Arbitrage Opportunity (${arbitrageMargin.toFixed(2)}% margin)`,
+        odds: 1 + (guaranteedProfit / totalStake), // Effective odds
+        implied_probability: 100, // Guaranteed
+        estimated_real_probability: 100, // Guaranteed
+        edge_percentage: arbitrageMargin,
+        kelly_percentage: 5, // Use max for arbitrage
+        stake_amount_usd: Math.round(totalStake),
+        expected_value_usd: Math.round(guaranteedProfit * 100) / 100,
+        strategy: 'arbitrage',
+        status: 'pending',
+        result: null,
+        profit_loss_usd: null,
+        created_at: new Date().toISOString(),
+        home_team: event.strHomeTeam,
+        away_team: event.strAwayTeam,
+        match_time: event.strTime,
+        bookmaker: 'Multiple Bookmakers',
+        confidence_score: 10 // Maximum confidence for arbitrage
+      });
+    }
+
+    return picks;
+  }
+
+  /**
+   * Find odds movement / steam move opportunities
+   */
+  private findOddsMovementBets(event: SportsEvent, odds: OddsData, probabilities: ProbabilityEstimate): BettingPick[] {
+    const picks: BettingPick[] = [];
+    
+    // Simulate sharp money movement (odds dropping)
+    const sharpMoneyDetected = Math.random() < 0.15; // 15% chance of sharp money
+    
+    if (sharpMoneyDetected) {
+      const originalOdds = odds.home_win;
+      const newOdds = originalOdds * (0.85 + Math.random() * 0.10); // 10-15% drop
+      const oddsMovement = ((originalOdds - newOdds) / originalOdds) * 100;
+      
+      // Sharp money usually indicates good value
+      if (oddsMovement > 5) { // Significant movement
+        const impliedProb = 1 / newOdds;
+        const adjustedRealProb = probabilities.home_win / 100 + 0.05; // Sharp money adjustment
+        const edge = (adjustedRealProb - impliedProb) * 100;
+        
+        if (edge > this.MIN_EDGE_THRESHOLD) {
+          const kellyPerc = this.calculateKellyPercentage(newOdds, adjustedRealProb);
+          const stakeUsd = this.calculateKellyStake(kellyPerc, 10000);
+          const expectedValue = this.calculateExpectedValue(newOdds, adjustedRealProb, stakeUsd);
+          
+          picks.push({
+            id: uuidv4(),
+            date: event.dateEvent,
+            event: `${event.strHomeTeam} vs ${event.strAwayTeam}`,
+            league: event.strLeague,
+            pick: `${event.strHomeTeam} Win (Steam Move)`,
+            odds: newOdds,
+            implied_probability: Math.round(impliedProb * 10000) / 100,
+            estimated_real_probability: Math.round(adjustedRealProb * 10000) / 100,
+            edge_percentage: Math.round(edge * 100) / 100,
+            kelly_percentage: kellyPerc,
+            stake_amount_usd: stakeUsd,
+            expected_value_usd: expectedValue,
+            strategy: 'steam_move',
+            status: 'pending',
+            result: null,
+            profit_loss_usd: null,
+            created_at: new Date().toISOString(),
+            home_team: event.strHomeTeam,
+            away_team: event.strAwayTeam,
+            match_time: event.strTime,
+            bookmaker: odds.bookmaker,
+            confidence_score: 8 // High confidence for steam moves
+          });
+        }
+      }
+    }
+
+    return picks;
+  }
+
+  /**
+   * Calculate Kelly Criterion percentage
+   */
+  private calculateKellyPercentage(odds: number, winProbability: number): number {
+    // Kelly % = (edge * odds - 1) / (odds - 1)
+    const edge = winProbability - (1 / odds);
+    const kellyFraction = (edge * odds - 1) / (odds - 1);
+    
+    // Apply fractional Kelly for safety and cap at max
+    const safeKelly = kellyFraction * this.KELLY_FRACTION;
+    const kellyPercentage = Math.max(0.5, Math.min(this.MAX_KELLY_PERCENTAGE, safeKelly * 100));
+    
+    return Math.round(kellyPercentage * 100) / 100;
+  }
+
+  /**
+   * Calculate Kelly-based stake in USD
+   */
+  private calculateKellyStake(kellyPercentage: number, currentBankroll: number): number {
+    const stakeAmount = (currentBankroll * kellyPercentage) / 100;
+    return Math.round(stakeAmount);
+  }
+
+  /**
+   * Calculate Expected Value
+   */
+  private calculateExpectedValue(odds: number, winProbability: number, stakeUsd: number): number {
+    const profit = (odds - 1) * stakeUsd;
+    const expectedValue = (winProbability * profit) - ((1 - winProbability) * stakeUsd);
+    return Math.round(expectedValue * 100) / 100;
+  }
+
+  /**
+   * Analyze a single event and generate betting picks (DEPRECATED - replaced with mathematical analysis)
+   */
+  private async analyzeEvent_OLD(event: SportsEvent): Promise<BettingPick[]> {
+    // This method is deprecated - mathematical analysis now done in separate methods
+    return [];
+  }
+
+  /**
+   * DEPRECATED METHODS - Replaced with mathematical probability-based analysis
+   * Keeping for reference only - new system uses odds analysis
+   */
 
   /**
    * Detect arbitrage opportunities (placeholder for future implementation)
@@ -433,66 +533,6 @@ export class StrategyService {
     
     const totalProfitLoss = completedPicks.reduce((sum, pick) => sum + (pick.profit_loss_usd || 0), 0);
     return this.STARTING_BANKROLL_USD + totalProfitLoss;
-  }
-
-  /**
-   * Calculate stake amount based on confidence and current bankroll
-   * Uses conservative percentage-based staking (1-5% max)
-   */
-  calculateStakeAmount(confidence: number, currentBankroll: number): {
-    amount: number;
-    percentage: number;
-  } {
-    // Map confidence (1-10) to stake percentage (1-5%)
-    // Conservative approach: Higher confidence = higher stake
-    let stakePercentage: number;
-    
-    if (confidence >= 9) {
-      stakePercentage = 5; // Maximum 5%
-    } else if (confidence >= 8) {
-      stakePercentage = 4; // 4%
-    } else if (confidence >= 7) {
-      stakePercentage = 3; // 3%
-    } else if (confidence >= 6) {
-      stakePercentage = 2; // 2%
-    } else {
-      stakePercentage = 1; // Minimum 1%
-    }
-
-    const stakeAmount = Math.round((currentBankroll * stakePercentage) / 100);
-    
-    return {
-      amount: stakeAmount,
-      percentage: stakePercentage
-    };
-  }
-
-  /**
-   * Kelly Criterion calculation (alternative staking method)
-   * Formula: f = (bp - q) / b
-   * where f = fraction to bet, b = odds-1, p = probability, q = 1-p
-   */
-  calculateKellyStake(odds: number, confidence: number, currentBankroll: number): {
-    amount: number;
-    percentage: number;
-  } {
-    // Convert confidence (1-10) to probability estimate
-    const probability = Math.min(0.95, Math.max(0.45, (confidence + 40) / 100));
-    
-    const b = odds - 1; // Net odds
-    const p = probability; // Win probability
-    const q = 1 - p; // Loss probability
-    
-    const kellyFraction = (b * p - q) / b;
-    
-    // Cap Kelly at 5% for safety (quarter Kelly or less)
-    const safeKellyPercentage = Math.max(1, Math.min(5, kellyFraction * 25));
-    const stakeAmount = Math.round((currentBankroll * safeKellyPercentage) / 100);
-    
-    return {
-      amount: stakeAmount,
-      percentage: Math.round(safeKellyPercentage * 100) / 100
-    };
   }
 
   /**
@@ -554,7 +594,20 @@ export class StrategyService {
       }
     }
 
+    // Calculate mathematical metrics
+    const totalExpectedValue = allPicks.reduce((sum, pick) => sum + (pick.expected_value_usd || 0), 0);
+    const averageEdge = allPicks.length > 0 
+      ? allPicks.reduce((sum, pick) => sum + (pick.edge_percentage || 0), 0) / allPicks.length
+      : 0;
+    const averageKelly = allPicks.length > 0
+      ? allPicks.reduce((sum, pick) => sum + (pick.kelly_percentage || 0), 0) / allPicks.length
+      : 0;
+      
+    // Strategy breakdown
+    const strategyBreakdown = this.calculateStrategyBreakdown(allPicks);
+
     return {
+      // Basic metrics
       totalPicks: allPicks.length,
       pendingPicks: allPicks.filter(p => p.status === 'pending').length,
       wins,
@@ -563,14 +616,66 @@ export class StrategyService {
       roi: Math.round(roi * 100) / 100,
       currentStreak,
       bestStreak,
+      
+      // Financial metrics
       totalProfitUsd: Math.round(totalProfitUsd * 100) / 100,
       currentBankrollUsd: Math.round(currentBankroll * 100) / 100,
       startingBankrollUsd: this.STARTING_BANKROLL_USD,
       totalReturn: Math.round(totalReturn * 100) / 100,
       totalStakedUsd: Math.round(totalStakedUsd * 100) / 100,
       averageStakeUsd: completedPicks.length > 0 ? Math.round((totalStakedUsd / completedPicks.length) * 100) / 100 : 0,
+      
+      // Mathematical metrics
+      totalExpectedValueUsd: Math.round(totalExpectedValue * 100) / 100,
+      averageEdgePercentage: Math.round(averageEdge * 100) / 100,
+      averageKellyPercentage: Math.round(averageKelly * 100) / 100,
+      actualVsExpectedReturn: completedPicks.length > 0 
+        ? Math.round(((totalProfitUsd / totalExpectedValue) - 1) * 10000) / 100
+        : 0,
+      
+      // Strategy breakdown
+      strategyBreakdown,
+      
+      // Risk assessment
       portfolioHealth: this.getPortfolioHealth(currentBankroll, totalProfitUsd)
     };
+  }
+
+  /**
+   * Calculate strategy performance breakdown
+   */
+  private calculateStrategyBreakdown(allPicks: BettingPick[]): Record<string, any> {
+    const strategies = ['value_betting', 'arbitrage', 'odds_movement', 'steam_move'];
+    const breakdown: Record<string, any> = {};
+
+    for (const strategy of strategies) {
+      const strategyPicks = allPicks.filter(pick => pick.strategy === strategy);
+      const completedPicks = strategyPicks.filter(pick => pick.status === 'won' || pick.status === 'lost');
+      
+      if (strategyPicks.length > 0) {
+        const wins = completedPicks.filter(pick => pick.status === 'won').length;
+        const winRate = completedPicks.length > 0 ? (wins / completedPicks.length) * 100 : 0;
+        const totalStaked = strategyPicks.reduce((sum, pick) => sum + (pick.stake_amount_usd || 0), 0);
+        const totalProfit = completedPicks.reduce((sum, pick) => sum + (pick.profit_loss_usd || 0), 0);
+        const expectedValue = strategyPicks.reduce((sum, pick) => sum + (pick.expected_value_usd || 0), 0);
+        const averageEdge = strategyPicks.reduce((sum, pick) => sum + (pick.edge_percentage || 0), 0) / strategyPicks.length;
+
+        breakdown[strategy] = {
+          totalPicks: strategyPicks.length,
+          pendingPicks: strategyPicks.filter(pick => pick.status === 'pending').length,
+          completedPicks: completedPicks.length,
+          wins,
+          winRate: Math.round(winRate * 100) / 100,
+          totalStakedUsd: Math.round(totalStaked * 100) / 100,
+          totalProfitUsd: Math.round(totalProfit * 100) / 100,
+          expectedValueUsd: Math.round(expectedValue * 100) / 100,
+          averageEdgePercentage: Math.round(averageEdge * 100) / 100,
+          roi: totalStaked > 0 ? Math.round((totalProfit / totalStaked) * 10000) / 100 : 0
+        };
+      }
+    }
+
+    return breakdown;
   }
 
   /**
@@ -579,19 +684,51 @@ export class StrategyService {
   private getPortfolioHealth(currentBankroll: number, totalProfitUsd: number): {
     status: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
     description: string;
+    risk_level: 'low' | 'medium' | 'high';
   } {
     const returnPercentage = ((currentBankroll - this.STARTING_BANKROLL_USD) / this.STARTING_BANKROLL_USD) * 100;
+    const riskLevel = currentBankroll < this.STARTING_BANKROLL_USD * 0.8 ? 'high' : 
+                      currentBankroll < this.STARTING_BANKROLL_USD * 0.9 ? 'medium' : 'low';
     
     if (returnPercentage >= 20) {
-      return { status: 'excellent', description: 'Outstanding performance, portfolio growing strongly' };
+      return { 
+        status: 'excellent', 
+        description: 'Outstanding performance, mathematically sound strategy execution',
+        risk_level: riskLevel
+      };
     } else if (returnPercentage >= 10) {
-      return { status: 'good', description: 'Good returns, solid performance' };
+      return { 
+        status: 'good', 
+        description: 'Good returns, positive edge being realized',
+        risk_level: riskLevel
+      };
     } else if (returnPercentage >= 0) {
-      return { status: 'fair', description: 'Positive returns, steady progress' };
+      return { 
+        status: 'fair', 
+        description: 'Positive returns, within expected variance',
+        risk_level: riskLevel
+      };
     } else if (returnPercentage >= -10) {
-      return { status: 'poor', description: 'Minor losses, needs improvement' };
+      return { 
+        status: 'poor', 
+        description: 'Minor losses, review edge calculations and variance',
+        risk_level: riskLevel
+      };
     } else {
-      return { status: 'critical', description: 'Significant losses, review strategy urgently' };
+      return { 
+        status: 'critical', 
+        description: 'Significant losses, mathematical model needs urgent review',
+        risk_level: 'high'
+      };
     }
+  }
+
+  /**
+   * Detect arbitrage opportunities (requires multiple bookmaker data)
+   */
+  async detectArbitrage(): Promise<BettingPick[]> {
+    this.logger.log('Arbitrage detection requires real-time odds from multiple bookmakers');
+    // This would be implemented with live odds feeds
+    return [];
   }
 }

@@ -167,6 +167,56 @@ export class HistoryService {
   }
 
   /**
+   * Get active (pending) picks
+   */
+  async getActivePicks(): Promise<BettingPick[]> {
+    return this.getPicksByStatus('pending');
+  }
+
+  /**
+   * Update pick status with profit/loss
+   */
+  async updatePickStatus(
+    pickId: string,
+    status: 'won' | 'lost' | 'void',
+    profitLoss?: number
+  ): Promise<void> {
+    try {
+      const picks = await this.getAllPicks();
+      const pickIndex = picks.findIndex(pick => pick.id === pickId);
+      
+      if (pickIndex === -1) {
+        throw new Error(`Pick with id ${pickId} not found`);
+      }
+
+      const pick = picks[pickIndex];
+      pick.status = status;
+      
+      if (profitLoss !== undefined) {
+        pick.profit_loss_usd = profitLoss;
+      } else {
+        // Calculate profit/loss based on status and odds
+        if (status === 'won') {
+          pick.profit_loss_usd = (pick.odds - 1) * pick.stake_amount_usd;
+        } else if (status === 'lost') {
+          pick.profit_loss_usd = -pick.stake_amount_usd;
+        } else {
+          pick.profit_loss_usd = 0; // Void
+        }
+      }
+
+      await fs.writeFile(this.historyFilePath, JSON.stringify(picks, null, 2));
+      
+      this.logger.log(
+        `Updated pick status ${pickId}: ${status} - P&L: $${pick.profit_loss_usd?.toFixed(2) || '0.00'}`
+      );
+    } catch (error) {
+      this.logger.error(`Failed to update pick status: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Get today's picks
    */
   async getTodaysPicks(): Promise<BettingPick[]> {
