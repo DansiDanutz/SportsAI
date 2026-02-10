@@ -11,12 +11,15 @@ import { StrangeBetsService } from './strange-bets.service';
 import { TicketGeneratorService } from './ticket-generator.service';
 import { LanguageService } from './language.service';
 import { AiQueueService } from './ai-queue.service';
+import { AiPredictorService } from './ai-predictor.service';
+import { SentimentService } from './sentiment.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
+import { OddsModule } from '../odds/odds.module';
 
 @Global()
 @Module({
-  imports: [UsersModule, PrismaModule, IntegrationsModule],
+  imports: [UsersModule, PrismaModule, IntegrationsModule, OddsModule],
   controllers: [AiController],
   providers: [
     AiFacadeService,
@@ -29,6 +32,8 @@ import { IntegrationsModule } from '../integrations/integrations.module';
     TicketGeneratorService,
     LanguageService,
     AiQueueService,
+    AiPredictorService,
+    SentimentService,
   ],
   exports: [
     AiFacadeService,
@@ -41,6 +46,8 @@ import { IntegrationsModule } from '../integrations/integrations.module';
     TicketGeneratorService,
     LanguageService,
     AiQueueService,
+    AiPredictorService,
+    SentimentService,
   ],
 })
 export class AiModule {}

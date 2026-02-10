@@ -12,6 +12,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { StrategyService, BettingPick } from './strategy.service';
 import { HistoryService } from './history.service';
+import { BetSlipService } from './bet-slip.service';
 
 @ApiTags('Strategy')
 @Controller('api/strategy')
@@ -20,7 +21,8 @@ export class StrategyController {
 
   constructor(
     private readonly strategyService: StrategyService,
-    private readonly historyService: HistoryService
+    private readonly historyService: HistoryService,
+    private readonly betSlipService: BetSlipService
   ) {}
 
   @Get('today')
@@ -333,6 +335,108 @@ export class StrategyController {
       this.logger.error(`Failed to get pick ${pickId}: ${error.message}`);
       throw new HttpException(
         'Failed to retrieve pick',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Post('bet-slip/analyze')
+  @ApiOperation({ summary: 'Analyze a bet slip with multiple legs' })
+  @ApiResponse({ status: 200, description: 'Returns bet slip analysis with risk metrics' })
+  async analyzeBetSlip(
+    @Body() body: {
+      legs: any[];
+      totalStake: number;
+      bankroll?: number;
+    }
+  ) {
+    try {
+      const analysis = await this.betSlipService.analyzeBetSlip(
+        body.legs,
+        body.totalStake,
+        body.bankroll
+      );
+      
+      return {
+        status: 'success',
+        data: analysis
+      };
+    } catch (error) {
+      this.logger.error(`Failed to analyze bet slip: ${error.message}`);
+      throw new HttpException(
+        error.message || 'Failed to analyze bet slip',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Post('bet-slip/optimize')
+  @ApiOperation({ summary: 'Optimize bet slip using portfolio theory' })
+  @ApiResponse({ status: 200, description: 'Returns optimized bet slip allocation' })
+  async optimizeBetSlip(
+    @Body() body: {
+      legs: any[];
+      totalBankroll: number;
+    }
+  ) {
+    try {
+      const optimization = await this.betSlipService.optimizeBetSlip(
+        body.legs,
+        body.totalBankroll
+      );
+      
+      return {
+        status: 'success',
+        data: optimization
+      };
+    } catch (error) {
+      this.logger.error(`Failed to optimize bet slip: ${error.message}`);
+      throw new HttpException(
+        error.message || 'Failed to optimize bet slip',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Get('bet-slip/history')
+  @ApiOperation({ summary: 'Get bet slip analysis history' })
+  @ApiResponse({ status: 200, description: 'Returns bet slip analysis history' })
+  async getBetSlipHistory(@Query('limit') limit?: string) {
+    try {
+      const historyLimit = limit ? parseInt(limit, 10) : 20;
+      const history = await this.betSlipService.getBetSlipHistory(historyLimit);
+      
+      return {
+        status: 'success',
+        data: history,
+        meta: {
+          count: history.length
+        }
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get bet slip history: ${error.message}`);
+      throw new HttpException(
+        'Failed to retrieve bet slip history',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Post('bet-slip/test')
+  @ApiOperation({ summary: 'Test bet slip analyzer with sample data' })
+  @ApiResponse({ status: 200, description: 'Returns test analysis result' })
+  async testBetSlipAnalyzer() {
+    try {
+      const result = await this.betSlipService.testBetSlipAnalyzer();
+      
+      return {
+        status: 'success',
+        data: result
+      };
+    } catch (error) {
+      this.logger.error(`Failed to test bet slip analyzer: ${error.message}`);
+      throw new HttpException(
+        'Failed to test bet slip analyzer',
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }

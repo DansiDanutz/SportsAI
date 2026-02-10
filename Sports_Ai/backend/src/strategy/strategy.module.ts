@@ -6,22 +6,27 @@ import { HistoryService } from './history.service';
 import { BankrollService } from './bankroll.service';
 import { MartingaleService } from './martingale.service';
 import { AutonomousService } from './autonomous.service';
+import { BetSlipService } from './bet-slip.service';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
+  imports: [PrismaModule],
   controllers: [StrategyController, AutonomousController],
   providers: [
     StrategyService, 
     HistoryService, 
     BankrollService, 
     MartingaleService, 
-    AutonomousService
+    AutonomousService,
+    BetSlipService
   ],
   exports: [
     StrategyService, 
     HistoryService, 
     BankrollService, 
     MartingaleService, 
-    AutonomousService
+    AutonomousService,
+    BetSlipService
   ],
 })
 export class StrategyModule {}

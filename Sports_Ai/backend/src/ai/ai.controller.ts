@@ -4,6 +4,8 @@ import { AiFacadeService } from './ai.facade.service';
 import { AiQueueService, JobStatus } from './ai-queue.service';
 import { AiAdvice } from './openrouter.service';
 import { SUPPORTED_LANGUAGES } from './language.service';
+import { AiPredictorService } from './ai-predictor.service';
+import { SentimentService } from './sentiment.service';
 
 interface AiSettings {
   sportScope: string[];
@@ -29,6 +31,8 @@ export class AiController {
   constructor(
     private readonly aiFacade: AiFacadeService,
     private readonly aiQueue: AiQueueService,
+    private readonly aiPredictorService: AiPredictorService,
+    private readonly sentimentService: SentimentService,
   ) {}
 
   private withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -886,5 +890,129 @@ export class AiController {
       status: 'cancelled',
       message: 'Job cancelled successfully',
     };
+  }
+
+  /**
+   * AI Match Prediction endpoint
+   */
+  @Get('predict/:eventId')
+  async predictMatch(@Param('eventId') eventId: string) {
+    try {
+      const prediction = await this.aiPredictorService.predictMatch(eventId);
+      
+      return {
+        status: 'success',
+        data: prediction
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  /**
+   * Get AI prediction history
+   */
+  @Get('predictions/history')
+  async getPredictionHistory(@Query('limit') limit?: string) {
+    try {
+      const historyLimit = limit ? parseInt(limit, 10) : 20;
+      const history = await this.aiPredictorService.getPredictionHistory(historyLimit);
+      
+      return {
+        status: 'success',
+        data: history,
+        meta: {
+          count: history.length
+        }
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  /**
+   * Test AI predictor
+   */
+  @Post('predict/test')
+  async testAiPredictor() {
+    try {
+      const result = await this.aiPredictorService.testPredictor();
+      
+      return {
+        status: 'success',
+        data: result
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  /**
+   * Sentiment analysis endpoint
+   */
+  @Get('sentiment/:eventId')
+  async analyzeSentiment(@Param('eventId') eventId: string) {
+    try {
+      const sentiment = await this.sentimentService.analyzeSentiment(eventId);
+      
+      return {
+        status: 'success',
+        data: sentiment
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  /**
+   * Get sentiment trends
+   */
+  @Get('sentiment/trends')
+  async getSentimentTrends(@Query('sport') sport?: string) {
+    try {
+      const trends = await this.sentimentService.getSentimentTrends(sport);
+      
+      return {
+        status: 'success',
+        data: trends
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  /**
+   * Test sentiment analysis
+   */
+  @Post('sentiment/test')
+  async testSentimentAnalysis() {
+    try {
+      const result = await this.sentimentService.testSentimentAnalysis();
+      
+      return {
+        status: 'success',
+        data: result
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
   }
 }

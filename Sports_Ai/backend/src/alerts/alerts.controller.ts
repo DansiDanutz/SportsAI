@@ -1,98 +1,93 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Param,
-  Body,
-  UseGuards,
-  Request,
-  Header,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { SmartAlertsService } from './smart-alerts.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AlertsService, CreateAlertDto, UpdateAlertDto } from './alerts.service';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+@ApiTags('alerts')
 @Controller('v1/alerts')
-@UseGuards(JwtAuthGuard)
 export class AlertsController {
-  constructor(private alertsService: AlertsService) {}
+  constructor(private readonly smartAlertsService: SmartAlertsService) {}
 
   @Get()
-  @Header('Cache-Control', 'private, max-age=30, stale-while-revalidate=60')
-  async getAll(@Request() req: any) {
-    const alerts = await this.alertsService.findAllByUser(req.user.id);
-    return {
-      alerts: alerts.map((alert) => ({
-        ...alert,
-        conditions: JSON.parse(alert.conditions),
-      })),
-      total: alerts.length,
-    };
-  }
-
-  @Get(':id')
-  async getOne(@Param('id') id: string, @Request() req: any) {
-    const alert = await this.alertsService.findById(id, req.user.id);
-    return {
-      alert: {
-        ...alert,
-        conditions: JSON.parse(alert.conditions),
-      },
-    };
-  }
-
-  @Post()
-  async create(@Request() req: any, @Body() body: CreateAlertDto) {
-    const alert = await this.alertsService.create(req.user.id, body);
-    return {
-      success: true,
-      alert: {
-        ...alert,
-        conditions: JSON.parse(alert.conditions),
-      },
-    };
-  }
-
-  @Put(':id')
-  async update(
-    @Param('id') id: string,
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get user alerts' })
+  @ApiResponse({ status: 200, description: 'List of user alerts' })
+  async getUserAlerts(
     @Request() req: any,
-    @Body() body: UpdateAlertDto,
+    @Query('limit') limit?: string
   ) {
-    const alert = await this.alertsService.update(id, req.user.id, body);
+    const userId = req.user?.id || 'anonymous';
+    const alertLimit = limit ? parseInt(limit, 10) : 20;
+    
+    const alerts = await this.smartAlertsService.getAlertsForUser(userId, alertLimit);
+    
     return {
-      success: true,
-      alert: {
-        ...alert,
-        conditions: JSON.parse(alert.conditions),
-      },
+      status: 'success',
+      data: alerts,
+      meta: {
+        count: alerts.length,
+        userId
+      }
     };
   }
 
-  @Delete(':id')
-  async delete(@Param('id') id: string, @Request() req: any) {
-    await this.alertsService.delete(id, req.user.id);
+  @Get('stats')
+  @ApiOperation({ summary: 'Get alert statistics' })
+  @ApiResponse({ status: 200, description: 'Alert statistics' })
+  async getAlertStats() {
+    const stats = await this.smartAlertsService.getAlertStats();
+    
     return {
-      success: true,
-      message: 'Alert rule deleted',
+      status: 'success',
+      data: stats
     };
   }
 
-  @Post(':id/toggle')
-  async toggle(@Param('id') id: string, @Request() req: any) {
-    const alert = await this.alertsService.toggle(id, req.user.id);
+  @Patch(':alertId/read')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Mark alert as read' })
+  @ApiResponse({ status: 200, description: 'Alert marked as read' })
+  async markAlertAsRead(
+    @Param('alertId') alertId: string,
+    @Request() req: any
+  ) {
+    const userId = req.user?.id || 'anonymous';
+    const success = await this.smartAlertsService.markAlertAsRead(alertId, userId);
+    
     return {
-      success: true,
-      alert: {
-        ...alert,
-        conditions: JSON.parse(alert.conditions),
-      },
+      status: success ? 'success' : 'error',
+      message: success ? 'Alert marked as read' : 'Failed to mark alert as read'
     };
   }
 
-  @Post(':id/test')
-  async testTrigger(@Param('id') id: string, @Request() req: any) {
-    return this.alertsService.simulateTrigger(id, req.user.id);
+  @Post('check')
+  @ApiOperation({ summary: 'Manually trigger alerts check' })
+  @ApiResponse({ status: 200, description: 'Alerts check completed' })
+  async manualAlertsCheck() {
+    try {
+      await this.smartAlertsService.checkForAlerts();
+      
+      return {
+        status: 'success',
+        message: 'Alerts check completed successfully'
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  @Get('health')
+  @ApiOperation({ summary: 'Smart alerts service health check' })
+  @ApiResponse({ status: 200, description: 'Service health status' })
+  async healthCheck() {
+    const health = await this.smartAlertsService.healthCheck();
+    
+    return {
+      status: 'success',
+      data: health
+    };
   }
 }

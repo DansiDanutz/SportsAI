@@ -1,13 +1,26 @@
 import { Module } from '@nestjs/common';
 import { AlertsController } from './alerts.controller';
-import { AlertsService } from './alerts.service';
-import { PrismaModule } from '../prisma/prisma.module';
-import { NotificationsModule } from '../notifications/notifications.module';
+import { SmartAlertsService } from './smart-alerts.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { OddsScraperService } from '../odds/odds-scraper.service';
+import { AiPredictorService } from '../ai/ai-predictor.service';
+import { OddsService } from '../odds/odds.service';
+import { TheOddsApiService } from '../integrations/the-odds-api.service';
+import { FreeApisService } from '../integrations/free-apis.service';
+import { OpenrouterService } from '../ai/openrouter.service';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule],
   controllers: [AlertsController],
-  providers: [AlertsService],
-  exports: [AlertsService],
+  providers: [
+    SmartAlertsService,
+    PrismaService,
+    OddsScraperService,
+    AiPredictorService,
+    OddsService,
+    TheOddsApiService,
+    FreeApisService,
+    OpenrouterService
+  ],
+  exports: [SmartAlertsService]
 })
 export class AlertsModule {}

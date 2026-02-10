@@ -1,7 +1,8 @@
-import { Controller, Get, UseGuards, ForbiddenException, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, ForbiddenException, Request, Query, Param } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
 import { OddsService } from './odds.service';
+import { OddsScraperService } from './odds-scraper.service';
 
 @Controller('v1/odds')
 @UseGuards(JwtAuthGuard)
@@ -9,6 +10,7 @@ export class OddsController {
   constructor(
     private usersService: UsersService,
     private oddsService: OddsService,
+    private oddsScraperService: OddsScraperService,
   ) {}
 
   @Get('history')
@@ -56,5 +58,85 @@ export class OddsController {
       history: [],
       total: 0,
     };
+  }
+
+  @Get('live')
+  async getLiveOdds(@Query('sport') sport?: string) {
+    try {
+      const liveOdds = await this.oddsScraperService.getLiveOddsFromFile();
+      
+      const filteredOdds = sport 
+        ? liveOdds.filter(odds => odds.sport.toLowerCase().includes(sport.toLowerCase()))
+        : liveOdds;
+      
+      return {
+        status: 'success',
+        data: filteredOdds,
+        meta: {
+          count: filteredOdds.length,
+          lastUpdated: liveOdds.length > 0 ? liveOdds[0].lastUpdated : null
+        }
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  @Post('refresh')
+  async refreshOdds() {
+    try {
+      const refreshedOdds = await this.oddsScraperService.forceRefresh();
+      
+      return {
+        status: 'success',
+        message: 'Odds refreshed successfully',
+        data: {
+          count: refreshedOdds.length,
+          timestamp: new Date().toISOString()
+        }
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  @Get('best/:eventId')
+  async getBestOddsForEvent(@Param('eventId') eventId: string) {
+    try {
+      const bestOdds = await this.oddsScraperService.getBestOddsForEvent(eventId);
+      
+      return {
+        status: 'success',
+        data: bestOdds
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  @Get('scraper/health')
+  async getScraperHealth() {
+    try {
+      const health = await this.oddsScraperService.healthCheck();
+      
+      return {
+        status: 'success',
+        data: health
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
   }
 }
