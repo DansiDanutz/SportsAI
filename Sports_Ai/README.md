@@ -1,12 +1,32 @@
-# SportsAI Platform
+# 🏆 SportsAI Platform - Application Directory
 
 **Version 5.0.0 - Arbitrage Priority**
 
-A next-generation sports intelligence platform with real-time arbitrage detection, multi-sportsbook odds comparison, AI-driven insights, and personalized recommendations across 10+ sports.
+This directory contains the main SportsAI application - a next-generation sports intelligence platform with real-time arbitrage detection, multi-sportsbook odds comparison, AI-driven insights, and personalized recommendations across 10+ sports.
+
+## 📁 Directory Overview
+
+This `/Sports_Ai/` directory contains the **complete application** including:
+- **Backend:** NestJS API server with arbitrage detection engine
+- **Frontend:** React web application with real-time odds display  
+- **Database:** PostgreSQL schema and migrations
+- **Docker:** Container configuration for local development
+- **Documentation:** Setup guides and API documentation
+
+## 🚀 Quick Setup Guide
+
+### Prerequisites
+```bash
+Node.js 20+ LTS          # Download from nodejs.org
+Docker & Docker Compose  # For databases
+PostgreSQL 16           # Primary database  
+Redis                   # Caching layer
+Git                     # Version control
+```
 
 ## Core Value Proposition
 
-**Primary:** Real-time detection and delivery of sports betting arbitrage opportunities
+**Primary:** Real-time detection and delivery of sports betting arbitrage opportunities  
 **Secondary:** Professional odds comparison across 10+ sportsbooks with AI-driven insights
 
 ## Features
@@ -86,33 +106,96 @@ A next-generation sports intelligence platform with real-time arbitrage detectio
 - Prometheus + Grafana + Sentry (Monitoring)
 - Apache Kafka / Google Pub/Sub (Event streaming)
 
-## Quick Start
+## 🔧 Complete Installation Guide
 
-### Prerequisites
-- Node.js 20+ LTS
-- Docker & Docker Compose (for databases)
-- npm or yarn
-
-### Setup
+### Step 1: Clone and Navigate
 ```bash
-# Run the setup script
-./init.sh
-
-# Or manually:
-# 1. Start databases
-cd docker && docker-compose up -d
-
-# 2. Start backend
-cd backend && npm install && npm run dev
-
-# 3. Start frontend
-cd frontend && npm install && npm run dev
+# If you haven't already cloned the main repo:
+git clone https://github.com/Sports-AI/SportsAI.git
+cd SportsAI/Sports_Ai
 ```
 
-### Access
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:4000
-- API Docs: http://localhost:4000/api/docs
+### Step 2: Environment Configuration  
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your configuration:
+# - Database credentials
+# - JWT secrets  
+# - Sportsbook API keys
+# - Redis connection
+```
+
+### Step 3: Database Setup
+```bash
+# Start PostgreSQL and Redis via Docker
+cd docker
+docker-compose up -d
+
+# Wait for databases to be ready (30-60 seconds)
+docker-compose logs -f postgres redis
+```
+
+### Step 4: Backend Setup
+```bash
+# Navigate to backend directory
+cd ../backend
+
+# Install dependencies
+npm install
+
+# Generate Prisma client and push schema
+npm run db:generate
+npm run db:push
+
+# Optional: Seed with sample data
+npm run db:seed
+
+# Start development server
+npm run dev
+```
+
+### Step 5: Frontend Setup  
+```bash
+# Open new terminal, navigate to frontend
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+### Step 6: Verify Installation
+```bash
+# Check backend health
+curl http://localhost:4000/health
+
+# Check frontend access
+open http://localhost:3000
+```
+
+## 🌐 Access Points
+- **Frontend App:** http://localhost:3000
+- **Backend API:** http://localhost:4000  
+- **API Documentation:** http://localhost:4000/api/docs
+- **Database Admin:** http://localhost:5432 (via pgAdmin)
+- **Redis CLI:** `docker exec -it redis redis-cli`
+
+## ⚡ Quick Start (Automated)
+```bash
+# Run the automated setup script
+./init.sh
+
+# This script will:
+# 1. Check prerequisites
+# 2. Start Docker services  
+# 3. Install all dependencies
+# 4. Set up databases
+# 5. Start both backend and frontend
+```
 
 ## Project Structure
 
@@ -227,33 +310,134 @@ Arbitrage % = (1 / Home) + (1 / Draw) + (1 / Away) - 1
 - Live odds update latency: <2 seconds
 - Uptime: 99.9% monthly
 
-## Development
+## 🛠️ Development Workflow
 
 ### Running Tests
 ```bash
-# Backend
-cd backend && npm test
+# Backend tests (unit + integration)
+cd backend
+npm test                    # Run all tests
+npm run test:watch          # Watch mode
+npm run test:coverage       # With coverage report
 
-# Frontend
-cd frontend && npm test
+# Frontend tests  
+cd frontend
+npm test                    # Run tests
+npm run test:coverage       # With coverage
 ```
 
-### Linting
+### Code Quality
 ```bash
-# Backend
-cd backend && npm run lint
+# Linting
+cd backend && npm run lint           # Check backend
+cd frontend && npm run lint          # Check frontend
+npm run lint:fix                     # Auto-fix issues
 
-# Frontend
-cd frontend && npm run lint
+# Type checking
+cd backend && npm run typecheck      # TypeScript validation
+cd frontend && npm run typecheck     # Frontend types
 ```
 
-### Type Checking
+### Database Management
 ```bash
-# Backend
-cd backend && npm run typecheck
+# Prisma commands
+npm run db:migrate          # Create new migration  
+npm run db:generate         # Regenerate client
+npm run db:push             # Push schema to DB
+npm run db:seed             # Populate with sample data
 
-# Frontend
-cd frontend && npm run typecheck
+# Manual database access
+docker exec -it postgres psql -U sportsai -d sportsai_db
+```
+
+### Building for Production
+```bash
+# Backend build
+cd backend
+npm run build               # Compile TypeScript
+npm start                   # Run production build
+
+# Frontend build  
+cd frontend
+npm run build               # Build static assets
+npm run preview             # Preview build locally
+```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Database Connection Error:**
+```bash
+# Check if PostgreSQL is running
+docker ps | grep postgres
+
+# Restart database services
+cd docker && docker-compose restart postgres redis
+
+# Verify connection string in .env file
+```
+
+**Port Already in Use:**
+```bash
+# Check what's using the port
+lsof -i :3000  # Frontend port
+lsof -i :4000  # Backend port  
+
+# Kill the process
+kill -9 <PID>
+```
+
+**Prisma Client Issues:**
+```bash
+# Regenerate Prisma client
+cd backend
+npm run db:generate
+rm -rf node_modules/.prisma
+npm install
+```
+
+**Node Version Issues:**
+```bash
+# Use Node Version Manager
+nvm install 20
+nvm use 20
+node --version  # Should be 20.x.x
+```
+
+**Build Errors:**
+```bash
+# Clear all caches
+rm -rf backend/node_modules backend/dist
+rm -rf frontend/node_modules frontend/dist
+npm install  # In both directories
+```
+
+## 📊 Performance Monitoring
+
+### Development Metrics
+```bash
+# Backend performance  
+curl http://localhost:4000/metrics    # Prometheus metrics
+
+# Database performance
+docker exec postgres pg_stat_activity
+
+# Redis monitoring
+docker exec redis redis-cli monitor
+```
+
+### Logging
+```bash
+# Backend logs
+cd backend && npm run dev | bunyan    # Formatted logs
+
+# Frontend logs  
+# Check browser DevTools console
+
+# Database logs
+docker logs postgres
+docker logs redis
 ```
 
 ## Responsible Gambling
