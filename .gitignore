@@ -119,6 +119,48 @@ ui/.vite/
 .env.*.local
 
 # ===================
+# SportsAI Specific
+# ===================
+# Backend
+Sports_Ai/backend/dist/
+Sports_Ai/backend/.env
+Sports_Ai/backend/.env.*
+!Sports_Ai/backend/.env.example
+Sports_Ai/backend/uploads/
+Sports_Ai/backend/logs/
+
+# Frontend  
+Sports_Ai/frontend/dist/
+Sports_Ai/frontend/build/
+Sports_Ai/frontend/.env
+Sports_Ai/frontend/.env.*
+!Sports_Ai/frontend/.env.example
+
+# Database
+Sports_Ai/postgres-data/
+Sports_Ai/redis-data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Prisma
+Sports_Ai/backend/prisma/migrations/
+!Sports_Ai/backend/prisma/schema.prisma
+!Sports_Ai/backend/prisma/seed.ts
+
+# API Keys & Secrets (if accidentally created)
+*api-keys*
+*secrets*
+*credentials*
+
+# Production configs
+docker-compose.prod.yml
+production.env
+staging.env
+
+# ===================
 # Cache directories
 # ===================
 .cache/
