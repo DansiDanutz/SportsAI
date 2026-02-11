@@ -27,7 +27,8 @@ export interface AccumulatorLeg {
 
 export interface AccumulatorTicket {
   id: string;
-  type: '2-fold' | '3-fold';
+  type: 'odds-2' | 'odds-3';  // Target minimum combined odds
+  targetMinOdds: number;
   date: string;
   legs: AccumulatorLeg[];
   combinedOdds: number;
@@ -45,12 +46,12 @@ export interface AccumulatorTicket {
 
 export interface DailyAccumulatorState {
   bankroll: number;
-  stakePercentage2Fold: number;  // % of bankroll for 2-fold (default 2%)
-  stakePercentage3Fold: number;  // % of bankroll for 3-fold (default 1.5%)
+  stakePercentageOdds2: number;  // % of bankroll for odds-2 ticket (default 2%)
+  stakePercentageOdds3: number;  // % of bankroll for odds-3 ticket (default 1.5%)
   history: AccumulatorTicket[];
   totalPnl: number;
-  winRate2Fold: number;
-  winRate3Fold: number;
+  winRateOdds2: number;
+  winRateOdds3: number;
   streak: number;  // positive = wins, negative = losses
   lastGenerated: string;
 }
@@ -65,8 +66,11 @@ export class DailyAccumulatorsService {
 
   /**
    * Generate today's accumulator tickets
+   * - Ticket 1: combined odds >= 2.00 (use however many legs needed)
+   * - Ticket 2: combined odds >= 3.00 (use however many legs needed)
+   * Stakes adapt daily based on current bankroll.
    */
-  async generateDailyTickets(bankroll?: number): Promise<{ ticket2Fold: AccumulatorTicket; ticket3Fold: AccumulatorTicket }> {
+  async generateDailyTickets(bankroll?: number): Promise<{ ticketOdds2: AccumulatorTicket; ticketOdds3: AccumulatorTicket }> {
     const state = await this.loadState();
     const currentBankroll = bankroll || state.bankroll;
     const today = new Date().toISOString().split('T')[0];
@@ -76,69 +80,95 @@ export class DailyAccumulatorsService {
     if (todayTickets.length >= 2) {
       this.logger.log(`Already generated tickets for ${today}`);
       return {
-        ticket2Fold: todayTickets.find(t => t.type === '2-fold')!,
-        ticket3Fold: todayTickets.find(t => t.type === '3-fold')!,
+        ticketOdds2: todayTickets.find(t => t.type === 'odds-2')!,
+        ticketOdds3: todayTickets.find(t => t.type === 'odds-3')!,
       };
     }
 
     // Fetch today's events
     const events = await this.fetchTodayEvents();
-    if (events.length < 5) {
-      throw new Error(`Not enough events today (${events.length}). Need at least 5 for safe selection.`);
+    if (events.length < 3) {
+      throw new Error(`Not enough events today (${events.length}). Need at least 3 for accumulator selection.`);
     }
 
-    // Use AI to select best legs
+    // Use AI to select best legs — ask for enough picks to build both tickets
     const aiPicks = await this.getAIPicks(events, currentBankroll);
 
-    // Calculate stakes based on bankroll
-    const stake2Fold = this.calculateStake(currentBankroll, state.stakePercentage2Fold, '2-fold', state);
-    const stake3Fold = this.calculateStake(currentBankroll, state.stakePercentage3Fold, '3-fold', state);
+    // Build Ticket 1: combined odds >= 2.00
+    const legsOdds2 = this.buildTicketToTargetOdds(aiPicks, 2.0);
+    const combined2 = legsOdds2.reduce((acc, leg) => acc * leg.odds, 1);
+    const stakeOdds2 = this.calculateStake(currentBankroll, state.stakePercentageOdds2, 'odds-2', state);
 
-    // Build 2-fold ticket (pick 2 safest legs)
-    const legs2 = aiPicks.slice(0, 2);
-    const combined2 = legs2.reduce((acc, leg) => acc * leg.odds, 1);
-    const ticket2Fold: AccumulatorTicket = {
-      id: `ACC-2F-${today}-${Date.now()}`,
-      type: '2-fold',
+    const ticketOdds2: AccumulatorTicket = {
+      id: `ACC-O2-${today}-${Date.now()}`,
+      type: 'odds-2',
+      targetMinOdds: 2.0,
       date: today,
-      legs: legs2,
+      legs: legsOdds2,
       combinedOdds: Math.round(combined2 * 100) / 100,
-      stake: stake2Fold,
-      potentialReturn: Math.round(stake2Fold * combined2 * 100) / 100,
-      potentialProfit: Math.round(stake2Fold * (combined2 - 1) * 100) / 100,
+      stake: stakeOdds2,
+      potentialReturn: Math.round(stakeOdds2 * combined2 * 100) / 100,
+      potentialProfit: Math.round(stakeOdds2 * (combined2 - 1) * 100) / 100,
       status: 'pending',
     };
 
-    // Build 3-fold ticket (pick 3 best value legs, can overlap with 2-fold)
-    const legs3 = aiPicks.slice(0, 3);
-    const combined3 = legs3.reduce((acc, leg) => acc * leg.odds, 1);
-    const ticket3Fold: AccumulatorTicket = {
-      id: `ACC-3F-${today}-${Date.now()}`,
-      type: '3-fold',
+    // Build Ticket 2: combined odds >= 3.00
+    const legsOdds3 = this.buildTicketToTargetOdds(aiPicks, 3.0);
+    const combined3 = legsOdds3.reduce((acc, leg) => acc * leg.odds, 1);
+    const stakeOdds3 = this.calculateStake(currentBankroll, state.stakePercentageOdds3, 'odds-3', state);
+
+    const ticketOdds3: AccumulatorTicket = {
+      id: `ACC-O3-${today}-${Date.now()}`,
+      type: 'odds-3',
+      targetMinOdds: 3.0,
       date: today,
-      legs: legs3,
+      legs: legsOdds3,
       combinedOdds: Math.round(combined3 * 100) / 100,
-      stake: stake3Fold,
-      potentialReturn: Math.round(stake3Fold * combined3 * 100) / 100,
-      potentialProfit: Math.round(stake3Fold * (combined3 - 1) * 100) / 100,
+      stake: stakeOdds3,
+      potentialReturn: Math.round(stakeOdds3 * combined3 * 100) / 100,
+      potentialProfit: Math.round(stakeOdds3 * (combined3 - 1) * 100) / 100,
       status: 'pending',
     };
 
     // Save to state
-    state.history.push(ticket2Fold, ticket3Fold);
+    state.history.push(ticketOdds2, ticketOdds3);
     state.bankroll = currentBankroll;
     state.lastGenerated = new Date().toISOString();
     await this.saveState(state);
 
-    this.logger.log(`Generated daily tickets: 2-fold @${combined2.toFixed(2)} ($${stake2Fold}), 3-fold @${combined3.toFixed(2)} ($${stake3Fold})`);
+    this.logger.log(`Generated daily tickets: odds-2 @${combined2.toFixed(2)} ($${stakeOdds2}), odds-3 @${combined3.toFixed(2)} ($${stakeOdds3})`);
 
-    return { ticket2Fold, ticket3Fold };
+    return { ticketOdds2, ticketOdds3 };
+  }
+
+  /**
+   * Build an accumulator by adding legs until combined odds >= target
+   * Picks the highest-confidence legs first, keeps adding until target reached.
+   */
+  private buildTicketToTargetOdds(allPicks: AccumulatorLeg[], targetOdds: number): AccumulatorLeg[] {
+    // Sort by confidence descending (safest picks first)
+    const sorted = [...allPicks].sort((a, b) => b.confidence - a.confidence);
+    const selected: AccumulatorLeg[] = [];
+    let currentOdds = 1.0;
+
+    for (const pick of sorted) {
+      selected.push(pick);
+      currentOdds *= pick.odds;
+      if (currentOdds >= targetOdds) break;
+    }
+
+    // If we still haven't reached the target, that's the best we can do
+    if (currentOdds < targetOdds) {
+      this.logger.warn(`Could only reach combined odds ${currentOdds.toFixed(2)} (target: ${targetOdds})`);
+    }
+
+    return selected;
   }
 
   /**
    * Calculate stake based on bankroll and performance
    */
-  private calculateStake(bankroll: number, basePercentage: number, type: '2-fold' | '3-fold', state: DailyAccumulatorState): number {
+  private calculateStake(bankroll: number, basePercentage: number, type: 'odds-2' | 'odds-3', state: DailyAccumulatorState): number {
     let percentage = basePercentage;
 
     // Adaptive: reduce after losses, increase after wins
@@ -225,13 +255,17 @@ export class DailyAccumulatorsService {
       `- ${e.strHomeTeam} vs ${e.strAwayTeam} (${e.strLeague}, ${e.dateEvent} ${e.strTime || ''})`
     ).join('\n');
 
-    const prompt = `You are a professional sports betting analyst. Select the 5 BEST picks from today's matches for accumulator bets.
+    const prompt = `You are a professional sports betting analyst. We need picks for TWO daily accumulator tickets:
+- Ticket 1: combined odds must reach at least 2.00
+- Ticket 2: combined odds must reach at least 3.00
+
+Select 6-8 STRONG picks from today's matches. We'll combine them to hit the target odds.
 
 RULES:
 1. Pick ONLY from the matches listed below — do NOT invent matches
 2. For each pick, choose ONE outcome: Home Win, Away Win, Draw, Over 2.5 Goals, Under 2.5 Goals, BTTS Yes, BTTS No
-3. Assign realistic decimal odds (1.20 - 3.50 range for accumulators)
-4. For accumulators, prefer safer picks (odds 1.30-1.80) — we want consistent wins
+3. Assign REALISTIC decimal odds based on the teams and league context
+4. Mix safe picks (1.25-1.60) with value picks (1.60-2.50) so we can build both tickets
 5. Rate confidence 1-10 (8+ means very confident)
 6. Give brief reasoning for each pick
 
@@ -253,7 +287,7 @@ Respond in this EXACT JSON format (no markdown, no code blocks):
   }
 ]
 
-Return exactly 5 picks, sorted by confidence (highest first).`;
+Return 6-8 picks, sorted by confidence (highest first).`;
 
     try {
       const response = await axios.post(
@@ -358,8 +392,8 @@ Return exactly 5 picks, sorted by confidence (highest first).`;
       const type = ticket.type;
       const typeTickets = state.history.filter(t => t.type === type && t.status !== 'pending');
       const typeWins = typeTickets.filter(t => t.status === 'won').length;
-      if (type === '2-fold') state.winRate2Fold = typeTickets.length > 0 ? (typeWins / typeTickets.length) * 100 : 0;
-      if (type === '3-fold') state.winRate3Fold = typeTickets.length > 0 ? (typeWins / typeTickets.length) * 100 : 0;
+      if (type === 'odds-2') state.winRateOdds2 = typeTickets.length > 0 ? (typeWins / typeTickets.length) * 100 : 0;
+      if (type === 'odds-3') state.winRateOdds3 = typeTickets.length > 0 ? (typeWins / typeTickets.length) * 100 : 0;
 
       results.push({
         ticketId: ticket.id,
@@ -447,13 +481,13 @@ Return exactly 5 picks, sorted by confidence (highest first).`;
       bankroll: state.bankroll,
       totalPnl: state.totalPnl,
       streak: state.streak,
-      winRate2Fold: Math.round(state.winRate2Fold * 10) / 10,
-      winRate3Fold: Math.round(state.winRate3Fold * 10) / 10,
+      winRateOdds2: Math.round(state.winRateOdds2 * 10) / 10,
+      winRateOdds3: Math.round(state.winRateOdds3 * 10) / 10,
       todayTickets,
       totalTickets: state.history.length,
       stakeConfig: {
-        '2-fold': `${state.stakePercentage2Fold}% of bankroll`,
-        '3-fold': `${state.stakePercentage3Fold}% of bankroll`,
+        'odds-2': `${state.stakePercentageOdds2}% of bankroll`,
+        'odds-3': `${state.stakePercentageOdds3}% of bankroll`,
       },
     };
   }
@@ -490,12 +524,12 @@ Return exactly 5 picks, sorted by confidence (highest first).`;
     } catch {
       const defaultState: DailyAccumulatorState = {
         bankroll: 9975, // After Day 1 trial
-        stakePercentage2Fold: 2,    // 2% for 2-fold
-        stakePercentage3Fold: 1.5,  // 1.5% for 3-fold
+        stakePercentageOdds2: 2,    // 2% for odds-2 ticket
+        stakePercentageOdds3: 1.5,  // 1.5% for odds-3 ticket
         history: [],
         totalPnl: 0,
-        winRate2Fold: 0,
-        winRate3Fold: 0,
+        winRateOdds2: 0,
+        winRateOdds3: 0,
         streak: 0,
         lastGenerated: '',
       };
