@@ -40,6 +40,7 @@ const AlertsPage = lazy(() => import('./screens/alerts').then(m => ({ default: m
 const SetupPage = lazy(() => import('./screens/setup').then(m => ({ default: m.SetupPage })));
 const DailyAiPage = lazy(() => import('./screens/daily-ai').then(m => ({ default: m.DailyAiPage })));
 const ChatPage = lazy(() => import('./screens/chat').then(m => ({ default: m.ChatPage })));
+const AccumulatorsPage = lazy(() => import('./screens/accumulators').then(m => ({ default: m.AccumulatorsPage })));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -218,6 +219,11 @@ function App() {
         <Route path="/chat" element={
           <ProtectedRoute>
             <ChatPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/accumulators" element={
+          <ProtectedRoute>
+            <AccumulatorsPage />
           </ProtectedRoute>
         } />
         <Route path="/bookmakers" element={
