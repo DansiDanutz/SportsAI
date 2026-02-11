@@ -131,14 +131,35 @@ export class AuthController {
     @Headers('user-agent') userAgent: string,
     @Res({ passthrough: true }) res: FastifyReply,
   ): Promise<AuthSessionResponse> {
-    const authResponse = await this.authService.signup(dto.email, dto.password, ip);
+    try {
+      if (!dto.email || !dto.password) {
+        throw new UnauthorizedException('Email and password are required');
+      }
 
-    // Set HttpOnly auth cookies (do not expose tokens in JS storage)
-    res.setCookie(ACCESS_TOKEN_COOKIE, authResponse.accessToken, getCookieOptions({ maxAge: authResponse.expiresIn }));
-    // Default signup to a persistent refresh cookie (users expect to stay signed in)
-    res.setCookie(REFRESH_TOKEN_COOKIE, authResponse.refreshToken, getCookieOptions({ maxAge: 7 * 24 * 60 * 60 }));
+      const authResponse = await this.authService.signup(dto.email, dto.password, ip);
 
-    return { expiresIn: authResponse.expiresIn, user: authResponse.user };
+      if (!authResponse || !authResponse.accessToken) {
+        throw new Error('Failed to create user account');
+      }
+
+      // Set HttpOnly auth cookies (do not expose tokens in JS storage)
+      res.setCookie(ACCESS_TOKEN_COOKIE, authResponse.accessToken, getCookieOptions({ maxAge: authResponse.expiresIn }));
+      // Default signup to a persistent refresh cookie (users expect to stay signed in)
+      res.setCookie(REFRESH_TOKEN_COOKIE, authResponse.refreshToken, getCookieOptions({ maxAge: 7 * 24 * 60 * 60 }));
+
+      return { expiresIn: authResponse.expiresIn, user: authResponse.user };
+    } catch (error) {
+      console.error('Signup error:', error);
+      
+      // Handle specific error types
+      if (error.message?.includes('already exists')) {
+        throw new UnauthorizedException('Email address is already registered');
+      }
+      
+      throw new UnauthorizedException(
+        error.message || 'Failed to create account. Please try again.'
+      );
+    }
   }
 
   @Post('login')

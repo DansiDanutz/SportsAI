@@ -43,6 +43,31 @@ SportsAI is a **next-generation sports intelligence platform** that specializes 
 - **Line movement tracking** with historical charts
 - **Direct betting links** to sportsbook pages
 
+### 🤖 AI-Powered Features
+- **AI Predictor Engine** - Smart match outcome predictions using multiple models
+- **Sentiment Analysis** - Real-time social media and news sentiment tracking
+- **Smart Alerts** - Personalized notifications for high-value opportunities
+- **Intelligent Bet Analysis** - AI explanations for arbitrage opportunities
+
+### 📊 Daily Accumulator System
+- **Odds-2 Tickets** - Dual-bet accumulator recommendations
+- **Odds-3 Tickets** - Triple-bet accumulator strategies
+- **Dynamic odds tracking** for accumulator combinations
+- **Risk-adjusted profit calculations**
+
+### 💰 Fund Management & Wallet
+- **Digital Wallet System** - Secure deposit/withdrawal management
+- **90/10 Profit Share** - 90% to users, 10% platform fee
+- **Autonomous Betting Engine** - Automated betting with Martingale strategy
+- **Bankroll Management** - Multi-tier risk management system
+- **Real-time balance tracking** with transaction history
+
+### 🎯 Advanced Betting Strategies
+- **Bet Slip Builder** - Custom bet combination creator
+- **Martingale Engine** - Progressive betting strategy automation
+- **Risk Tier Management** - Conservative, Moderate, Aggressive profiles
+- **Portfolio Diversification** - Spread risk across multiple opportunities
+
 ### 🏟️ Sports Coverage (10 Sports)
 - ⚽ Soccer (Football) - Premier League, Champions League, World Cup
 - 🏀 Basketball - NBA, EuroLeague, NCAA
@@ -107,18 +132,24 @@ Redis
 git clone https://github.com/Sports-AI/SportsAI.git
 cd SportsAI/Sports_Ai
 
-# Run the automated setup script
+# Setup environment variables
+cd backend && cp .env.example .env
+# Edit .env with your actual values:
+# - DATABASE_URL (PostgreSQL connection)
+# - JWT_SECRET (secure random string)
+# - OPENROUTER_API_KEY (for AI features)
+# - ODDS_API_KEY (from TheOddsAPI.com)
+
+# Install dependencies and build
+npm install
+npm run build
+
+# Start development servers
+cd backend && npm run dev
+cd frontend && npm run dev
+
+# Or use automated setup:
 ./init.sh
-
-# Or manually:
-# 1. Start databases
-cd docker && docker-compose up -d
-
-# 2. Start backend
-cd backend && npm install && npm run dev
-
-# 3. Start frontend  
-cd frontend && npm install && npm run dev
 ```
 
 ### Access Points

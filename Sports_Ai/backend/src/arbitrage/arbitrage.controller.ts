@@ -19,81 +19,105 @@ export class ArbitrageController {
     @Request() req: any,
     @Query('fullDetails') fullDetails?: string,
   ) {
-    const user = await this.usersService.findById(req.user.id);
-    const isPremium = user?.subscriptionTier === 'premium';
-    const unlockedIds = await this.creditsService.getUnlockedOpportunities(req.user.id);
+    try {
+      if (!req.user?.id) {
+        throw new Error('User authentication required');
+      }
 
-    const dbOpportunities = await this.arbitrageService.findOpportunities();
-    
-    const rawOpportunities = dbOpportunities.map(o => ({
-      id: o.id,
-      sport: o.event?.sport?.name || 'Unknown',
-      event: `${o.event?.home?.name} vs ${o.event?.away?.name}`,
-      league: o.event?.league?.name || 'Unknown',
-      market: o.market?.name || 'Unknown',
-      profit: o.profitMargin,
-      confidence: o.confidenceScore,
-      legs: JSON.parse(o.bookmakerLegs as string),
-      isWinningTip: o.isWinningTip || o.confidenceScore >= 0.95,
-      creditCost: o.creditCost || 10,
-    }));
+      const user = await this.usersService.findById(req.user.id);
+      const isPremium = user?.subscriptionTier === 'premium';
+      const unlockedIds = await this.creditsService.getUnlockedOpportunities(req.user.id);
 
-    // Map opportunities to hide legs for locked Winning Tips
-    const opportunities = rawOpportunities.map(o => {
-      const isUnlocked = unlockedIds.includes(o.id);
-      // Even premium users need to unlock Winning Tips (confidence >= 0.95)
-      const needsUnlock = o.isWinningTip && !isUnlocked;
+      const dbOpportunities = await this.arbitrageService.findOpportunities();
       
-      const aiInsight = undefined;
+      const rawOpportunities = dbOpportunities.map(o => {
+        try {
+          const legs = typeof o.bookmakerLegs === 'string' 
+            ? JSON.parse(o.bookmakerLegs) 
+            : o.bookmakerLegs || [];
+          
+          return {
+            id: o.id,
+            sport: o.event?.sport?.name || 'Unknown',
+            event: `${o.event?.home?.name} vs ${o.event?.away?.name}`,
+            league: o.event?.league?.name || 'Unknown',
+            market: o.market?.name || 'Unknown',
+            profit: o.profitMargin,
+            confidence: o.confidenceScore,
+            legs,
+            isWinningTip: o.isWinningTip || o.confidenceScore >= 0.95,
+            creditCost: o.creditCost || 10,
+          };
+        } catch (parseError) {
+          console.error('Failed to parse opportunity legs:', parseError);
+          return null;
+        }
+      }).filter(Boolean);
 
-      return {
-        ...o,
-        legs: needsUnlock ? [] : o.legs,
-        isUnlocked,
+      // Map opportunities to hide legs for locked Winning Tips
+      const opportunities = rawOpportunities.map(o => {
+        const isUnlocked = unlockedIds.includes(o.id);
+        // Even premium users need to unlock Winning Tips (confidence >= 0.95)
+        const needsUnlock = o.isWinningTip && !isUnlocked;
+
+        return {
+          ...o,
+          legs: needsUnlock ? [] : o.legs,
+          isUnlocked,
+        };
+      });
+
+      // Calculate summary stats safely
+      const totalOpportunities = opportunities.length;
+      const bestROI = totalOpportunities > 0 
+        ? Math.max(...opportunities.map((o) => o.profit)) 
+        : 0;
+      const avgConfidence = totalOpportunities > 0
+        ? opportunities.reduce((a, b) => a + b.confidence, 0) / totalOpportunities
+        : 0;
+
+      const summary = {
+        totalOpportunities,
+        bestROI,
+        avgConfidence,
       };
-    });
 
-    // If free user requests full details, return tier-restricted response
-    if (fullDetails === 'true' && !isPremium) {
+      // If free user requests full details, return tier-restricted response
+      if (fullDetails === 'true' && !isPremium) {
+        return {
+          success: true,
+          tier: 'free',
+          tierRestricted: true,
+          message: 'Full details require Premium subscription',
+          count: totalOpportunities,
+          summary,
+          opportunities: [], // No details for free users
+        };
+      }
+
+      // Premium users or no full details requested
+      if (isPremium) {
+        return {
+          success: true,
+          tier: 'premium',
+          tierRestricted: false,
+          opportunities,
+          total: totalOpportunities,
+        };
+      }
+
+      // Free users without full details flag - return count only
       return {
+        success: true,
         tier: 'free',
         tierRestricted: true,
-        message: 'Full details require Premium subscription',
-        count: opportunities.length,
-        summary: {
-          totalOpportunities: opportunities.length,
-          bestROI: Math.max(...opportunities.map((o) => o.profit)),
-          avgConfidence:
-            opportunities.reduce((a, b) => a + b.confidence, 0) /
-            opportunities.length,
-        },
-        opportunities: [], // No details for free users
+        count: totalOpportunities,
+        summary,
+        message: 'Upgrade to Premium for full arbitrage details',
       };
+    } catch (error) {
+      console.error('Error fetching arbitrage opportunities:', error);
+      throw new Error(`Failed to fetch arbitrage opportunities: ${error.message}`);
     }
-
-    // Premium users or no full details requested
-    if (isPremium) {
-      return {
-        tier: 'premium',
-        tierRestricted: false,
-        opportunities: opportunities,
-        total: opportunities.length,
-      };
-    }
-
-    // Free users without full details flag - return count only
-    return {
-      tier: 'free',
-      tierRestricted: true,
-      count: opportunities.length,
-      summary: {
-        totalOpportunities: opportunities.length,
-        bestROI: Math.max(...opportunities.map((o) => o.profit)),
-        avgConfidence:
-          opportunities.reduce((a, b) => a + b.confidence, 0) /
-          opportunities.length,
-      },
-      message: 'Upgrade to Premium for full arbitrage details',
-    };
   }
 }
