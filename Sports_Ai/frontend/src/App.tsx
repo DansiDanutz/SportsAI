@@ -10,6 +10,7 @@ import { GlobalFreshnessBadge } from './components/GlobalFreshnessBadge';
 import { api } from './services/api';
 
 // Lazy load all page components for code splitting
+const LandingPage = lazy(() => import('./screens/landing').then(m => ({ default: m.LandingPage })));
 const LoginPage = lazy(() => import('./screens/auth').then(m => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('./screens/auth').then(m => ({ default: m.RegisterPage })));
 const ForgotPasswordPage = lazy(() => import('./screens/auth').then(m => ({ default: m.ForgotPasswordPage })));
@@ -131,6 +132,7 @@ function App() {
           <Suspense fallback={<PageLoader />}>
             <Routes>
         {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={
           isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />
         } />
@@ -277,9 +279,6 @@ function App() {
             <ApifyPage />
           </ProtectedRoute>
         } />
-
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/home" replace />} />
 
         {/* 404 Not Found */}
         <Route path="*" element={
