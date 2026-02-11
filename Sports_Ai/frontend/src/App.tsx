@@ -41,6 +41,7 @@ const SetupPage = lazy(() => import('./screens/setup').then(m => ({ default: m.S
 const DailyAiPage = lazy(() => import('./screens/daily-ai').then(m => ({ default: m.DailyAiPage })));
 const ChatPage = lazy(() => import('./screens/chat').then(m => ({ default: m.ChatPage })));
 const AccumulatorsPage = lazy(() => import('./screens/accumulators').then(m => ({ default: m.AccumulatorsPage })));
+const StrategyPage = lazy(() => import('./screens/strategy').then(m => ({ default: m.StrategyPage })));
 const WalletPage = lazy(() => import('./screens/wallet').then(m => ({ default: m.WalletPage })));
 
 // Loading fallback component
@@ -230,6 +231,11 @@ function App() {
         <Route path="/accumulators" element={
           <ProtectedRoute>
             <AccumulatorsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/strategy" element={
+          <ProtectedRoute>
+            <StrategyPage />
           </ProtectedRoute>
         } />
         <Route path="/bookmakers" element={
