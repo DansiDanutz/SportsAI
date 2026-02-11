@@ -60,7 +60,7 @@ interface HistoricalData {
 @Injectable()
 export class AiPredictorService {
   private readonly logger = new Logger(AiPredictorService.name);
-  private readonly openRouterApiKey = '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';
+  private readonly openRouterApiKey = process.env.OPENROUTER_API_KEY || '';
 
   constructor(
     private prisma: PrismaService,

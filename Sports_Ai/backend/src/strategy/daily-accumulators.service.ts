@@ -61,7 +61,7 @@ export class DailyAccumulatorsService {
   private readonly logger = new Logger('DailyAccumulators');
   private readonly dataDir = join(process.cwd(), 'data');
   private readonly stateFile = join(process.cwd(), 'data', 'daily_accumulators.json');
-  private readonly OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || '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';
+  private readonly OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || '';
   private readonly OPENROUTER_MODEL = 'google/gemini-2.0-flash-001';
 
   /**
