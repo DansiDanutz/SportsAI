@@ -44,6 +44,7 @@ const ChatPage = lazy(() => import('./screens/chat').then(m => ({ default: m.Cha
 const AccumulatorsPage = lazy(() => import('./screens/accumulators').then(m => ({ default: m.AccumulatorsPage })));
 const StrategyPage = lazy(() => import('./screens/strategy').then(m => ({ default: m.StrategyPage })));
 const WalletPage = lazy(() => import('./screens/wallet').then(m => ({ default: m.WalletPage })));
+const DemoPage = lazy(() => import('./screens/demo').then(m => ({ default: m.DemoPage })));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -148,6 +149,7 @@ function App() {
         <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/demo" element={<DemoPage />} />
 
         {/* Protected Routes */}
         <Route path="/home" element={
