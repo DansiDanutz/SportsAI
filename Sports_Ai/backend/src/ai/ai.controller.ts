@@ -1015,4 +1015,37 @@ export class AiController {
       };
     }
   }
+
+  // ===== AI PREDICTOR ENDPOINTS =====
+
+  @Post('predict/:eventId')
+  @UseGuards(JwtAuthGuard)
+  async predictMatch(@Param('eventId') eventId: string) {
+    return this.aiPredictorService.predictMatch(eventId);
+  }
+
+  // ===== SENTIMENT ENDPOINTS =====
+
+  @Get('sentiment/:eventId')
+  @UseGuards(JwtAuthGuard)
+  async analyzeSentiment(@Param('eventId') eventId: string) {
+    return this.sentimentService.analyzeSentiment(eventId);
+  }
+
+  @Get('sentiment/history')
+  @UseGuards(JwtAuthGuard)
+  async getSentimentHistory(@Query('eventId') eventId?: string, @Query('limit') limit?: string) {
+    return this.sentimentService.getSentimentHistory(eventId, limit ? parseInt(limit) : 20);
+  }
+
+  @Get('sentiment/trends')
+  @UseGuards(JwtAuthGuard)
+  async getSentimentTrends(@Query('sport') sport?: string) {
+    return this.sentimentService.getSentimentTrends(sport);
+  }
+
+  @Get('sentiment/test')
+  async testSentiment() {
+    return this.sentimentService.testSentimentAnalysis();
+  }
 }
