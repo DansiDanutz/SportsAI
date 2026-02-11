@@ -7,6 +7,7 @@ import { BankrollService } from './bankroll.service';
 import { MartingaleService } from './martingale.service';
 import { AutonomousService } from './autonomous.service';
 import { BetSlipService } from './bet-slip.service';
+import { DailyAccumulatorsService } from './daily-accumulators.service';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
@@ -18,7 +19,8 @@ import { PrismaModule } from '../prisma/prisma.module';
     BankrollService, 
     MartingaleService, 
     AutonomousService,
-    BetSlipService
+    BetSlipService,
+    DailyAccumulatorsService
   ],
   exports: [
     StrategyService, 
@@ -26,7 +28,8 @@ import { PrismaModule } from '../prisma/prisma.module';
     BankrollService, 
     MartingaleService, 
     AutonomousService,
-    BetSlipService
+    BetSlipService,
+    DailyAccumulatorsService
   ],
 })
 export class StrategyModule {}

@@ -13,6 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/
 import { StrategyService, BettingPick } from './strategy.service';
 import { HistoryService } from './history.service';
 import { BetSlipService } from './bet-slip.service';
+import { DailyAccumulatorsService } from './daily-accumulators.service';
 
 @ApiTags('Strategy')
 @Controller('api/strategy')
@@ -22,7 +23,8 @@ export class StrategyController {
   constructor(
     private readonly strategyService: StrategyService,
     private readonly historyService: HistoryService,
-    private readonly betSlipService: BetSlipService
+    private readonly betSlipService: BetSlipService,
+    private readonly dailyAccumulators: DailyAccumulatorsService,
   ) {}
 
   @Get('today')
@@ -440,5 +442,50 @@ export class StrategyController {
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
+  }
+
+  // ===== DAILY ACCUMULATORS =====
+
+  @Post('accumulators/generate')
+  @ApiOperation({ summary: 'Generate daily 2-fold and 3-fold accumulator tickets' })
+  async generateDailyAccumulators(@Body() body?: { bankroll?: number }) {
+    try {
+      const result = await this.dailyAccumulators.generateDailyTickets(body?.bankroll);
+      return { status: 'success', data: result };
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('accumulators/resolve')
+  @ApiOperation({ summary: 'Resolve pending accumulator tickets with actual results' })
+  async resolveAccumulators(@Body() body?: { date?: string }) {
+    try {
+      const result = await this.dailyAccumulators.resolveTickets(body?.date);
+      return { status: 'success', data: result };
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get('accumulators/status')
+  @ApiOperation({ summary: 'Get accumulator system status and today\'s tickets' })
+  async getAccumulatorStatus() {
+    const data = await this.dailyAccumulators.getStatus();
+    return { status: 'success', data };
+  }
+
+  @Get('accumulators/history')
+  @ApiOperation({ summary: 'Get accumulator ticket history' })
+  async getAccumulatorHistory(@Query('limit') limit?: string) {
+    const data = await this.dailyAccumulators.getHistory(limit ? parseInt(limit) : 20);
+    return { status: 'success', data };
+  }
+
+  @Post('accumulators/bankroll')
+  @ApiOperation({ summary: 'Update accumulator bankroll' })
+  async updateAccumulatorBankroll(@Body() body: { bankroll: number }) {
+    const data = await this.dailyAccumulators.updateBankroll(body.bankroll);
+    return { status: 'success', data };
   }
 }
