@@ -90,7 +90,7 @@ export class OddsScraperService {
     // Source 2: Database bookmakers + TheSportsDB events
     try {
       const dbBookmakers = await this.prisma.bookmaker.findMany({
-        where: { isActive: true },
+        where: { isActive: true } as any,
         take: 10 // Limit to avoid too many requests
       });
       

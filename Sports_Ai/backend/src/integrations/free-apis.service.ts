@@ -86,7 +86,7 @@ export class FreeApisService implements OnModuleInit {
   async getAllSports(): Promise<any[]> {
     const cacheKey = 'sports:all';
     const cached = this.getCached(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as any[];
 
     try {
       const response = await this.sportsDbClient.get('/all_sports.php');
@@ -108,7 +108,7 @@ export class FreeApisService implements OnModuleInit {
   async getAllLeagues(): Promise<League[]> {
     const cacheKey = 'leagues:all';
     const cached = this.getCached(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as League[];
 
     try {
       const response = await this.sportsDbClient.get('/all_leagues.php');
@@ -138,7 +138,7 @@ export class FreeApisService implements OnModuleInit {
   async searchTeams(teamName: string): Promise<Team[]> {
     const cacheKey = `teams:search:${teamName.toLowerCase()}`;
     const cached = this.getCached(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as Team[];
 
     try {
       const response = await this.sportsDbClient.get('/searchteams.php', {
@@ -172,7 +172,7 @@ export class FreeApisService implements OnModuleInit {
   async getEventsByDate(date: string): Promise<SportsEvent[]> {
     const cacheKey = `events:date:${date}`;
     const cached = this.getCached(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as SportsEvent[];
 
     try {
       const response = await this.sportsDbClient.get('/eventsday.php', {
@@ -208,7 +208,7 @@ export class FreeApisService implements OnModuleInit {
   async getUpcomingEvents(leagueId: string, limit: number = 50): Promise<SportsEvent[]> {
     const cacheKey = `events:upcoming:${leagueId}:${limit}`;
     const cached = this.getCached(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as SportsEvent[];
 
     try {
       const response = await this.sportsDbClient.get('/eventsnextleague.php', {
@@ -246,7 +246,7 @@ export class FreeApisService implements OnModuleInit {
   async getEventDetails(eventId: string): Promise<SportsEvent | null> {
     const cacheKey = `event:details:${eventId}`;
     const cached = this.getCached(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as SportsEvent;
 
     try {
       const response = await this.sportsDbClient.get('/lookupevent.php', {
@@ -284,7 +284,7 @@ export class FreeApisService implements OnModuleInit {
   async getTeamDetails(teamId: string): Promise<Team | null> {
     const cacheKey = `team:details:${teamId}`;
     const cached = this.getCached(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as Team;
 
     try {
       const response = await this.sportsDbClient.get('/lookupteam.php', {
@@ -320,7 +320,7 @@ export class FreeApisService implements OnModuleInit {
   async getLiveEvents(): Promise<SportsEvent[]> {
     const cacheKey = 'events:live';
     const cached = this.getCached(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as SportsEvent[];
 
     try {
       // Get events from today and yesterday
@@ -365,7 +365,7 @@ export class FreeApisService implements OnModuleInit {
         responseTime: Date.now() - start,
       };
     } catch (error) {
-      results.services.theSportsDB = {
+      (results.services.theSportsDB as any) = {
         status: 'unhealthy',
         responseTime: 0,
         error: error.message,

@@ -296,21 +296,21 @@ export class SmartAlertsService {
   private async checkBankrollAlerts() {
     try {
       // Get all active users with betting history
-      const users = await this.prisma.user.findMany({
-        where: { isActive: true },
+      const users = await (this.prisma as any).user.findMany({
+        where: { isActive: true } as any,
         include: {
           bettingHistory: {
             take: 1,
             orderBy: { createdAt: 'desc' }
           }
-        }
+        } as any
       });
       
       for (const user of users) {
-        if (!user.bettingHistory || user.bettingHistory.length === 0) continue;
+        if (!(user as any).bettingHistory || (user as any).bettingHistory.length === 0) continue;
         
-        const currentBalance = user.bettingHistory[0]?.balance || 0;
-        const initialBalance = user.initialBankroll || currentBalance;
+        const currentBalance = (user as any).bettingHistory[0]?.balance || 0;
+        const initialBalance = (user as any).initialBankroll || currentBalance;
         
         // Calculate profit/loss percentage
         const profitLossPercentage = ((currentBalance - initialBalance) / initialBalance) * 100;
@@ -366,7 +366,7 @@ export class SmartAlertsService {
   private async createAlert(alert: SmartAlert): Promise<void> {
     try {
       // Store in database
-      await this.prisma.alert.create({
+      await (this.prisma as any).alert.create({
         data: {
           type: alert.type,
           eventId: alert.eventId,
@@ -407,7 +407,7 @@ export class SmartAlertsService {
    */
   async getAlertsForUser(userId: string, limit: number = 20): Promise<SmartAlert[]> {
     try {
-      const alerts = await this.prisma.alert.findMany({
+      const alerts = await (this.prisma as any).alert.findMany({
         where: {
           OR: [
             { userId: userId },
@@ -443,7 +443,7 @@ export class SmartAlertsService {
    */
   async markAlertAsRead(alertId: string, userId: string): Promise<boolean> {
     try {
-      await this.prisma.alert.update({
+      await (this.prisma as any).alert.update({
         where: { 
           id: alertId,
           OR: [
@@ -466,7 +466,7 @@ export class SmartAlertsService {
    */
   async getAlertStats(): Promise<any> {
     try {
-      const stats = await this.prisma.alert.groupBy({
+      const stats = await (this.prisma as any).alert.groupBy({
         by: ['type', 'priority'],
         _count: true,
         where: {

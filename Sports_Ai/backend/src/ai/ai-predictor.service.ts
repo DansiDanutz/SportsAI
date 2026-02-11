@@ -1,7 +1,7 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { OpenrouterService } from './openrouter.service';
+import { OpenRouterService } from './openrouter.service';
 import { OddsService } from '../odds/odds.service';
 
 interface MatchPrediction {
@@ -64,7 +64,7 @@ export class AiPredictorService {
 
   constructor(
     private prisma: PrismaService,
-    private openrouterService: OpenrouterService,
+    private openrouterService: OpenRouterService,
     private oddsService: OddsService,
     private configService: ConfigService
   ) {}
@@ -155,7 +155,7 @@ export class AiPredictorService {
     }
 
     const data = await response.json();
-    const content = data.choices[0]?.message?.content;
+    const content = (data as any).choices[0]?.message?.content;
     
     if (!content) {
       throw new HttpException('No prediction received from AI', HttpStatus.BAD_GATEWAY);
@@ -381,7 +381,7 @@ Ensure probabilities sum to 1.0 and confidence is between 0.5-0.95. Be specific 
    */
   private async storePrediction(prediction: MatchPrediction): Promise<void> {
     try {
-      await this.prisma.aiPrediction.create({
+      await (this.prisma as any).aiPrediction.create({
         data: {
           eventId: prediction.eventId,
           predictions: JSON.stringify(prediction.predictions),
@@ -403,7 +403,7 @@ Ensure probabilities sum to 1.0 and confidence is between 0.5-0.95. Be specific 
    */
   async getPredictionHistory(limit: number = 20): Promise<any[]> {
     try {
-      return await this.prisma.aiPrediction.findMany({
+      return await (this.prisma as any).aiPrediction.findMany({
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -446,8 +446,8 @@ Ensure probabilities sum to 1.0 and confidence is between 0.5-0.95. Be specific 
       return {
         status: 'success',
         testPrompt,
-        response: data.choices[0]?.message?.content,
-        usage: data.usage
+        response: (data as any).choices[0]?.message?.content,
+        usage: (data as any).usage
       };
     } catch (error) {
       return {

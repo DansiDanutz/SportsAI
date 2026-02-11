@@ -7,7 +7,7 @@ import { AiPredictorService } from '../ai/ai-predictor.service';
 import { OddsService } from '../odds/odds.service';
 import { TheOddsApiService } from '../integrations/the-odds-api.service';
 import { FreeApisService } from '../integrations/free-apis.service';
-import { OpenrouterService } from '../ai/openrouter.service';
+import { OpenRouterService } from '../ai/openrouter.service';
 
 @Module({
   controllers: [AlertsController],
@@ -19,7 +19,7 @@ import { OpenrouterService } from '../ai/openrouter.service';
     OddsService,
     TheOddsApiService,
     FreeApisService,
-    OpenrouterService
+    OpenRouterService
   ],
   exports: [SmartAlertsService]
 })

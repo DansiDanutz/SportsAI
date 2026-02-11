@@ -185,7 +185,7 @@ export class SentimentService {
     }
 
     const data = await response.json();
-    const content = data.choices[0]?.message?.content;
+    const content = (data as any).choices[0]?.message?.content;
     
     if (!content) {
       throw new HttpException('No sentiment analysis received from AI', HttpStatus.BAD_GATEWAY);
@@ -349,7 +349,7 @@ Key principles:
    */
   private async storeSentimentAnalysis(analysis: SentimentAnalysis): Promise<void> {
     try {
-      await this.prisma.sentimentAnalysis.create({
+      await (this.prisma as any).sentimentAnalysis.create({
         data: {
           eventId: analysis.eventId,
           sentiment: JSON.stringify(analysis.sentiment),
@@ -371,7 +371,7 @@ Key principles:
     try {
       const whereClause = eventId ? { eventId } : {};
       
-      return await this.prisma.sentimentAnalysis.findMany({
+      return await (this.prisma as any).sentimentAnalysis.findMany({
         where: whereClause,
         take: limit,
         orderBy: { createdAt: 'desc' }
@@ -388,7 +388,7 @@ Key principles:
   async getSentimentTrends(sportFilter?: string): Promise<any> {
     try {
       // Get recent sentiment analyses
-      const recentAnalyses = await this.prisma.sentimentAnalysis.findMany({
+      const recentAnalyses = await (this.prisma as any).sentimentAnalysis.findMany({
         take: 50,
         orderBy: { createdAt: 'desc' },
         include: {

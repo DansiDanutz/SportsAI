@@ -459,7 +459,7 @@ export class AutonomousService {
       }
 
       // Create betting pick
-      const pick: BettingPick = {
+      const pick = {
         id: `auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         date: new Date().toISOString().split('T')[0],
         event: analysis.event,
@@ -469,7 +469,7 @@ export class AutonomousService {
         confidence: analysis.confidence,
         stake_amount_usd: finalStake,
         stake_percentage: (finalStake / (await this.bankrollService.getBankrollState()).current_bankroll) * 100,
-        strategy: `AUTONOMOUS_${analysis.strategy}`,
+        strategy: `AUTONOMOUS_${analysis.strategy}` as any,
         status: 'pending',
         result: null,
         profit_loss_usd: null,
@@ -480,7 +480,7 @@ export class AutonomousService {
       };
 
       // Save the pick
-      await this.historyService.savePick(pick);
+      await this.historyService.savePick(pick as any);
 
       // If using martingale strategy, start sequence
       if (analysis.strategy === 'MARTINGALE') {
@@ -585,7 +585,7 @@ export class AutonomousService {
     try {
       // In real implementation, check result via API
       // For now, simulate random results based on confidence
-      const winProbability = bet.confidence / 10;
+      const winProbability = (bet as any).confidence / 10;
       const isWon = Math.random() < winProbability;
       
       if (isWon) {

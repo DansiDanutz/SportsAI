@@ -142,7 +142,7 @@ export class OddsService {
         await this.theOddsApiService.getSports();
         result.services.oddsApi.status = 'healthy';
       } catch (error) {
-        result.services.oddsApi = {
+        (result.services as any).oddsApi = {
           status: 'unhealthy',
           configured: true,
           error: error.message
