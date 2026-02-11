@@ -499,7 +499,7 @@ export class StrategyService {
         const dayEvents = await this.getTodaysEvents(date);
         
         for (const event of dayEvents.slice(0, 3)) { // Limit per day
-          const eventPicks = await this.analyzeEvent(event);
+          const eventPicks = await this.analyzeEvent_OLD(event);
           picks.push(...eventPicks);
         }
       }
@@ -726,7 +726,7 @@ export class StrategyService {
   /**
    * Detect arbitrage opportunities (requires multiple bookmaker data)
    */
-  async detectArbitrage(): Promise<BettingPick[]> {
+  async detectArbitrage_v2(): Promise<BettingPick[]> {
     this.logger.log('Arbitrage detection requires real-time odds from multiple bookmakers');
     // This would be implemented with live odds feeds
     return [];

@@ -250,7 +250,7 @@ export class StrategyController {
           const wins = completedStrategyPicks.filter(pick => pick.status === 'won').length;
           const winRate = (wins / completedStrategyPicks.length) * 100;
           const totalProfit = completedStrategyPicks.reduce((sum, pick) => 
-            sum + (pick.profit_loss || 0), 0
+            sum + ((pick as any).profit_loss || 0), 0
           );
 
           strategyPerformance[strategy] = {

@@ -418,20 +418,21 @@ export class BetSlipService {
    */
   private async storeBetSlipAnalysis(analysis: BetSlipAnalysis, legs: BetSlipLeg[]): Promise<void> {
     try {
-      await this.prisma.betSlipAnalysis.create({
-        data: {
-          betSlipId: analysis.betSlipId,
-          totalStake: analysis.totalStake,
-          potentialPayout: analysis.potentialPayout,
-          totalOdds: analysis.totalOdds,
-          combinedProbability: analysis.combinedProbability,
-          expectedValue: analysis.expectedValue,
-          riskLevel: analysis.riskAnalysis.riskLevel,
-          legs: JSON.stringify(legs),
-          analysis: JSON.stringify(analysis),
-          createdAt: new Date(analysis.timestamp)
-        }
-      });
+      // TODO: Add BetSlipAnalysis model to Prisma schema
+      // await this.prisma.betSlipAnalysis.create({
+      //   data: {
+      //     betSlipId: analysis.betSlipId,
+      //     totalStake: analysis.totalStake,
+      //     potentialPayout: analysis.potentialPayout,
+      //     totalOdds: analysis.totalOdds,
+      //     combinedProbability: analysis.combinedProbability,
+      //     expectedValue: analysis.expectedValue,
+      //     riskLevel: analysis.riskAnalysis.riskLevel,
+      //     legs: JSON.stringify(legs),
+      //     analysis: JSON.stringify(analysis),
+      //     createdAt: new Date(analysis.timestamp)
+      //   }
+      // });
     } catch (error) {
       this.logger.warn(`Failed to store bet slip analysis: ${error.message}`);
     }
@@ -442,10 +443,12 @@ export class BetSlipService {
    */
   async getBetSlipHistory(limit: number = 20): Promise<any[]> {
     try {
-      return await this.prisma.betSlipAnalysis.findMany({
-        take: limit,
-        orderBy: { createdAt: 'desc' }
-      });
+      // TODO: Add BetSlipAnalysis model to Prisma schema
+      // return await this.prisma.betSlipAnalysis.findMany({
+      //   take: limit,
+      //   orderBy: { createdAt: 'desc' }
+      // });
+      return [];
     } catch (error) {
       this.logger.warn(`Failed to fetch bet slip history: ${error.message}`);
       return [];
@@ -522,7 +525,7 @@ export class BetSlipService {
     // Add correlation component (simplified)
     const correlationRisk = legs.length > 1 ? 0.1 * weights.reduce((sum, w) => sum + w * w, 0) : 0;
     
-    return Math.sqrt(weightedVariances.reduce((sum, var) => sum + var, 0) + correlationRisk);
+    return Math.sqrt(weightedVariances.reduce((sum, v) => sum + v, 0) + correlationRisk);
   }
 
   /**
