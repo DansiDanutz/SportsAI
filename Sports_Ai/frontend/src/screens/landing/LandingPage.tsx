@@ -2,6 +2,31 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { LiveOddsTicker } from '../../components/LiveOddsTicker';
 
+function FAQItem({ question, answer }: { question: string; answer: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="border border-gray-700/50 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-800/50 transition-colors"
+      >
+        <span className="text-white font-medium pr-4">{question}</span>
+        <svg
+          className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="px-5 pb-5 text-gray-400 leading-relaxed border-t border-gray-700/30">
+          {answer}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function LandingPage() {
   const navigate = useNavigate();
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
@@ -353,6 +378,74 @@ export function LandingPage() {
               Results may vary. Past performance doesn't guarantee future returns.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-800/30">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xl text-gray-400">
+              Everything you need to know before getting started
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <FAQItem
+              question="What is sports arbitrage betting?"
+              answer="Arbitrage betting exploits price differences between bookmakers. When different sportsbooks offer different odds on the same event, you can place bets on all outcomes and guarantee a profit regardless of the result. Our AI scans 26+ bookmakers in real-time to find these opportunities for you."
+            />
+            <FAQItem
+              question="Is arbitrage betting legal?"
+              answer="Yes, arbitrage betting is completely legal in most jurisdictions. You are simply placing bets at the best available odds across different bookmakers. However, some bookmakers may limit accounts that consistently exploit arbitrage — our platform helps you manage this risk with smart staking strategies."
+            />
+            <FAQItem
+              question="What kind of returns can I expect?"
+              answer="Individual arbitrage opportunities typically yield 1-5% profit per trade. With our AI engine running 24/7 and processing hundreds of opportunities daily, monthly returns vary based on bankroll size and market conditions. Past users have reported 5-15% monthly returns, but results are not guaranteed."
+            />
+            <FAQItem
+              question="How does the 90% profit share work?"
+              answer="When you use our managed fund feature, our AI engine handles all betting decisions autonomously. From the profits generated, you keep 90% and we retain 10% as a management fee. Payouts are processed monthly with full transparency — you can track every bet in real-time."
+            />
+            <FAQItem
+              question="What's the minimum investment to start?"
+              answer="You can start with as little as $100 in the managed fund. However, for optimal results with the full platform ($399 one-time purchase), we recommend a bankroll of at least $500-$1000 to take advantage of multiple simultaneous arbitrage opportunities."
+            />
+            <FAQItem
+              question="Can I control the autonomous engine?"
+              answer="Absolutely. You have full control with features like: instant kill switch to stop all betting, maximum stake limits, sport/league filters, bookmaker preferences, and risk tolerance settings. The AI works within the boundaries you set."
+            />
+            <FAQItem
+              question="What sports and markets are supported?"
+              answer="We cover 75+ sports including football (soccer), basketball, tennis, baseball, hockey, MMA, and more. Market types include moneyline, spread/handicap, totals (over/under), 1X2, and various prop bets — anywhere bookmaker odds differ."
+            />
+            <FAQItem
+              question="Is there a free trial or demo?"
+              answer="Yes! You can explore our demo mode to see how the platform works, view sample arbitrage opportunities, and understand the interface before committing. Click 'Get Started' and select the demo option during registration."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
+            Ready to Start <span className="text-green-400">Winning</span>?
+          </h2>
+          <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
+            Join hundreds of traders already using AI to find guaranteed arbitrage opportunities every day.
+          </p>
+          <button
+            onClick={handleGetStarted}
+            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-lg font-bold px-10 py-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-2xl shadow-green-500/25"
+          >
+            Get Started Now — $399
+          </button>
+          <p className="text-gray-500 text-sm mt-4">One-time payment • Lifetime access • No hidden fees</p>
         </div>
       </section>
 
