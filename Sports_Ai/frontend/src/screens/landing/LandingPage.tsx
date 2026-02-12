@@ -482,7 +482,7 @@ export function LandingPage() {
               <ul className="space-y-2">
                 <li><Link to="/register" className="text-gray-400 hover:text-white transition-colors">Get Started</Link></li>
                 <li><a href="#features" className="text-gray-400 hover:text-white transition-colors">Features</a></li>
-                <li><a href="#pricing" className="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
+                <li><Link to="/pricing" className="text-gray-400 hover:text-white transition-colors">Pricing</Link></li>
               </ul>
             </div>
 

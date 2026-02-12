@@ -46,6 +46,7 @@ const StrategyPage = lazy(() => import('./screens/strategy').then(m => ({ defaul
 const WalletPage = lazy(() => import('./screens/wallet').then(m => ({ default: m.WalletPage })));
 const PerformancePage = lazy(() => import('./screens/performance').then(m => ({ default: m.PerformancePage })));
 const DemoPage = lazy(() => import('./screens/demo').then(m => ({ default: m.DemoPage })));
+const PricingPage = lazy(() => import('./screens/pricing').then(m => ({ default: m.PricingPage })));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -151,6 +152,7 @@ function App() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/demo" element={<DemoPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
 
         {/* Protected Routes */}
         <Route path="/home" element={
