@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { LiveOddsTicker } from '../../components/LiveOddsTicker';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -150,6 +151,23 @@ export function LandingPage() {
                 <div className="text-gray-300 text-sm">Profit Share</div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Live Odds Ticker Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2">
+              See It In Action
+            </h2>
+            <p className="text-gray-400">
+              Real-time arbitrage opportunities detected by our AI engine
+            </p>
+          </div>
+          <div className="bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 relative overflow-hidden">
+            <LiveOddsTicker />
           </div>
         </div>
       </section>
