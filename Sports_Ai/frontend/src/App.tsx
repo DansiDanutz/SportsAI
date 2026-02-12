@@ -44,6 +44,7 @@ const ChatPage = lazy(() => import('./screens/chat').then(m => ({ default: m.Cha
 const AccumulatorsPage = lazy(() => import('./screens/accumulators').then(m => ({ default: m.AccumulatorsPage })));
 const StrategyPage = lazy(() => import('./screens/strategy').then(m => ({ default: m.StrategyPage })));
 const WalletPage = lazy(() => import('./screens/wallet').then(m => ({ default: m.WalletPage })));
+const PerformancePage = lazy(() => import('./screens/performance').then(m => ({ default: m.PerformancePage })));
 const DemoPage = lazy(() => import('./screens/demo').then(m => ({ default: m.DemoPage })));
 
 // Loading fallback component
@@ -195,6 +196,11 @@ function App() {
         <Route path="/wallet" element={
           <ProtectedRoute>
             <WalletPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/performance" element={
+          <ProtectedRoute>
+            <PerformancePage />
           </ProtectedRoute>
         } />
         <Route path="/settings" element={
