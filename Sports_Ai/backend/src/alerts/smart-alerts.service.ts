@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OddsScraperService } from '../odds/odds-scraper.service';
 import { AiPredictorService } from '../ai/ai-predictor.service';
+import { TelegramNotificationsService } from '../notifications/telegram-notifications.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 interface SmartAlert {
@@ -50,7 +51,8 @@ export class SmartAlertsService {
   constructor(
     private prisma: PrismaService,
     private oddsScraperService: OddsScraperService,
-    private aiPredictorService: AiPredictorService
+    private aiPredictorService: AiPredictorService,
+    @Optional() private telegramService?: TelegramNotificationsService,
   ) {}
 
   /**
@@ -397,6 +399,33 @@ export class SmartAlertsService {
       }
       
       this.logger.log(`Created ${alert.type} alert: ${alert.message}`);
+
+      // Send Telegram push notification
+      if (alert.userId && this.telegramService?.isEnabled) {
+        try {
+          const user = await this.prisma.user.findUnique({
+            where: { id: alert.userId },
+            select: { telegramChatId: true },
+          });
+          if (user?.telegramChatId) {
+            if (alert.type === 'arbitrage') {
+              await this.telegramService.sendArbitrageAlert(user.telegramChatId, {
+                profitMargin: alert.data?.profitMargin || 0,
+                event: `${alert.homeTeam} vs ${alert.awayTeam}`,
+                sport: alert.sport || 'Unknown',
+                bookmakers: Object.values(alert.data?.stakes || {}).map((s: any) => s.bookmaker),
+                odds: Object.values(alert.data?.stakes || {}).map((s: any) => s.odds),
+              });
+            } else {
+              const priorityEmoji = alert.priority === 'urgent' ? '🚨' : alert.priority === 'high' ? '⚠️' : '🔔';
+              await this.telegramService.sendMessage(user.telegramChatId,
+                `${priorityEmoji} <b>${alert.type.replace(/_/g, ' ').toUpperCase()}</b>\n\n${alert.message}`);
+            }
+          }
+        } catch (tgError) {
+          this.logger.warn(`Telegram push failed: ${tgError}`);
+        }
+      }
     } catch (error) {
       this.logger.error(`Failed to create alert: ${error.message}`);
     }

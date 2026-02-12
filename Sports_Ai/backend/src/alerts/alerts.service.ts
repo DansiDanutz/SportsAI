@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { TelegramNotificationsService } from '../notifications/telegram-notifications.service';
 
 export interface OddsThresholdCondition {
   threshold: number;
@@ -35,9 +36,12 @@ export interface UpdateAlertDto {
 
 @Injectable()
 export class AlertsService {
+  private readonly logger = new Logger(AlertsService.name);
+
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private telegramService: TelegramNotificationsService,
   ) {}
 
   async findAllByUser(userId: string) {
@@ -238,8 +242,52 @@ export class AlertsService {
     message: string;
     data?: string;
   }) {
-    // Create notification for the user
+    // Create in-app notification
     await this.notificationsService.create(userId, notification);
+
+    // Send Telegram push notification if user has it connected
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { telegramChatId: true },
+      });
+
+      if (user?.telegramChatId && this.telegramService.isEnabled) {
+        const data = notification.data ? JSON.parse(notification.data) : {};
+
+        if (notification.type === 'arbitrage_opportunity' && data.profitMargin) {
+          await this.telegramService.sendArbitrageAlert(user.telegramChatId, {
+            profitMargin: data.profitMargin,
+            event: data.event || notification.title,
+            sport: data.sport || 'Unknown',
+            bookmakers: data.bookmakers || [],
+            odds: data.odds || [],
+          });
+        } else if (notification.type === 'odds_threshold') {
+          await this.telegramService.sendOddsAlert(user.telegramChatId, {
+            event: data.event || notification.title,
+            market: data.market || 'Unknown',
+            currentOdds: data.currentOdds || 0,
+            threshold: data.threshold || 0,
+            direction: data.direction || 'above',
+          });
+        } else if (notification.type === 'favorite_team_event') {
+          await this.telegramService.sendTeamEventAlert(user.telegramChatId, {
+            teamName: data.teamName || 'Unknown',
+            opponent: data.opponent || 'Unknown',
+            league: data.league || 'Unknown',
+            startTime: data.startTime || 'TBD',
+          });
+        } else {
+          // Generic fallback
+          await this.telegramService.sendMessage(user.telegramChatId,
+            `🔔 <b>${notification.title}</b>\n\n${notification.message}`);
+        }
+      }
+    } catch (error) {
+      // Don't let Telegram failures block alert processing
+      this.logger.warn(`Telegram notification failed for user ${userId}: ${error}`);
+    }
 
     // Update alert statistics
     await this.prisma.alertRule.update({

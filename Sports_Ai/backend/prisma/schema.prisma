@@ -27,6 +27,9 @@ model User {
   googleId         String?  @unique // Google OAuth user ID
   githubId         String?  @unique // GitHub OAuth user ID
 
+  // Telegram notification integration
+  telegramChatId   String?  @unique // Telegram chat ID for push notifications
+
   // Two-Factor Authentication fields
   twoFactorEnabled Boolean  @default(false)
   twoFactorSecret  String?  // Encrypted TOTP secret

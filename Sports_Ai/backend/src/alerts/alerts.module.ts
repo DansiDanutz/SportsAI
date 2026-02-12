@@ -10,6 +10,7 @@ import { TheOddsApiService } from '../integrations/the-odds-api.service';
 import { FreeApisService } from '../integrations/free-apis.service';
 import { OpenRouterService } from '../ai/openrouter.service';
 import { ConfigService } from '@nestjs/config';
+import { TelegramNotificationsService } from '../notifications/telegram-notifications.service';
 
 @Module({
   imports: [ConfigModule],
@@ -24,6 +25,7 @@ import { ConfigService } from '@nestjs/config';
     FreeApisService,
     OpenRouterService,
     ConfigService,
+    TelegramNotificationsService,
   ],
   exports: [SmartAlertsService]
 })
