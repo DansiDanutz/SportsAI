@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AlertsController } from './alerts.controller';
 import { SmartAlertsService } from './smart-alerts.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -8,8 +9,10 @@ import { OddsService } from '../odds/odds.service';
 import { TheOddsApiService } from '../integrations/the-odds-api.service';
 import { FreeApisService } from '../integrations/free-apis.service';
 import { OpenRouterService } from '../ai/openrouter.service';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
+  imports: [ConfigModule],
   controllers: [AlertsController],
   providers: [
     SmartAlertsService,
@@ -19,7 +22,8 @@ import { OpenRouterService } from '../ai/openrouter.service';
     OddsService,
     TheOddsApiService,
     FreeApisService,
-    OpenRouterService
+    OpenRouterService,
+    ConfigService,
   ],
   exports: [SmartAlertsService]
 })

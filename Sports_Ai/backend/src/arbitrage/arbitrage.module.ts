@@ -1,3 +1,4 @@
+import { ConfigModule } from '@nestjs/config';
 import { Module, Global } from '@nestjs/common';
 import { ArbitrageController } from './arbitrage.controller';
 import { ArbitrageService } from './arbitrage.service';
@@ -7,7 +8,7 @@ import { CreditsModule } from '../credits/credits.module';
 
 @Global()
 @Module({
-  imports: [UsersModule, PrismaModule, CreditsModule],
+  imports: [ConfigModule, UsersModule, PrismaModule, CreditsModule],
   controllers: [ArbitrageController],
   providers: [ArbitrageService],
   exports: [ArbitrageService],

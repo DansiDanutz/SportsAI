@@ -1,3 +1,4 @@
+import { ConfigModule } from '@nestjs/config';
 import { Module } from '@nestjs/common';
 import { StrategyController } from './strategy.controller';
 import { AutonomousController } from './autonomous.controller';
@@ -11,7 +12,7 @@ import { DailyAccumulatorsService } from './daily-accumulators.service';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [ConfigModule, PrismaModule],
   controllers: [StrategyController, AutonomousController],
   providers: [
     StrategyService, 

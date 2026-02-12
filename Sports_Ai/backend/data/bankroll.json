@@ -1,0 +1,20 @@
+{
+  "starting_bankroll": 10000,
+  "current_bankroll": 10000,
+  "currency": "USD",
+  "start_date": "2026-02-12",
+  "mode": "HYBRID",
+  "daily_pnl": [],
+  "weekly_pnl": [],
+  "monthly_pnl": [],
+  "total_profit": 0,
+  "total_bets": 0,
+  "wins": 0,
+  "losses": 0,
+  "max_drawdown": 0,
+  "current_drawdown": 0,
+  "peak_balance": 10000,
+  "frozen": false,
+  "freeze_reason": null,
+  "last_updated": "2026-02-12T00:04:16.580Z"
+}

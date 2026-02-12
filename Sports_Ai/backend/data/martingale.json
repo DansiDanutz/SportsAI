@@ -1,0 +1,16 @@
+{
+  "mode": "HYBRID",
+  "enabled": true,
+  "activeSequences": [],
+  "completedSequences": [],
+  "totalSequences": 0,
+  "successfulSequences": 0,
+  "maxConcurrentSequences": 3,
+  "safetySettings": {
+    "maxLevels": 5,
+    "maxBankrollPercentage": 15,
+    "highProbabilityThreshold": 1.5,
+    "recoveryModeThreshold": 3
+  },
+  "lastUpdated": "2026-02-12T00:04:16.580Z"
+}

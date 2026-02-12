@@ -1,3 +1,4 @@
+import { ConfigModule } from '@nestjs/config';
 import { Module, Global } from '@nestjs/common';
 import { AiController } from './ai.controller';
 import { AiFacadeService } from './ai.facade.service';
@@ -19,7 +20,7 @@ import { OddsModule } from '../odds/odds.module';
 
 @Global()
 @Module({
-  imports: [UsersModule, PrismaModule, IntegrationsModule, OddsModule],
+  imports: [ConfigModule, UsersModule, PrismaModule, IntegrationsModule, OddsModule],
   controllers: [AiController],
   providers: [
     AiFacadeService,

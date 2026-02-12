@@ -1,0 +1,26 @@
+{
+  "enabled": true,
+  "maxActiveBets": 10,
+  "scanIntervalHours": 1,
+  "resolveIntervalHours": 2,
+  "valueThreshold": 3,
+  "arbitrageThreshold": 2,
+  "minOdds": 1.2,
+  "maxOdds": 5,
+  "allowedSports": [
+    "Soccer",
+    "Basketball",
+    "Tennis"
+  ],
+  "allowedLeagues": [
+    "English Premier League",
+    "UEFA Champions League",
+    "NBA",
+    "ATP Tour"
+  ],
+  "riskMode": "HYBRID",
+  "martingaleEnabled": true,
+  "arbitrageEnabled": true,
+  "lastScan": null,
+  "lastResolve": null
+}

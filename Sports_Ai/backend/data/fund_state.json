@@ -1,0 +1,17 @@
+{
+  "totalAUM": 10000,
+  "totalDeposited": 0,
+  "totalWithdrawn": 0,
+  "totalUsers": 0,
+  "activeUsers": 0,
+  "currentBalance": 10000,
+  "unrealizedPnL": 0,
+  "totalProfitGenerated": 0,
+  "totalProfitDistributed": 0,
+  "totalPlatformFees": 0,
+  "monthlyReturns": [],
+  "lastSettlement": null,
+  "nextSettlement": "2026-03-01T00:00:00.000Z",
+  "founded": "2026-02-12",
+  "status": "active"
+}
