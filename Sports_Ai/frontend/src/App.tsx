@@ -47,6 +47,7 @@ const WalletPage = lazy(() => import('./screens/wallet').then(m => ({ default: m
 const PerformancePage = lazy(() => import('./screens/performance').then(m => ({ default: m.PerformancePage })));
 const DemoPage = lazy(() => import('./screens/demo').then(m => ({ default: m.DemoPage })));
 const PricingPage = lazy(() => import('./screens/pricing').then(m => ({ default: m.PricingPage })));
+const LeaderboardPage = lazy(() => import('./screens/leaderboard').then(m => ({ default: m.LeaderboardPage })));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -244,6 +245,9 @@ function App() {
           <ProtectedRoute>
             <AccumulatorsPage />
           </ProtectedRoute>
+        } />
+        <Route path="/leaderboard" element={
+          <ProtectedRoute><LeaderboardPage /></ProtectedRoute>
         } />
         <Route path="/strategy" element={
           <ProtectedRoute>

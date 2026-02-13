@@ -82,6 +82,7 @@ export function Layout({ children }: LayoutProps) {
     { path: '/credits', label: 'Credits', icon: CreditsIcon },
     { path: '/wallet', label: 'Wallet', icon: WalletIcon },
     { path: '/performance', label: 'Performance', icon: PerformanceIcon },
+    { path: '/leaderboard', label: 'Leaderboard', icon: PerformanceIcon },
     // Premium-only items
     { path: '/line-movement', label: 'Line Movement', icon: LineMovementIcon, requiresPremium: true },
     { path: '/ai-insights', label: 'AI Insights', icon: AiIcon, requiresPremium: true },

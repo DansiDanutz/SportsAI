@@ -98,11 +98,107 @@
       "potentialReturn": 640.37,
       "potentialProfit": 490.75,
       "status": "pending"
+    },
+    {
+      "id": "ACC-O2-2026-02-13-1770969824603",
+      "type": "odds-2",
+      "targetMinOdds": 2.0,
+      "date": "2026-02-13",
+      "legs": [
+        {
+          "event": "FC Volendam vs PSV",
+          "homeTeam": "FC Volendam",
+          "awayTeam": "PSV",
+          "league": "Eredivisie",
+          "pick": "Away Win",
+          "odds": 1.25,
+          "confidence": 9,
+          "reasoning": "PSV massive favourites, Volendam struggling at bottom of Eredivisie. PSV title contenders."
+        },
+        {
+          "event": "Rennes vs PSG",
+          "homeTeam": "Rennes",
+          "awayTeam": "PSG",
+          "league": "Ligue 1",
+          "pick": "Away Win",
+          "odds": 1.5,
+          "confidence": 8,
+          "reasoning": "PSG dominant in Ligue 1, Rennes mid-table. PSG's squad depth too much."
+        },
+        {
+          "event": "Hull City vs Chelsea",
+          "homeTeam": "Hull City",
+          "awayTeam": "Chelsea",
+          "league": "FA Cup",
+          "pick": "Away Win",
+          "odds": 1.4,
+          "confidence": 8,
+          "reasoning": "Chelsea Premier League side vs Championship Hull. Quality gap significant in cup tie."
+        }
+      ],
+      "combinedOdds": 2.62,
+      "stake": 199.5,
+      "potentialReturn": 522.69,
+      "potentialProfit": 323.19,
+      "status": "pending"
+    },
+    {
+      "id": "ACC-O3-2026-02-13-1770969824604",
+      "type": "odds-3",
+      "targetMinOdds": 3.0,
+      "date": "2026-02-13",
+      "legs": [
+        {
+          "event": "FC Volendam vs PSV",
+          "homeTeam": "FC Volendam",
+          "awayTeam": "PSV",
+          "league": "Eredivisie",
+          "pick": "Away Win",
+          "odds": 1.25,
+          "confidence": 9,
+          "reasoning": "PSV massive favourites, Volendam struggling at bottom of Eredivisie. PSV title contenders."
+        },
+        {
+          "event": "Rennes vs PSG",
+          "homeTeam": "Rennes",
+          "awayTeam": "PSG",
+          "league": "Ligue 1",
+          "pick": "Away Win",
+          "odds": 1.5,
+          "confidence": 8,
+          "reasoning": "PSG dominant in Ligue 1, Rennes mid-table. PSG's squad depth too much."
+        },
+        {
+          "event": "Hull City vs Chelsea",
+          "homeTeam": "Hull City",
+          "awayTeam": "Chelsea",
+          "league": "FA Cup",
+          "pick": "Away Win",
+          "odds": 1.4,
+          "confidence": 8,
+          "reasoning": "Chelsea Premier League side vs Championship Hull. Quality gap significant in cup tie."
+        },
+        {
+          "event": "Santa Clara vs Benfica",
+          "homeTeam": "Santa Clara",
+          "awayTeam": "Benfica",
+          "league": "Primeira Liga",
+          "pick": "Away Win",
+          "odds": 1.55,
+          "confidence": 8,
+          "reasoning": "Benfica title contenders away to promoted Santa Clara. Should control the game."
+        }
+      ],
+      "combinedOdds": 4.07,
+      "stake": 149.62,
+      "potentialReturn": 608.95,
+      "potentialProfit": 459.33,
+      "status": "pending"
     }
   ],
   "totalPnl": 0,
   "winRateOdds2": 0,
   "winRateOdds3": 0,
   "streak": 0,
-  "lastGenerated": "2026-02-12T08:03:27.980036"
+  "lastGenerated": "2026-02-13T08:00:00Z"
 }
