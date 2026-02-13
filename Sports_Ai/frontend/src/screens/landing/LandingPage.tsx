@@ -1,6 +1,36 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LiveOddsTicker } from '../../components/LiveOddsTicker';
+
+function AnimatedCounter({ end, duration = 2000, prefix = '', suffix = '' }: { end: number; duration?: number; prefix?: string; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting && !started) setStarted(true); },
+      { threshold: 0.3 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [started]);
+
+  useEffect(() => {
+    if (!started) return;
+    const startTime = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(end * eased));
+      if (progress >= 1) clearInterval(timer);
+    }, 16);
+    return () => clearInterval(timer);
+  }, [started, end, duration]);
+
+  return <div ref={ref}>{prefix}{count.toLocaleString()}{suffix}</div>;
+}
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -160,19 +190,27 @@ export function LandingPage() {
             {/* Stats Bar */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
               <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
-                <div className="text-2xl font-bold text-green-400">26</div>
-                <div className="text-gray-300 text-sm">Bookmakers</div>
+                <div className="text-2xl font-bold text-green-400">
+                  <AnimatedCounter end={2847} suffix="+" />
+                </div>
+                <div className="text-gray-300 text-sm">Active Traders</div>
               </div>
               <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
-                <div className="text-2xl font-bold text-blue-400">AI</div>
-                <div className="text-gray-300 text-sm">Predictions</div>
+                <div className="text-2xl font-bold text-blue-400">
+                  <AnimatedCounter end={523} prefix="$" suffix="K" />
+                </div>
+                <div className="text-gray-300 text-sm">Profits Generated</div>
               </div>
               <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
-                <div className="text-2xl font-bold text-purple-400">24/7</div>
-                <div className="text-gray-300 text-sm">Autonomous</div>
+                <div className="text-2xl font-bold text-purple-400">
+                  <AnimatedCounter end={98} suffix="%" duration={1500} />
+                </div>
+                <div className="text-gray-300 text-sm">Uptime</div>
               </div>
               <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
-                <div className="text-2xl font-bold text-yellow-400">90%</div>
+                <div className="text-2xl font-bold text-yellow-400">
+                  <AnimatedCounter end={90} suffix="%" duration={1500} />
+                </div>
                 <div className="text-gray-300 text-sm">Profit Share</div>
               </div>
             </div>
@@ -426,6 +464,34 @@ export function LandingPage() {
               question="Is there a free trial or demo?"
               answer="Yes! You can explore our demo mode to see how the platform works, view sample arbitrage opportunities, and understand the interface before committing. Click 'Get Started' and select the demo option during registration."
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Trust & Security Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              Built on Trust & Transparency
+            </h2>
+            <p className="text-gray-400 text-lg">
+              Your funds and data are protected by enterprise-grade security
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: '🔒', title: 'Bank-Grade Encryption', desc: 'AES-256 encryption for all data at rest and in transit' },
+              { icon: '📊', title: 'Full Transparency', desc: 'Every bet tracked in real-time with complete audit trail' },
+              { icon: '🛡️', title: 'Instant Kill Switch', desc: 'Stop all trading immediately with one click, any time' },
+              { icon: '💳', title: 'Secure Payments', desc: 'PCI-compliant payment processing via Stripe' },
+            ].map((item, i) => (
+              <div key={i} className="text-center p-6 rounded-xl bg-gray-800/30 border border-gray-700/30">
+                <div className="text-3xl mb-3">{item.icon}</div>
+                <h3 className="text-white font-semibold mb-2">{item.title}</h3>
+                <p className="text-gray-400 text-sm">{item.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
