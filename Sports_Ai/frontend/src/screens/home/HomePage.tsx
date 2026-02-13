@@ -45,7 +45,7 @@ export function HomePage() {
   // 3. Sharp Money (The Smart Money)
   const sharpQuery = useQuery({
     queryKey: ['sharp-money-summary'],
-    queryFn: () => api.get('/v1/ai/sharp-money/summary'),
+    queryFn: async () => { const res = await api.get('/v1/ai/sharp-money/summary'); return res.data; },
     staleTime: 1000 * 60,
   });
 

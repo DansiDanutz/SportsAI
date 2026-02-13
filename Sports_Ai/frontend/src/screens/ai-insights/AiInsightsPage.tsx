@@ -107,7 +107,7 @@ export function AiInsightsPage() {
   });
 
   // Fetch prediction for selected event
-  const { data: prediction, isLoading: predictionLoading, mutate: fetchPrediction } = useMutation({
+  const { data: prediction, isPending: predictionLoading, mutate: fetchPrediction } = useMutation({
     mutationFn: async (eventId: string) => {
       const response = await api.post<MatchPrediction>(`/v1/ai/predict/${eventId}`);
       return response.data;

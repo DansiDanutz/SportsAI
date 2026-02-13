@@ -169,8 +169,8 @@ export function StrategyPage() {
     }).format(amount);
   };
 
-  const handleRefresh = () => {
-    Promise.all([
+  const handleRefresh = async () => {
+    await Promise.all([
       bankrollQuery.refetch(),
       picksQuery.refetch(),
       martingaleQuery.refetch(),

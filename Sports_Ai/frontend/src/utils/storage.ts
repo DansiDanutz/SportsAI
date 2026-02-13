@@ -132,7 +132,7 @@ export function clearNonCriticalStorage(): number {
 /**
  * Safely set an item in localStorage with quota error handling
  */
-export function safeSetItem(key: string, value: string): StorageResult {
+export function safeSetItem(key: string, value: string, _useFallback = false): StorageResult {
   if (!isStorageAvailable()) {
     return {
       success: false,

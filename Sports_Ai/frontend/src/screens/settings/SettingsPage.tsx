@@ -253,7 +253,7 @@ export function SettingsPage() {
               }}
               onCancelSubscription={() => setShowCancelSubscriptionDialog(true)}
               cancellationSuccess={cancellationSuccess}
-              cancellationDetails={cancellationDetails}
+              cancellationDetails={cancellationDetails ?? undefined}
             />
           </div>
 

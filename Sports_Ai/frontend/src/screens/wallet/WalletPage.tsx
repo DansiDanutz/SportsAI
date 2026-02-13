@@ -212,8 +212,7 @@ export function WalletPage() {
     return (
       <Layout>
         <ErrorDisplay
-          title="Failed to load wallet"
-          message={getErrorMessage(hasError)}
+          error={hasError}
           onRetry={() => {
             balanceQuery.refetch();
             transactionsQuery.refetch();
@@ -233,11 +232,13 @@ export function WalletPage() {
   return (
     <Layout>
       <PullToRefresh
-        onRefresh={() => {
-          balanceQuery.refetch();
-          transactionsQuery.refetch();
-          performanceQuery.refetch();
-          autonomousQuery.refetch();
+        onRefresh={async () => {
+          await Promise.all([
+            balanceQuery.refetch(),
+            transactionsQuery.refetch(),
+            performanceQuery.refetch(),
+            autonomousQuery.refetch(),
+          ]);
         }}
       >
         <div className="min-h-screen bg-gray-900">
