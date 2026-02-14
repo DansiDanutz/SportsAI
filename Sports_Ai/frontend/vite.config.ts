@@ -5,6 +5,8 @@ import path from 'path';
 
 export default defineConfig({
   build: {
+    sourcemap: false,
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks: {
