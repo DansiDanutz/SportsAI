@@ -49,7 +49,7 @@ export class SyncService implements OnModuleInit {
     this.logger.log('CRON: Syncing upcoming odds from The Odds API...');
     
     // For MVP, focus on major soccer leagues
-    const sportsToSync = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'basketball_nba'];
+    const sportsToSync = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_germany_bundesliga', 'soccer_france_ligue_one', 'basketball_nba'];
     
     await this.syncOddsForSports(sportsToSync);
   }

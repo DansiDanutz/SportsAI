@@ -27,44 +27,18 @@ const BADGE_CONFIG = {
   legend: { color: 'text-purple-400', bg: 'bg-purple-900/20', icon: '👑', label: 'Legend' },
 };
 
-// Demo data for the leaderboard
-function generateDemoData(): LeaderboardEntry[] {
-  const names = [
-    'SharpEdge', 'BetMaster_Pro', 'OddsKing', 'ValueHunter', 'ArbitrageAce',
-    'SportsBrain', 'AlphaPickz', 'MoneyMaker99', 'WinStreak', 'TheAnalyst',
-    'ProfitMachine', 'SmartBets', 'LineMovr', 'DataDriven', 'StatGuru',
-    'BetWise', 'EdgeFinder', 'ProPunter', 'OddsWhiz', 'PrimePredictor',
-  ];
-  const badges: LeaderboardEntry['badge'][] = ['legend', 'diamond', 'diamond', 'gold', 'gold', 'gold', 'silver', 'silver', 'silver', 'silver', 'bronze', 'bronze', 'bronze', 'bronze', 'bronze', 'bronze', 'bronze', 'bronze', 'bronze', 'bronze'];
-
-  return names.map((name, i) => ({
-    rank: i + 1,
-    username: name,
-    roi: parseFloat((42 - i * 1.8 + Math.random() * 3).toFixed(1)),
-    winRate: parseFloat((78 - i * 1.2 + Math.random() * 5).toFixed(1)),
-    totalBets: Math.floor(450 - i * 15 + Math.random() * 50),
-    streak: Math.max(0, Math.floor(12 - i * 0.5 + Math.random() * 3)),
-    badge: badges[i] || 'bronze',
-    monthlyPnl: parseFloat((2800 - i * 120 + Math.random() * 200).toFixed(0)),
-    isCurrentUser: i === 7,
-  }));
-}
+/* Real leaderboard data only - no demo content */
 
 export function LeaderboardPage() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('30d');
   const [category, setCategory] = useState<Category>('overall');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // In production, this would fetch from the API
-  const { data: entries = [] } = useQuery({
+  const { data: entries = [], isLoading, error } = useQuery({
     queryKey: ['leaderboard', timeFilter, category],
     queryFn: async () => {
-      try {
-        const res = await api.get(`/leaderboard?period=${timeFilter}&category=${category}`);
-        return res.data as LeaderboardEntry[];
-      } catch {
-        return generateDemoData();
-      }
+      const res = await api.get(`/leaderboard?period=${timeFilter}&category=${category}`);
+      return res.data as LeaderboardEntry[];
     },
     staleTime: 60_000,
   });
@@ -152,6 +126,29 @@ export function LeaderboardPage() {
           ))}
         </div>
 
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+        ) : error ? (
+          /* Error State - No Data */
+          <div className="bg-gray-800/80 rounded-2xl p-8 border border-gray-700/50 text-center">
+            <div className="text-gray-400 mb-4">
+              <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">No Leaderboard Data Yet</h3>
+            <p className="text-gray-400 mb-4">
+              The leaderboard will populate once users start betting and building their performance records.
+            </p>
+            <div className="text-sm text-gray-500">
+              Check back soon to see the top performers!
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Your Position Banner */}
         {currentUser && (
           <div className="bg-gradient-to-r from-blue-900/40 to-purple-900/40 border border-blue-700/30 rounded-xl p-4 flex items-center justify-between">
@@ -292,21 +289,25 @@ export function LeaderboardPage() {
           </div>
         </div>
 
-        {/* Stats Footer */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: 'Active Users', value: '2,847', icon: '👥' },
-            { label: 'Bets Today', value: '12,493', icon: '📊' },
-            { label: 'Avg Win Rate', value: '61.3%', icon: '🎯' },
-            { label: 'Total Volume', value: '$1.2M', icon: '💰' },
-          ].map(stat => (
-            <div key={stat.label} className="bg-gray-800/50 rounded-lg p-3 text-center border border-gray-700/30">
-              <div className="text-lg mb-1">{stat.icon}</div>
-              <div className="text-white font-bold">{stat.value}</div>
-              <div className="text-gray-500 text-xs">{stat.label}</div>
-            </div>
-          ))}
-        </div>
+        {/* Stats Footer - Only show when we have real data */}
+        {entries.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Active Users', value: entries.length.toString(), icon: '👥' },
+              { label: 'Top ROI', value: `${Math.max(...entries.map(e => e.roi))}%`, icon: '📊' },
+              { label: 'Avg Win Rate', value: `${Math.round(entries.reduce((sum, e) => sum + e.winRate, 0) / entries.length)}%`, icon: '🎯' },
+              { label: 'Total Bets', value: entries.reduce((sum, e) => sum + e.totalBets, 0).toLocaleString(), icon: '💰' },
+            ].map(stat => (
+              <div key={stat.label} className="bg-gray-800/50 rounded-lg p-3 text-center border border-gray-700/30">
+                <div className="text-lg mb-1">{stat.icon}</div>
+                <div className="text-white font-bold">{stat.value}</div>
+                <div className="text-gray-500 text-xs">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        </>
+        )}
       </div>
     </Layout>
   );

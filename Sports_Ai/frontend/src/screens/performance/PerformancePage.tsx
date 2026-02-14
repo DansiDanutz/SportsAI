@@ -28,16 +28,11 @@ type TimeRange = '7d' | '30d' | '90d' | 'all';
 export function PerformancePage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
 
-  const { data: stats, isLoading } = useQuery<PerformanceStats>({
+  const { data: stats, isLoading, error } = useQuery<PerformanceStats>({
     queryKey: ['performance', timeRange],
     queryFn: async () => {
-      try {
-        const res = await api.get(`/v1/portfolio/performance?range=${timeRange}`);
-        return res.data;
-      } catch {
-        // Return demo data if backend not ready
-        return generateDemoData(timeRange);
-      }
+      const res = await api.get(`/v1/portfolio/performance?range=${timeRange}`);
+      return res.data;
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -95,6 +90,21 @@ export function PerformancePage() {
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+          </div>
+        ) : error ? (
+          <div className="bg-gray-800/80 rounded-2xl p-8 border border-gray-700/50 text-center">
+            <div className="text-gray-400 mb-4">
+              <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">No Performance Data Yet</h3>
+            <p className="text-gray-400 mb-4">
+              Start placing bets to track your performance metrics and portfolio returns.
+            </p>
+            <div className="text-sm text-gray-500">
+              Performance data will appear here once you have betting activity.
+            </div>
           </div>
         ) : stats ? (
           <>
@@ -300,38 +310,4 @@ function StatCard({ label, value, color, icon, small }: {
   );
 }
 
-/* Demo data generator for when backend isn't ready */
-function generateDemoData(range: TimeRange): PerformanceStats {
-  const days = range === '7d' ? 7 : range === '30d' ? 30 : range === '90d' ? 90 : 180;
-  const dailyReturns: DailyReturn[] = [];
-  let cumulative = 0;
-
-  for (let i = 0; i < days; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - (days - i));
-    const pnl = (Math.random() - 0.38) * 3; // Slight positive bias
-    cumulative += pnl;
-    dailyReturns.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      pnl: Math.round(pnl * 100) / 100,
-      cumulative: Math.round(cumulative * 100) / 100,
-      betsPlaced: Math.floor(Math.random() * 15) + 3,
-      winRate: Math.random() * 30 + 45,
-    });
-  }
-
-  const totalBets = dailyReturns.reduce((sum, d) => sum + d.betsPlaced, 0);
-  const avgWinRate = dailyReturns.reduce((sum, d) => sum + d.winRate, 0) / days;
-
-  return {
-    totalReturn: cumulative,
-    monthlyReturn: cumulative * (30 / days),
-    weeklyReturn: cumulative * (7 / days),
-    winRate: avgWinRate,
-    totalBets,
-    sharpeRatio: cumulative > 0 ? 1.2 + Math.random() * 0.8 : 0.5 + Math.random() * 0.5,
-    maxDrawdown: -(Math.random() * 8 + 3),
-    streak: Math.floor(Math.random() * 8) - 2,
-    dailyReturns,
-  };
-}
+/* Real data only - no mock/demo content */

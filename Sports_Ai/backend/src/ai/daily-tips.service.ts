@@ -131,7 +131,7 @@ export class DailyTipsService {
     // Map internal sport keys to The Odds API keys we sync.
     // We keep this list focused on popular leagues for now.
     if (sportKey === 'soccer') {
-      return ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a'];
+      return ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_germany_bundesliga', 'soccer_france_ligue_one'];
     }
     if (sportKey === 'basketball') {
       return ['basketball_nba'];

@@ -194,11 +194,87 @@
       "potentialReturn": 608.95,
       "potentialProfit": 459.33,
       "status": "pending"
+    },
+    {
+      "id": "ACC-O2-2026-02-14-1771056127685",
+      "type": "odds-2",
+      "targetMinOdds": 2.0,
+      "date": "2026-02-14",
+      "legs": [
+        {
+          "event": "Bayer Leverkusen vs St Pauli",
+          "homeTeam": "Bayer Leverkusen",
+          "awayTeam": "St Pauli",
+          "league": "German Bundesliga",
+          "pick": "Home Win",
+          "odds": 1.35,
+          "confidence": 9,
+          "reasoning": "Leverkusen are dominant at home against a weaker St Pauli side."
+        },
+        {
+          "event": "Stuttgart vs FC K\u00f6ln",
+          "homeTeam": "Stuttgart",
+          "awayTeam": "FC K\u00f6ln",
+          "league": "German Bundesliga",
+          "pick": "Home Win",
+          "odds": 1.55,
+          "confidence": 8,
+          "reasoning": "Stuttgart are having a great season and should beat struggling K\u00f6ln at home."
+        }
+      ],
+      "combinedOdds": 2.09,
+      "stake": 199.5,
+      "potentialReturn": 417.45,
+      "potentialProfit": 217.95,
+      "status": "pending"
+    },
+    {
+      "id": "ACC-O3-2026-02-14-1771056127685",
+      "type": "odds-3",
+      "targetMinOdds": 3.0,
+      "date": "2026-02-14",
+      "legs": [
+        {
+          "event": "Bayer Leverkusen vs St Pauli",
+          "homeTeam": "Bayer Leverkusen",
+          "awayTeam": "St Pauli",
+          "league": "German Bundesliga",
+          "pick": "Home Win",
+          "odds": 1.35,
+          "confidence": 9,
+          "reasoning": "Leverkusen are dominant at home against a weaker St Pauli side."
+        },
+        {
+          "event": "Stuttgart vs FC K\u00f6ln",
+          "homeTeam": "Stuttgart",
+          "awayTeam": "FC K\u00f6ln",
+          "league": "German Bundesliga",
+          "pick": "Home Win",
+          "odds": 1.55,
+          "confidence": 8,
+          "reasoning": "Stuttgart are having a great season and should beat struggling K\u00f6ln at home."
+        },
+        {
+          "event": "Inter Milan vs Juventus",
+          "homeTeam": "Inter Milan",
+          "awayTeam": "Juventus",
+          "league": "Italian Serie A",
+          "pick": "Home Win",
+          "odds": 2.1,
+          "confidence": 7,
+          "reasoning": "Inter at home are a force, Juve's away form shaky."
+        }
+      ],
+      "combinedOdds": 4.39,
+      "stake": 149.62,
+      "potentialReturn": 657.47,
+      "potentialProfit": 507.85,
+      "status": "pending"
     }
   ],
   "totalPnl": 0,
   "winRateOdds2": 0,
   "winRateOdds3": 0,
   "streak": 0,
-  "lastGenerated": "2026-02-13T08:00:00Z"
+  "lastGenerated": "2026-02-14T08:00:00Z"
 }

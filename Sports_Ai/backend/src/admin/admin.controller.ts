@@ -19,7 +19,7 @@ export class AdminController {
     }
 
     // Trigger async sync
-    const sports = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'basketball_nba'];
+    const sports = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_germany_bundesliga', 'soccer_france_ligue_one', 'basketball_nba'];
     this.syncService.syncOddsForSports(sports).catch(err => {
       console.error('Manual sync failed:', err);
     });

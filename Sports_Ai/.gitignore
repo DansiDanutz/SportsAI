@@ -100,3 +100,4 @@ test-profile-*.png
 
 # Service worker dev files
 frontend/dev-dist/
+.vercel
