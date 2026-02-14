@@ -1,5 +1,114 @@
 {
-  "lastUpdated": "2024-02-10T18:54:00.000Z",
-  "totalEvents": 0,
-  "odds": []
+  "lastUpdated": "2026-02-14T23:30:00.871Z",
+  "totalEvents": 3,
+  "odds": [
+    {
+      "eventId": "539495",
+      "sport": "Baseball",
+      "homeTeam": "Baltimore Orioles",
+      "awayTeam": "Kansas City Royals",
+      "startTime": "2014-10-10",
+      "bookmakers": [
+        {
+          "name": "Bet365",
+          "homeOdds": 1.36,
+          "awayOdds": 4.64,
+          "timestamp": "2026-02-14T23:30:00.870Z"
+        },
+        {
+          "name": "William Hill",
+          "homeOdds": 3.54,
+          "awayOdds": 1.54,
+          "timestamp": "2026-02-14T23:30:00.870Z"
+        },
+        {
+          "name": "Pinnacle",
+          "homeOdds": 2.17,
+          "awayOdds": 2.19,
+          "timestamp": "2026-02-14T23:30:00.870Z"
+        }
+      ],
+      "lastUpdated": "2026-02-14T23:30:00.870Z",
+      "source": "manual"
+    },
+    {
+      "eventId": "539495",
+      "sport": "Baseball",
+      "homeTeam": "Baltimore Orioles",
+      "awayTeam": "Kansas City Royals",
+      "startTime": "2014-10-10",
+      "bookmakers": [
+        {
+          "name": "Bet365",
+          "homeOdds": 4.99,
+          "awayOdds": 1.36,
+          "timestamp": "2026-02-14T23:30:00.870Z"
+        },
+        {
+          "name": "William Hill",
+          "homeOdds": 1.43,
+          "awayOdds": 4.49,
+          "timestamp": "2026-02-14T23:30:00.870Z"
+        },
+        {
+          "name": "Pinnacle",
+          "homeOdds": 1.51,
+          "awayOdds": 3.45,
+          "timestamp": "2026-02-14T23:30:00.870Z"
+        }
+      ],
+      "lastUpdated": "2026-02-14T23:30:00.870Z",
+      "source": "manual"
+    },
+    {
+      "eventId": "1168911",
+      "sport": "American Football",
+      "homeTeam": "Stanford",
+      "awayTeam": "Washington State",
+      "startTime": "2014-10-10",
+      "bookmakers": [
+        {
+          "name": "Bet365",
+          "homeOdds": 1.78,
+          "awayOdds": 2.79,
+          "timestamp": "2026-02-14T23:30:00.870Z",
+          "overUnder": [
+            {
+              "total": 2.5,
+              "over": 2.0410257712413102,
+              "under": 2.0469828855349403
+            }
+          ]
+        },
+        {
+          "name": "William Hill",
+          "homeOdds": 1.54,
+          "awayOdds": 3.44,
+          "timestamp": "2026-02-14T23:30:00.870Z",
+          "overUnder": [
+            {
+              "total": 2.5,
+              "over": 1.9900621983623814,
+              "under": 2.1237841544692304
+            }
+          ]
+        },
+        {
+          "name": "Pinnacle",
+          "homeOdds": 3.1,
+          "awayOdds": 1.69,
+          "timestamp": "2026-02-14T23:30:00.870Z",
+          "overUnder": [
+            {
+              "total": 2.5,
+              "over": 2.142404783211244,
+              "under": 2.1486382570041256
+            }
+          ]
+        }
+      ],
+      "lastUpdated": "2026-02-14T23:30:00.870Z",
+      "source": "manual"
+    }
+  ]
 }
