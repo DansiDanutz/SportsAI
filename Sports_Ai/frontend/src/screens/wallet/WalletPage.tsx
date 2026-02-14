@@ -242,7 +242,7 @@ export function WalletPage() {
         }}
       >
         <div className="min-h-screen bg-gray-900">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 overflow-x-hidden">
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-white mb-2">Wallet & Fund Management</h1>
@@ -259,7 +259,7 @@ export function WalletPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                   <div className="text-center">
                     <div className="text-sm text-gray-400">Total Deposited</div>
                     <div className="text-xl font-semibold text-green-400">

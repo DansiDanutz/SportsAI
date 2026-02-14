@@ -160,7 +160,7 @@ export function AiInsightsPage() {
 
   return (
     <Layout>
-      <div className="p-3 sm:p-4 lg:p-6 xl:p-8">
+      <div className="px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-6 xl:px-12 xl:py-8 overflow-x-hidden">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
@@ -168,7 +168,7 @@ export function AiInsightsPage() {
             <p className="text-gray-400 mt-2">AI-powered predictions, sentiment analysis, and smart alerts</p>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-1 xl:grid-cols-3 gap-6">
             {/* Left Column - Match Predictor & Sentiment */}
             <div className="xl:col-span-2 space-y-6">
               {/* AI Match Predictor Section */}
@@ -256,7 +256,7 @@ export function AiInsightsPage() {
                     <h3 className="text-lg font-medium text-white">Prediction Results</h3>
                     
                     {/* Win Probabilities */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="bg-gray-700/50 rounded-lg p-4 text-center">
                         <div className="text-white font-medium">{selectedEvent.homeTeam}</div>
                         <div className="text-2xl font-bold text-green-400 mt-1">

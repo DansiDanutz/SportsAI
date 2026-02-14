@@ -233,7 +233,7 @@ export function SettingsPage() {
 
   return (
     <Layout>
-      <div className="p-3 sm:p-4 lg:p-6 xl:p-8">
+      <div className="px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-6 xl:px-12 xl:py-8 overflow-x-hidden">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Settings</h1>
           <p className="text-gray-400 mt-2">
@@ -263,7 +263,7 @@ export function SettingsPage() {
             <p className="text-gray-400 text-sm mb-4">
               Configure markets, periods, and preferences for each sport
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {availableSports.map((sport) => (
                 <Link
                   key={sport.key}

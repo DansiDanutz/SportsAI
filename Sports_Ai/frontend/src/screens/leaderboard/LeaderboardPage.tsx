@@ -92,7 +92,7 @@ export function LeaderboardPage() {
 
   return (
     <Layout>
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -184,7 +184,7 @@ export function LeaderboardPage() {
         )}
 
         {/* Top 3 Podium */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           {filtered.slice(0, 3).map((entry, i) => {
             const podiumOrder = [1, 0, 2]; // silver, gold, bronze display order
             const e = filtered[podiumOrder[i]];
@@ -220,7 +220,7 @@ export function LeaderboardPage() {
         {/* Full Leaderboard Table */}
         <div className="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[600px] text-sm">
               <thead>
                 <tr className="text-gray-500 text-xs uppercase border-b border-gray-700/50">
                   <th className="text-left px-4 py-3">Rank</th>

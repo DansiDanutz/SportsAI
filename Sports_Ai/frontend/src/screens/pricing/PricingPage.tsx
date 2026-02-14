@@ -220,7 +220,7 @@ export function PricingPage() {
 
       {/* Pricing Cards */}
       <section className="px-4 sm:px-6 lg:px-8 pb-20">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {tiers.map((tier) => (
             <div
               key={tier.name}
@@ -291,7 +291,7 @@ export function PricingPage() {
             Detailed Feature Comparison
           </h2>
           <div className="overflow-x-auto rounded-2xl border border-gray-800">
-            <table className="w-full">
+            <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="bg-gray-900/50">
                   <th className="text-left p-4 text-gray-400 font-medium text-sm">Feature</th>
@@ -327,7 +327,7 @@ export function PricingPage() {
 
       {/* Trust Badges */}
       <section className="px-4 sm:px-6 lg:px-8 pb-20">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 text-center">
           {[
             { icon: '🔒', label: 'Bank-Grade Security', sub: '256-bit encryption' },
             { icon: '⚡', label: '99.9% Uptime', sub: 'Enterprise SLA' },

@@ -63,12 +63,12 @@ export function LiveOddsTicker() {
   return (
     <div className="relative">
       {/* Header bar */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 overflow-x-hidden">
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
           <span className="text-green-400 text-sm font-semibold tracking-wider uppercase">Live Feed</span>
         </div>
-        <div className="flex items-center space-x-4 text-xs text-gray-400">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-gray-400">
           <span>Today: <span className="text-green-400 font-bold">{alertCount}</span> alerts</span>
           <span>Profit: <span className="text-green-400 font-bold">${totalProfit.toLocaleString()}</span></span>
         </div>

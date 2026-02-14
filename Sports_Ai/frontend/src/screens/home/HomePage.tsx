@@ -65,7 +65,7 @@ export function HomePage() {
   return (
     <Layout>
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="p-3 sm:p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
+        <div className="px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-6 xl:px-12 xl:py-8 max-w-[1600px] mx-auto overflow-x-hidden">
           {/* Header Section */}
           <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-6 lg:mb-8 gap-4">
             <div>
@@ -84,7 +84,7 @@ export function HomePage() {
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 bg-gray-800/50 border border-gray-700/50 px-4 sm:px-6 py-3 rounded-2xl w-full lg:w-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 bg-gray-800/50 border border-gray-700/50 px-4 md:px-6 py-3 rounded-2xl w-full lg:w-auto">
               <StatItem label="Active Arbs" value={feed.filter(i => i.type === 'arbitrage').length.toString()} />
               <div className="hidden sm:block w-px h-8 bg-gray-700" />
               <StatItem label="High Conf Tips" value={feed.filter(i => i.type === 'tip' && i.confidence >= 85).length.toString()} />
@@ -154,7 +154,7 @@ export function HomePage() {
               )}
 
               {/* Secondary Feed */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 {remainingFeed.map((item) => (
                   <IntelligenceCard key={item.id} item={item} />
                 ))}
