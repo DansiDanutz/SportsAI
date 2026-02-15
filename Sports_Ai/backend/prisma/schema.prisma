@@ -43,6 +43,7 @@ model User {
   deviceSessions      DeviceSession[]
   alertRules          AlertRule[]
   aiConfigurations    AiConfiguration[]
+  insightFeedbacks    InsightFeedback[]
 }
 
 model Sport {
@@ -126,6 +127,7 @@ model Event {
 
   oddsQuotes             OddsQuote[]
   arbitrageOpportunities ArbitrageOpportunity[]
+  insightFeedbacks       InsightFeedback[]
 }
 
 model Market {
@@ -341,4 +343,21 @@ model SystemConfig {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model InsightFeedback {
+  id           String   @id @default(uuid())
+  userId       String
+  eventId      String
+  insightType  String   // e.g. "value_bet", "arbitrage", "trend"
+  feedbackType String   // "helpful" or "not_helpful"
+  createdAt    DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([insightType])
+  @@unique([userId, eventId, insightType])
 }

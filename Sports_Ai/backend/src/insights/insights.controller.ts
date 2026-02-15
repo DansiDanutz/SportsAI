@@ -1,11 +1,13 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
+  Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { IsString, IsIn } from 'class-validator';
+import { IsString, IsIn, IsOptional } from 'class-validator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -27,17 +29,62 @@ export class InsightsController {
 
   @Post('feedback')
   async submitFeedback(@Request() req: any, @Body() body: InsightFeedbackDto) {
-    // Record feedback in database
-    // For now, just log it (in production, store in InsightFeedback table)
-    console.log(`Feedback received from user ${req.user.id}:`, {
-      eventId: body.eventId,
-      feedbackType: body.feedbackType,
-      insightType: body.insightType,
+    const feedback = await this.prisma.insightFeedback.upsert({
+      where: {
+        userId_eventId_insightType: {
+          userId: req.user.id,
+          eventId: body.eventId,
+          insightType: body.insightType,
+        },
+      },
+      update: {
+        feedbackType: body.feedbackType,
+      },
+      create: {
+        userId: req.user.id,
+        eventId: body.eventId,
+        insightType: body.insightType,
+        feedbackType: body.feedbackType,
+      },
     });
 
     return {
       success: true,
       message: 'Feedback recorded successfully',
+      id: feedback.id,
     };
+  }
+
+  @Get('feedback/stats')
+  async getFeedbackStats(@Query('insightType') insightType?: string) {
+    const where = insightType ? { insightType } : {};
+
+    const [helpful, notHelpful] = await Promise.all([
+      this.prisma.insightFeedback.count({
+        where: { ...where, feedbackType: 'helpful' },
+      }),
+      this.prisma.insightFeedback.count({
+        where: { ...where, feedbackType: 'not_helpful' },
+      }),
+    ]);
+
+    const total = helpful + notHelpful;
+    return {
+      helpful,
+      notHelpful,
+      total,
+      helpfulRate: total > 0 ? Math.round((helpful / total) * 100) : 0,
+    };
+  }
+
+  @Get('feedback/my')
+  async getMyFeedback(@Request() req: any) {
+    const feedbacks = await this.prisma.insightFeedback.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return { feedbacks };
   }
 }
