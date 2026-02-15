@@ -8,6 +8,7 @@ import { OfflineBanner } from './components/OfflineBanner';
 import { PWAUpdatePrompt } from './components/PWAUpdatePrompt';
 import { GlobalFreshnessBadge } from './components/GlobalFreshnessBadge';
 import { BetSlip } from './components/BetSlip';
+import { ToastContainer } from './components/ToastContainer';
 import { api } from './services/api';
 
 // Lazy load all page components for code splitting
@@ -127,6 +128,9 @@ function App() {
 
         {/* Floating Bet Slip */}
         {isAuthenticated && <BetSlip />}
+
+        {/* Global Toast Notifications */}
+        <ToastContainer />
 
         {/* Non-blocking onboarding check indicator */}
         {isCheckingOnboarding && isAuthenticated && user && (
