@@ -20,6 +20,7 @@ import { SetupModule } from './setup/setup.module';
 import { ApifyModule } from './apify/apify.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { HealthModule } from './health/health.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
 import { FlashscoreModule } from './flashscore/flashscore.module';
 import { StrategyModule } from './strategy/strategy.module';
 import { WalletModule } from './wallet/wallet.module';
@@ -58,6 +59,7 @@ import { WalletModule } from './wallet/wallet.module';
     WalletModule,
     AdminModule,
     HealthModule,
+    MonitoringModule,
   ],
   controllers: [],
   providers: [
