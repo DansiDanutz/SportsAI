@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Layout } from '../../components/Layout';
 import { useSwipe } from '../../hooks/useSwipe';
 import { eventsApi, StandingsResponse, Event } from '../../services/api';
+import { useBetSlipStore } from '../../store/betSlipStore';
 
 // Sport key mapping for breadcrumbs
 const sportKeyMap: Record<string, string> = {
@@ -681,6 +682,7 @@ export function EventDetailPage() {
 
 // Odds Tab (real API data only)
 function OddsTab({ event }: { event: EventDetailModel }) {
+  const { addSelection, hasSelection } = useBetSlipStore();
   const quotes = event.odds || [];
 
   const byMarket = quotes.reduce<Record<string, OddsQuote[]>>((acc, q) => {
@@ -710,25 +712,45 @@ function OddsTab({ event }: { event: EventDetailModel }) {
             <span className="text-sm text-gray-400">{qs.length} quotes</span>
           </div>
           <div className="space-y-2">
-            {qs.map((q) => (
-              <div
+            {qs.map((q) => {
+              const selId = `${event.id}-${marketName}-${q.outcomeKey}-${q.bookmaker}`;
+              const isSelected = hasSelection(selId);
+              return (
+              <button
                 key={q.id || `${q.bookmaker}-${q.outcomeKey}-${q.line}-${q.odds}`}
-                className="flex items-center justify-between bg-gray-700/30 rounded-lg px-4 py-3"
+                onClick={() => typeof q.odds === 'number' && addSelection({
+                  id: selId,
+                  eventId: event.id,
+                  eventName: `${event.homeTeam} vs ${event.awayTeam}`,
+                  market: marketName,
+                  pick: q.outcomeKey || '—',
+                  odds: q.odds,
+                  bookmaker: q.bookmaker,
+                })}
+                className={`w-full flex items-center justify-between rounded-lg px-4 py-3 transition-all text-left ${
+                  isSelected
+                    ? 'bg-green-600/20 border border-green-500/40 ring-1 ring-green-500/30'
+                    : 'bg-gray-700/30 hover:bg-gray-700/60 border border-transparent'
+                }`}
               >
                 <div className="min-w-0">
-                  <div className="text-white font-medium truncate">{q.outcomeKey || '—'}</div>
+                  <div className="text-white font-medium truncate flex items-center gap-2">
+                    {q.outcomeKey || '—'}
+                    {isSelected && <span className="text-green-400 text-[10px] font-bold">✓ IN SLIP</span>}
+                  </div>
                   <div className="text-xs text-gray-400 truncate">{q.bookmaker || 'Unknown bookmaker'}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-green-400 font-semibold">
+                  <div className={`font-semibold ${isSelected ? 'text-green-300' : 'text-green-400'}`}>
                     {typeof q.odds === 'number' ? q.odds.toFixed(2) : '—'}
                   </div>
                   {q.line !== null && q.line !== undefined && (
                     <div className="text-xs text-gray-400">Line: {q.line}</div>
                   )}
                 </div>
-              </div>
-            ))}
+              </button>
+              );
+            })}
           </div>
         </div>
       ))}

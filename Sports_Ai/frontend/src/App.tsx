@@ -7,6 +7,7 @@ import { useScrollRestoration } from './hooks/useScrollRestoration';
 import { OfflineBanner } from './components/OfflineBanner';
 import { PWAUpdatePrompt } from './components/PWAUpdatePrompt';
 import { GlobalFreshnessBadge } from './components/GlobalFreshnessBadge';
+import { BetSlip } from './components/BetSlip';
 import { api } from './services/api';
 
 // Lazy load all page components for code splitting
@@ -123,6 +124,9 @@ function App() {
 
         {/* Global update timestamp (public + private routes) */}
         <GlobalFreshnessBadge />
+
+        {/* Floating Bet Slip */}
+        {isAuthenticated && <BetSlip />}
 
         {/* Non-blocking onboarding check indicator */}
         {isCheckingOnboarding && isAuthenticated && user && (
