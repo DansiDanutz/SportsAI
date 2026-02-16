@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /settings
+Disallow: /wallet
+
+Sitemap: https://sports-ai-one.vercel.app/sitemap.xml

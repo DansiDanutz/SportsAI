@@ -1,0 +1,18 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10B981"/>
+      <stop offset="100%" style="stop-color:#3B82F6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="0" y="580" width="1200" height="50" fill="url(#accent)" opacity="0.8"/>
+  <text x="600" y="250" text-anchor="middle" font-family="system-ui, sans-serif" font-size="72" font-weight="bold" fill="white">🏆 SportsAI</text>
+  <text x="600" y="340" text-anchor="middle" font-family="system-ui, sans-serif" font-size="32" fill="#94a3b8">Real-Time Sports Arbitrage Detection</text>
+  <text x="600" y="400" text-anchor="middle" font-family="system-ui, sans-serif" font-size="24" fill="#10B981">10+ Sportsbooks • AI Analysis • Guaranteed Profits</text>
+  <text x="600" y="610" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" fill="white" font-weight="bold">sports-ai-one.vercel.app</text>
+</svg>
