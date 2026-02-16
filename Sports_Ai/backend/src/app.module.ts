@@ -27,6 +27,7 @@ import { FlashscoreModule } from './flashscore/flashscore.module';
 import { StrategyModule } from './strategy/strategy.module';
 import { WalletModule } from './wallet/wallet.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { PerformanceModule } from './performance/performance.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     StrategyModule,
     WalletModule,
     LeaderboardModule,
+    PerformanceModule,
     AdminModule,
     HealthModule,
     MonitoringModule,
