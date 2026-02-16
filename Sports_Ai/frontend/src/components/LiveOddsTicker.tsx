@@ -1,28 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { api } from '../services/api';
 
 interface OddsEntry {
-  id: number;
+  id: string | number;
   sport: string;
   sportIcon: string;
   match: string;
   bookmaker1: string;
   bookmaker2: string;
-  odds1: number;
-  odds2: number;
   profit: number;
   timeAgo: string;
   type: 'arbitrage' | 'value' | 'prediction';
 }
 
-const SAMPLE_DATA: OddsEntry[] = [
-  { id: 1, sport: 'Soccer', sportIcon: '⚽', match: 'Man City vs Arsenal', bookmaker1: 'Bet365', bookmaker2: 'William Hill', odds1: 2.10, odds2: 2.05, profit: 3.2, timeAgo: '2s ago', type: 'arbitrage' },
-  { id: 2, sport: 'Tennis', sportIcon: '🎾', match: 'Djokovic vs Alcaraz', bookmaker1: 'Pinnacle', bookmaker2: 'Betfair', odds1: 1.85, odds2: 2.15, profit: 2.8, timeAgo: '5s ago', type: 'arbitrage' },
-  { id: 3, sport: 'Basketball', sportIcon: '🏀', match: 'Lakers vs Celtics', bookmaker1: 'DraftKings', bookmaker2: 'FanDuel', odds1: 1.95, odds2: 2.00, profit: 1.9, timeAgo: '8s ago', type: 'value' },
-  { id: 4, sport: 'Soccer', sportIcon: '⚽', match: 'Real Madrid vs Barcelona', bookmaker1: 'Betway', bookmaker2: 'Unibet', odds1: 2.30, odds2: 1.80, profit: 4.1, timeAgo: '12s ago', type: 'arbitrage' },
-  { id: 5, sport: 'MMA', sportIcon: '🥊', match: 'UFC 310: Main Event', bookmaker1: 'BetMGM', bookmaker2: 'PointsBet', odds1: 2.50, odds2: 1.65, profit: 2.4, timeAgo: '15s ago', type: 'prediction' },
-  { id: 6, sport: 'Soccer', sportIcon: '⚽', match: 'Bayern vs Dortmund', bookmaker1: 'Bet365', bookmaker2: 'Pinnacle', odds1: 1.75, odds2: 2.35, profit: 3.7, timeAgo: '18s ago', type: 'arbitrage' },
-  { id: 7, sport: 'Tennis', sportIcon: '🎾', match: 'Sinner vs Medvedev', bookmaker1: 'Betfair', bookmaker2: 'William Hill', odds1: 1.90, odds2: 2.10, profit: 2.1, timeAgo: '22s ago', type: 'value' },
-  { id: 8, sport: 'Basketball', sportIcon: '🏀', match: 'Warriors vs Bucks', bookmaker1: 'FanDuel', bookmaker2: 'DraftKings', odds1: 2.20, odds2: 1.85, profit: 3.5, timeAgo: '25s ago', type: 'arbitrage' },
+const FALLBACK_DATA: OddsEntry[] = [
+  { id: 1, sport: 'Soccer', sportIcon: '⚽', match: 'Man City vs Arsenal', bookmaker1: 'Bet365', bookmaker2: 'William Hill', profit: 3.2, timeAgo: '2s ago', type: 'arbitrage' },
+  { id: 2, sport: 'Tennis', sportIcon: '🎾', match: 'Djokovic vs Alcaraz', bookmaker1: 'Pinnacle', bookmaker2: 'Betfair', profit: 2.8, timeAgo: '5s ago', type: 'arbitrage' },
+  { id: 3, sport: 'Basketball', sportIcon: '🏀', match: 'Lakers vs Celtics', bookmaker1: 'DraftKings', bookmaker2: 'FanDuel', profit: 1.9, timeAgo: '8s ago', type: 'value' },
+  { id: 4, sport: 'Soccer', sportIcon: '⚽', match: 'Real Madrid vs Barcelona', bookmaker1: 'Betway', bookmaker2: 'Unibet', profit: 4.1, timeAgo: '12s ago', type: 'arbitrage' },
+  { id: 5, sport: 'MMA', sportIcon: '🥊', match: 'UFC 310: Main Event', bookmaker1: 'BetMGM', bookmaker2: 'PointsBet', profit: 2.4, timeAgo: '15s ago', type: 'prediction' },
 ];
 
 const TYPE_COLORS = {
@@ -32,59 +28,64 @@ const TYPE_COLORS = {
 };
 
 export function LiveOddsTicker() {
-  const [entries, setEntries] = useState<OddsEntry[]>(SAMPLE_DATA.slice(0, 5));
-  const [totalProfit, setTotalProfit] = useState(847.20);
-  const [alertCount, setAlertCount] = useState(142);
-  const [flash, setFlash] = useState<number | null>(null);
+  const [entries, setEntries] = useState<OddsEntry[]>(FALLBACK_DATA);
+  const [isLive, setIsLive] = useState(false);
+  const [flash, setFlash] = useState<string | number | null>(null);
   const tickerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setEntries(prev => {
-        const pool = SAMPLE_DATA;
-        const newEntry = { 
-          ...pool[Math.floor(Math.random() * pool.length)],
-          id: Date.now(),
-          profit: +(1.5 + Math.random() * 4).toFixed(1),
-          timeAgo: 'just now',
-          odds1: +(1.5 + Math.random() * 1.2).toFixed(2),
-          odds2: +(1.5 + Math.random() * 1.2).toFixed(2),
-        };
-        setFlash(newEntry.id);
+  const fetchRecent = useCallback(async () => {
+    try {
+      const res = await api.get('/v1/arbitrage/recent');
+      const data: OddsEntry[] = res.data;
+      if (data && data.length > 0) {
+        setEntries(data.slice(0, 5));
+        setIsLive(true);
+        // Flash the first entry
+        setFlash(data[0].id);
         setTimeout(() => setFlash(null), 800);
-        setTotalProfit(p => +(p + newEntry.profit * 10).toFixed(2));
-        setAlertCount(c => c + 1);
-        return [newEntry, ...prev.slice(0, 4)];
-      });
-    }, 3000);
-    return () => clearInterval(interval);
+      }
+    } catch {
+      // Keep fallback data — no-op
+    }
   }, []);
+
+  useEffect(() => {
+    fetchRecent();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchRecent, 30_000);
+    return () => clearInterval(interval);
+  }, [fetchRecent]);
+
+  const alertCount = entries.length;
+  const bestProfit = entries.length > 0 ? Math.max(...entries.map(e => e.profit)) : 0;
 
   return (
     <div className="relative">
       {/* Header bar */}
       <div className="flex items-center justify-between mb-4 overflow-x-hidden">
         <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-green-400 text-sm font-semibold tracking-wider uppercase">Live Feed</span>
+          <div className={`w-2 h-2 rounded-full animate-pulse ${isLive ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+          <span className={`text-sm font-semibold tracking-wider uppercase ${isLive ? 'text-green-400' : 'text-yellow-400'}`}>
+            {isLive ? 'Live Feed' : 'Demo Feed'}
+          </span>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-gray-400">
-          <span>Today: <span className="text-green-400 font-bold">{alertCount}</span> alerts</span>
-          <span>Profit: <span className="text-green-400 font-bold">${totalProfit.toLocaleString()}</span></span>
+          <span>Found: <span className="text-green-400 font-bold">{alertCount}</span> opportunities</span>
+          <span>Best: <span className="text-green-400 font-bold">+{bestProfit.toFixed(1)}%</span></span>
         </div>
       </div>
 
       {/* Ticker entries */}
       <div ref={tickerRef} className="space-y-2">
         {entries.map((entry) => {
-          const typeStyle = TYPE_COLORS[entry.type];
+          const typeStyle = TYPE_COLORS[entry.type] || TYPE_COLORS.value;
           const isNew = entry.id === flash;
           return (
             <div
               key={entry.id}
               className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-500 ${
-                isNew 
-                  ? 'bg-green-500/10 border-green-500/40 shadow-lg shadow-green-500/10' 
+                isNew
+                  ? 'bg-green-500/10 border-green-500/40 shadow-lg shadow-green-500/10'
                   : 'bg-gray-800/60 border-gray-700/30'
               }`}
             >
@@ -99,12 +100,6 @@ export function LiveOddsTicker() {
               </div>
 
               <div className="flex items-center space-x-3 flex-shrink-0 ml-3">
-                <div className="hidden sm:flex items-center space-x-1">
-                  <span className="text-gray-400 text-xs">{entry.odds1}</span>
-                  <span className="text-gray-600 text-xs">|</span>
-                  <span className="text-gray-400 text-xs">{entry.odds2}</span>
-                </div>
-
                 <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${typeStyle.bg} ${typeStyle.text}`}>
                   {typeStyle.label}
                 </span>

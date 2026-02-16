@@ -5,7 +5,6 @@ import { ArbitrageService } from './arbitrage.service';
 import { CreditsService } from '../credits/credits.service';
 
 @Controller('v1/arbitrage')
-@UseGuards(JwtAuthGuard)
 export class ArbitrageController {
   constructor(
     private usersService: UsersService,
@@ -13,7 +12,57 @@ export class ArbitrageController {
     private creditsService: CreditsService,
   ) {}
 
+  /**
+   * Public endpoint — returns the latest 10 opportunities with limited info.
+   * Used by the LiveOddsTicker on the landing/home page (no auth required).
+   * Cached for 30s to reduce DB load.
+   */
+  @Get('recent')
+  @Header('Cache-Control', 'public, max-age=30, stale-while-revalidate=60')
+  async getRecentOpportunities() {
+    const dbOpps = await this.arbitrageService.findOpportunities();
+    const recent = dbOpps.slice(0, 10);
+
+    const SPORT_ICONS: Record<string, string> = {
+      soccer: '⚽', football: '🏈', basketball: '🏀', tennis: '🎾',
+      baseball: '⚾', hockey: '🏒', mma: '🥊', boxing: '🥊',
+      cricket: '🏏', rugby: '🏉', golf: '⛳', default: '🏆',
+    };
+
+    return recent.map((o) => {
+      const sportName = o.event?.sport?.name || 'Unknown';
+      const sportKey = sportName.toLowerCase();
+      const sportIcon = SPORT_ICONS[sportKey] || SPORT_ICONS.default;
+
+      let bookmakers: string[] = [];
+      try {
+        const legs = typeof o.bookmakerLegs === 'string'
+          ? JSON.parse(o.bookmakerLegs)
+          : o.bookmakerLegs || [];
+        bookmakers = legs.map((l: any) => l.bookmaker || l.sportsbook || 'Unknown').slice(0, 2);
+      } catch { /* ignore */ }
+
+      const ageMs = Date.now() - new Date(o.detectedAt).getTime();
+      const ageSec = Math.floor(ageMs / 1000);
+      const timeAgo = ageSec < 60 ? `${ageSec}s ago` : ageSec < 3600 ? `${Math.floor(ageSec / 60)}m ago` : `${Math.floor(ageSec / 3600)}h ago`;
+
+      return {
+        id: o.id,
+        sport: sportName,
+        sportIcon,
+        match: `${o.event?.home?.name || '?'} vs ${o.event?.away?.name || '?'}`,
+        bookmaker1: bookmakers[0] || 'Bookmaker A',
+        bookmaker2: bookmakers[1] || 'Bookmaker B',
+        profit: +o.profitMargin.toFixed(1),
+        confidence: o.confidenceScore,
+        timeAgo,
+        type: o.confidenceScore >= 0.95 ? 'prediction' : o.profitMargin >= 2 ? 'arbitrage' : 'value',
+      };
+    });
+  }
+
   @Get('opportunities')
+  @UseGuards(JwtAuthGuard)
   @Header('Cache-Control', 'private, max-age=15, stale-while-revalidate=30')
   async getOpportunities(
     @Request() req: any,
