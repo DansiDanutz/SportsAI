@@ -2,6 +2,7 @@ import { ConfigModule } from '@nestjs/config';
 import { Module } from '@nestjs/common';
 import { StrategyController } from './strategy.controller';
 import { AutonomousController } from './autonomous.controller';
+import { PortfolioController } from './portfolio.controller';
 import { StrategyService } from './strategy.service';
 import { HistoryService } from './history.service';
 import { BankrollService } from './bankroll.service';
@@ -13,7 +14,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [ConfigModule, PrismaModule],
-  controllers: [StrategyController, AutonomousController],
+  controllers: [StrategyController, AutonomousController, PortfolioController],
   providers: [
     StrategyService, 
     HistoryService, 
