@@ -4,6 +4,12 @@
   "stakePercentageOdds3": 1.5,
   "history": [
     {
+      "date": "2026-02-16",
+      "status": "skipped",
+      "reason": "No sufficient soccer events available (Monday - light schedule). Only 1 match found: Melbourne Victory vs Western Sydney Wanderers (A-League). Minimum 3 legs required for accumulator tickets.",
+      "eventsFound": 1
+    },
+    {
       "id": "ACC-O2-2026-02-12-1770883407977",
       "type": "odds-2",
       "targetMinOdds": 2.0,
