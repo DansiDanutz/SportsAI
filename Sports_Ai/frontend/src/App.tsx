@@ -48,6 +48,7 @@ const StrategyPage = lazy(() => import('./screens/strategy').then(m => ({ defaul
 const WalletPage = lazy(() => import('./screens/wallet').then(m => ({ default: m.WalletPage })));
 const PerformancePage = lazy(() => import('./screens/performance').then(m => ({ default: m.PerformancePage })));
 const DemoPage = lazy(() => import('./screens/demo').then(m => ({ default: m.DemoPage })));
+const StatusPage = lazy(() => import('./screens/status').then(m => ({ default: m.StatusPage })));
 const PricingPage = lazy(() => import('./screens/pricing').then(m => ({ default: m.PricingPage })));
 const LeaderboardPage = lazy(() => import('./screens/leaderboard').then(m => ({ default: m.LeaderboardPage })));
 
@@ -161,6 +162,7 @@ function App() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/demo" element={<DemoPage />} />
+        <Route path="/status" element={<ProtectedRoute><StatusPage /></ProtectedRoute>} />
         <Route path="/pricing" element={<PricingPage />} />
 
         {/* Protected Routes */}

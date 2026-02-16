@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-02-16T08:00:01.348Z",
+  "lastUpdated": "2026-02-16T09:10:00.882Z",
   "totalEvents": 3,
   "odds": [
     {
@@ -11,24 +11,24 @@
       "bookmakers": [
         {
           "name": "Bet365",
-          "homeOdds": 2.6,
-          "awayOdds": 1.78,
-          "timestamp": "2026-02-16T08:00:01.348Z"
+          "homeOdds": 2.06,
+          "awayOdds": 2.19,
+          "timestamp": "2026-02-16T09:10:00.881Z"
         },
         {
           "name": "William Hill",
-          "homeOdds": 2.18,
-          "awayOdds": 2.13,
-          "timestamp": "2026-02-16T08:00:01.348Z"
+          "homeOdds": 4.05,
+          "awayOdds": 1.46,
+          "timestamp": "2026-02-16T09:10:00.882Z"
         },
         {
           "name": "Pinnacle",
-          "homeOdds": 1.9,
-          "awayOdds": 2.44,
-          "timestamp": "2026-02-16T08:00:01.348Z"
+          "homeOdds": 3.06,
+          "awayOdds": 1.63,
+          "timestamp": "2026-02-16T09:10:00.882Z"
         }
       ],
-      "lastUpdated": "2026-02-16T08:00:01.348Z",
+      "lastUpdated": "2026-02-16T09:10:00.882Z",
       "source": "manual"
     },
     {
@@ -40,24 +40,24 @@
       "bookmakers": [
         {
           "name": "Bet365",
-          "homeOdds": 5.06,
-          "awayOdds": 1.36,
-          "timestamp": "2026-02-16T08:00:01.348Z"
+          "homeOdds": 1.99,
+          "awayOdds": 2.42,
+          "timestamp": "2026-02-16T09:10:00.882Z"
         },
         {
           "name": "William Hill",
-          "homeOdds": 2.22,
-          "awayOdds": 2.07,
-          "timestamp": "2026-02-16T08:00:01.348Z"
+          "homeOdds": 5.14,
+          "awayOdds": 1.37,
+          "timestamp": "2026-02-16T09:10:00.882Z"
         },
         {
           "name": "Pinnacle",
-          "homeOdds": 1.76,
-          "awayOdds": 2.7,
-          "timestamp": "2026-02-16T08:00:01.348Z"
+          "homeOdds": 1.84,
+          "awayOdds": 2.52,
+          "timestamp": "2026-02-16T09:10:00.882Z"
         }
       ],
-      "lastUpdated": "2026-02-16T08:00:01.348Z",
+      "lastUpdated": "2026-02-16T09:10:00.882Z",
       "source": "manual"
     },
     {
@@ -69,45 +69,45 @@
       "bookmakers": [
         {
           "name": "Bet365",
-          "homeOdds": 1.44,
-          "awayOdds": 4.48,
-          "timestamp": "2026-02-16T08:00:01.348Z",
+          "homeOdds": 1.42,
+          "awayOdds": 4.08,
+          "timestamp": "2026-02-16T09:10:00.882Z",
           "overUnder": [
             {
               "total": 2.5,
-              "over": 1.8698644817697683,
-              "under": 1.9750684621699528
+              "over": 2.1129075543398117,
+              "under": 1.8750307670123667
             }
           ]
         },
         {
           "name": "William Hill",
-          "homeOdds": 2.83,
-          "awayOdds": 1.77,
-          "timestamp": "2026-02-16T08:00:01.348Z",
+          "homeOdds": 1.64,
+          "awayOdds": 3.27,
+          "timestamp": "2026-02-16T09:10:00.882Z",
           "overUnder": [
             {
               "total": 2.5,
-              "over": 1.9578196464763198,
-              "under": 2.130073956983344
+              "over": 2.0739917260572036,
+              "under": 2.1198890831000674
             }
           ]
         },
         {
           "name": "Pinnacle",
-          "homeOdds": 1.79,
-          "awayOdds": 2.65,
-          "timestamp": "2026-02-16T08:00:01.348Z",
+          "homeOdds": 1.67,
+          "awayOdds": 3.07,
+          "timestamp": "2026-02-16T09:10:00.882Z",
           "overUnder": [
             {
               "total": 2.5,
-              "over": 2.1331424602628997,
-              "under": 2.0968477543106
+              "over": 2.1014681370069055,
+              "under": 2.024904415073999
             }
           ]
         }
       ],
-      "lastUpdated": "2026-02-16T08:00:01.348Z",
+      "lastUpdated": "2026-02-16T09:10:00.882Z",
       "source": "manual"
     }
   ]
