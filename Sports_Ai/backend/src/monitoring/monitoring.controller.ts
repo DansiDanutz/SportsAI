@@ -35,7 +35,7 @@ export class MonitoringController {
       recentInsights,
     ] = await Promise.all([
       this.prisma.user.count(),
-      this.prisma.user.count({ where: { lastLoginAt: { gte: oneDayAgo } } }),
+      this.prisma.user.count({ where: { updatedAt: { gte: oneDayAgo } } }),
       this.prisma.event.count(),
       this.prisma.event.count({ where: { status: 'live' } }),
       this.prisma.event.count({ where: { status: 'upcoming', startTimeUtc: { gte: now } } }),
