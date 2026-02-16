@@ -44,6 +44,7 @@ model User {
   alertRules          AlertRule[]
   aiConfigurations    AiConfiguration[]
   insightFeedbacks    InsightFeedback[]
+  betSlipAnalyses     BetSlipAnalysis[]  @relation("UserBetSlipAnalyses")
 }
 
 model Sport {
@@ -360,4 +361,25 @@ model InsightFeedback {
   @@index([eventId])
   @@index([insightType])
   @@unique([userId, eventId, insightType])
+}
+
+model BetSlipAnalysis {
+  id                  String   @id @default(uuid())
+  betSlipId           String
+  userId              String?
+  totalStake          Float
+  potentialPayout     Float
+  totalOdds           Float
+  combinedProbability Float
+  expectedValue       Float
+  riskLevel           String   // low, medium, high, extreme
+  legs                Json     // Array of bet slip legs
+  analysis            Json     // Full analysis object
+  createdAt           DateTime @default(now())
+
+  user User? @relation("UserBetSlipAnalyses", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([riskLevel])
 }
