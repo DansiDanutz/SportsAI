@@ -2,10 +2,87 @@
   "bankroll": 9975,
   "stakePercentageOdds2": 2,
   "stakePercentageOdds3": 1.5,
-  "history": [],
+  "history": [
+    {
+      "id": "ACC-O2-2026-02-18-1771401743986",
+      "type": "odds-2",
+      "targetMinOdds": 2.0,
+      "date": "2026-02-18",
+      "legs": [
+        {
+          "event": "Liverpool vs Aston Villa",
+          "homeTeam": "Liverpool",
+          "awayTeam": "Aston Villa",
+          "league": "English Premier League",
+          "pick": "Home Win",
+          "odds": 1.4,
+          "confidence": 9,
+          "reasoning": "Liverpool dominant at Anfield, Aston Villa inconsistent away. Liverpool's title push makes this a banker."
+        },
+        {
+          "event": "Manchester City vs Inter Milan",
+          "homeTeam": "Manchester City",
+          "awayTeam": "Inter Milan",
+          "league": "UEFA Champions League",
+          "pick": "Home Win",
+          "odds": 1.5,
+          "confidence": 8,
+          "reasoning": "City at the Etihad in CL knockouts are near-unbeatable. Inter solid but City's home European record is elite."
+        }
+      ],
+      "combinedOdds": 2.1,
+      "stake": 199.5,
+      "potentialReturn": 418.95,
+      "potentialProfit": 219.45,
+      "status": "pending"
+    },
+    {
+      "id": "ACC-O3-2026-02-18-1771401743986",
+      "type": "odds-3",
+      "targetMinOdds": 3.0,
+      "date": "2026-02-18",
+      "legs": [
+        {
+          "event": "Liverpool vs Aston Villa",
+          "homeTeam": "Liverpool",
+          "awayTeam": "Aston Villa",
+          "league": "English Premier League",
+          "pick": "Home Win",
+          "odds": 1.4,
+          "confidence": 9,
+          "reasoning": "Liverpool dominant at Anfield, title contenders, Aston Villa inconsistent on the road."
+        },
+        {
+          "event": "Paris Saint-Germain vs Olympique Marseille",
+          "homeTeam": "Paris Saint-Germain",
+          "awayTeam": "Olympique Marseille",
+          "league": "Ligue 1",
+          "pick": "Home Win",
+          "odds": 1.4,
+          "confidence": 8,
+          "reasoning": "Le Classique at Parc des Princes. PSG's home dominance in Ligue 1 is overwhelming."
+        },
+        {
+          "event": "Atletico Madrid vs Sevilla",
+          "homeTeam": "Atletico Madrid",
+          "awayTeam": "Sevilla",
+          "league": "La Liga",
+          "pick": "Home Win",
+          "odds": 1.7,
+          "confidence": 8,
+          "reasoning": "Atletico strong at Metropolitano, Sevilla's away form poor. Simeone's side reliable at home."
+        }
+      ],
+      "combinedOdds": 3.33,
+      "stake": 149.62,
+      "potentialReturn": 498.23,
+      "potentialProfit": 348.61,
+      "status": "pending"
+    }
+  ],
   "totalPnl": 0,
   "winRateOdds2": 0,
   "winRateOdds3": 0,
   "streak": 0,
-  "lastGenerated": ""
+  "lastGenerated": "2026-02-18T08:00:00Z"
 }

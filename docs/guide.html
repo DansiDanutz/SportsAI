@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SportsAI Platform - User Guide</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 60px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 48px;
+            color: #7c3aed;
+            margin-bottom: 10px;
+            border-bottom: 4px solid #7c3aed;
+            padding-bottom: 20px;
+        }
+        h2 {
+            font-size: 32px;
+            color: #5b21b6;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-left: 5px solid #7c3aed;
+            padding-left: 15px;
+        }
+        h3 {
+            font-size: 24px;
+            color: #374151;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        p { margin-bottom: 15px; font-size: 16px; }
+        .subtitle {
+            text-align: center;
+            font-size: 24px;
+            color: #6b7280;
+            margin-bottom: 50px;
+            font-style: italic;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+        code {
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        th {
+            background: #7c3aed;
+            color: white;
+        }
+        tr:nth-child(even) { background: #f8fafc; }
+        .section {
+            margin: 40px 0;
+            padding: 30px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-left: 4px solid #7c3aed;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 2px solid #e5e7eb;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏆 SportsAI Platform</h1>
+        <p class="subtitle">Complete User Guide | Version 5.0.0 | February 2026</p>
+
+        <div class="section">
+            <h2>1. Introduction</h2>
+            <p>SportsAI is a professional sports betting arbitrage detection platform that scans 10+ sportsbooks in real-time to identify risk-free betting opportunities.</p>
+
+            <h3>Key Features</h3>
+            <ul>
+                <li>Real-time arbitrage detection</li>
+                <li>10+ sportsbook integration</li>
+                <li>AI-powered predictions</li>
+                <li>Professional odds comparison</li>
+                <li>Value scoring algorithm</li>
+                <li>"Winning Tips" system</li>
+            </ul>
+
+            <h3>Sports Coverage</h3>
+            <ul>
+                <li>⚽ Soccer</li>
+                <li>🏀 Basketball</li>
+                <li>🎾 Tennis</li>
+                <li>🚀 And 7 more sports</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>3. Installation</h2>
+            <pre><code>cd /home/Memo1981/SportsAI/Sports_Ai
+
+# Install dependencies
+npm install
+
+# Configure environment
+cd backend
+cp .env.example .env
+nano .env
+
+# Initialize database
+npm run db:migrate
+npm run db:seed
+
+# Start services
+cd backend && npm run dev
+cd frontend && npm run dev</code></pre>
+        </div>
+
+        <div class="section">
+            <h2>5. API Reference</h2>
+            <h3>GET /v1/arbitrage/opportunities</h3>
+            <pre><code>curl "http://localhost:4000/v1/arbitrage/opportunities" \
+  -H "Authorization: Bearer TOKEN"</code></pre>
+
+            <p><strong>Response:</strong></p>
+            <pre><code>{
+  "opportunities": [
+    {
+      "id": "arb_123",
+      "sport": "basketball",
+      "event": "Lakers vs Celtics",
+      "profit_percentage": 2.3,
+      "confidence": 0.97,
+      "bookmakers": ["bet365", "stake"],
+      "best_odds": {
+        "home": 2.10,
+        "away": 1.95
+      }
+    }
+  ]
+}</code></pre>
+        </div>
+
+        <div class="section">
+            <h2>7. Arbitrage Mathematics</h2>
+            <h3>2-Way Formula</h3>
+            <pre><code>Arbitrage % = (1/Odds_A) + (1/Odds_B) - 1
+
+If result < 0: GUARANTEED PROFIT</code></pre>
+
+            <h3>Example</h3>
+            <pre><code>Odds_A = 2.10, Odds_B = 1.95
+
+Arbitrage % = (1/2.10) + (1/1.95) - 1
+           = 0.476 + 0.513 - 1
+           = -0.011 = -1.1%
+
+PROFIT: 1.1% guaranteed</code></pre>
+        </div>
+
+        <div class="footer">
+            <p><strong>SportsAI Platform</strong> | Version 5.0.0</p>
+            <p>© 2026 MyWork-AI Marketplace | All rights reserved</p>
+        </div>
+    </div>
+</body>
+</html>
