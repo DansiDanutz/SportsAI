@@ -192,3 +192,4 @@ Pipfile.lock
 tmpclaude-*-cwd
 ui/test-results/
 .vercel
+Sports_Ai/data/live_odds.json
