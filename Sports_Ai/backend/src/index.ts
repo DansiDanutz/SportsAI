@@ -15,6 +15,7 @@ import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { getCookieSecret, validateAuthSecrets } from './auth/auth-secret-policy';
 
 async function bootstrap() {
   try {
@@ -23,13 +24,14 @@ async function bootstrap() {
     console.log(`   - NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
     console.log(`   - PORT: ${process.env.PORT || '4000 (default)'}`);
     console.log(`   - DATABASE_URL: ${process.env.DATABASE_URL ? '✅ set' : '❌ missing'}`);
-    console.log(`   - JWT_SECRET: ${process.env.JWT_SECRET ? '✅ set' : '⚠️  using fallback (not recommended for production)'}`);
+    console.log(`   - JWT_SECRET: ${process.env.JWT_SECRET ? '✅ set' : '⚠️  using development-only fallback'}`);
     console.log(`   - CORS_ORIGIN: ${process.env.CORS_ORIGIN || 'not set (using defaults)'}`);
     
     // Validate required environment variables
     if (!process.env.DATABASE_URL) {
       throw new Error('DATABASE_URL environment variable is required but not set. Please configure it in Render dashboard.');
     }
+    validateAuthSecrets();
     
     console.log('🔧 Creating NestJS application...');
     const adapter = new FastifyAdapter({ trustProxy: true });
@@ -43,7 +45,7 @@ async function bootstrap() {
     
     // Cookies (required for secure HttpOnly auth sessions)
     await app.register(fastifyCookie, {
-      secret: process.env.COOKIE_SECRET || process.env.JWT_SECRET || 'sportsai-cookie-secret-change-in-production',
+      secret: getCookieSecret(),
     });
 
     // Register multipart for file uploads

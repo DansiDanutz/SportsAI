@@ -4,6 +4,7 @@ import { JwtRotationService } from './jwt-rotation.service';
 import { ExtractJwt } from 'passport-jwt';
 import * as jwt from 'jsonwebtoken';
 import { JwtPayload } from './auth.service';
+import { getJwtSecret } from './auth-secret-policy';
 
 /**
  * Custom JWT Guard that supports multiple secrets for rotation
@@ -66,7 +67,7 @@ export class JwtMultiSecretGuard extends AuthGuard('jwt') {
         this.cacheExpiry = Date.now() + this.CACHE_TTL;
       } catch (error) {
         // Fallback to environment variable
-        const fallbackSecret = process.env.JWT_SECRET || 'sportsai-secret-key-change-in-production';
+        const fallbackSecret = getJwtSecret();
         this.secretsCache = [{ secret: fallbackSecret, version: 0 }];
         this.cacheExpiry = Date.now() + this.CACHE_TTL;
       }
@@ -84,7 +85,7 @@ export class JwtMultiSecretGuard extends AuthGuard('jwt') {
     }
 
     // Fallback to environment variable
-    const fallbackSecret = process.env.JWT_SECRET || 'sportsai-secret-key-change-in-production';
+    const fallbackSecret = getJwtSecret();
     try {
       const decoded = jwt.verify(token, fallbackSecret) as JwtPayload;
       return decoded;
