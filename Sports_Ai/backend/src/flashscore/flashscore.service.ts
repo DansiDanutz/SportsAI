@@ -280,9 +280,8 @@ export class FlashscoreService implements OnModuleDestroy {
     let idx = 0;
 
     const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-      while (true) {
+      while (idx < items.length) {
         const current = idx++;
-        if (current >= items.length) break;
         try {
           const value = await fn(items[current]);
           results[current] = { status: 'fulfilled', value };
@@ -326,4 +325,3 @@ export class FlashscoreService implements OnModuleDestroy {
     return { matches, errors };
   }
 }
-
