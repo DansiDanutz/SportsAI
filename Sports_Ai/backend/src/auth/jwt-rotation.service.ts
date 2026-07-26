@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as crypto from 'crypto';
+import { getJwtSecret } from './auth-secret-policy';
 
 export interface JwtSecret {
   id: string;
@@ -48,7 +49,7 @@ export class JwtRotationService implements OnModuleInit {
 
     if (!activeSecret) {
       this.logger.log('No active JWT secret found. Creating default secret...');
-      const defaultSecret = process.env.JWT_SECRET || this.generateSecret();
+      const defaultSecret = process.env.JWT_SECRET ? getJwtSecret() : this.generateSecret();
       
       await this.prisma.jwtSecret.create({
         data: {
@@ -75,7 +76,7 @@ export class JwtRotationService implements OnModuleInit {
 
     if (!activeSecret) {
       // Fallback to environment variable
-      const fallbackSecret = process.env.JWT_SECRET || 'sportsai-secret-key-change-in-production';
+      const fallbackSecret = getJwtSecret();
       this.logger.warn('No active secret in database, using environment variable');
       return fallbackSecret;
     }
@@ -107,7 +108,7 @@ export class JwtRotationService implements OnModuleInit {
 
     // If no secrets in DB, return fallback
     if (secrets.length === 0) {
-      const fallbackSecret = process.env.JWT_SECRET || 'sportsai-secret-key-change-in-production';
+      const fallbackSecret = getJwtSecret();
       return [
         {
           id: 'fallback',
