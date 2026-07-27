@@ -410,7 +410,7 @@ export class AuthController {
   ): Promise<void> {
     // Handle OAuth errors from Google
     if (error) {
-      console.error('[OAuth] Google returned error:', error);
+      console.error('[OAuth] Google provider returned an error');
       res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`);
       return;
     }
@@ -467,7 +467,7 @@ export class AuthController {
     @Res() res: FastifyReply,
   ): Promise<void> {
     if (error) {
-      console.error('[GitHub OAuth] GitHub returned error:', error);
+      console.error('[GitHub OAuth] Provider returned an error');
       res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=github_oauth_failed`);
       return;
     }

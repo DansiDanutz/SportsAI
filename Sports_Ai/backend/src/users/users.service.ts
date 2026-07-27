@@ -1,6 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+interface UserPreferences {
+  hasCompletedOnboarding: boolean;
+  notifications: {
+    email: boolean;
+    push: boolean;
+    arbitrageAlerts: boolean;
+  };
+  display: {
+    theme: 'dark' | 'light' | 'system';
+    oddsFormat: 'decimal' | 'american' | 'fractional';
+    timezone: string;
+  };
+  sportsbook: {
+    defaultStake: number;
+    currency: string;
+  };
+  favoriteSports: string[];
+  favoriteBookmakers: string[];
+}
+
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
@@ -11,24 +31,75 @@ export class UsersService {
     return proto === Object.prototype || proto === null;
   }
 
-  /**
-   * Deep merge plain objects. Arrays are replaced (not merged).
-   */
-  private deepMerge<T extends Record<string, unknown>>(base: T, patch: Record<string, unknown>): T {
-    const out: Record<string, unknown> = { ...base };
-    for (const [key, value] of Object.entries(patch || {})) {
-      const current = out[key];
-      if (Array.isArray(value)) {
-        out[key] = value;
-        continue;
-      }
-      if (this.isPlainObject(value) && this.isPlainObject(current)) {
-        out[key] = this.deepMerge(current, value);
-        continue;
-      }
-      out[key] = value;
-    }
-    return out as T;
+  private applyPreferencePatch(base: UserPreferences, patch: unknown): UserPreferences {
+    const input = this.isPlainObject(patch) ? patch : {};
+    const notifications = this.isPlainObject(input.notifications) ? input.notifications : {};
+    const display = this.isPlainObject(input.display) ? input.display : {};
+    const sportsbook = this.isPlainObject(input.sportsbook) ? input.sportsbook : {};
+
+    return {
+      hasCompletedOnboarding: this.booleanOr(input.hasCompletedOnboarding, base.hasCompletedOnboarding),
+      notifications: {
+        email: this.booleanOr(notifications.email, base.notifications.email),
+        push: this.booleanOr(notifications.push, base.notifications.push),
+        arbitrageAlerts: this.booleanOr(
+          notifications.arbitrageAlerts,
+          base.notifications.arbitrageAlerts,
+        ),
+      },
+      display: {
+        theme: this.enumOr(display.theme, ['dark', 'light', 'system'] as const, base.display.theme),
+        oddsFormat: this.enumOr(
+          display.oddsFormat,
+          ['decimal', 'american', 'fractional'] as const,
+          base.display.oddsFormat,
+        ),
+        timezone: this.safeTextOr(
+          display.timezone,
+          /^[A-Za-z0-9_+./-]{1,64}$/,
+          base.display.timezone,
+        ),
+      },
+      sportsbook: {
+        defaultStake: this.numberOr(sportsbook.defaultStake, 0, 1_000_000, base.sportsbook.defaultStake),
+        currency: this.safeTextOr(sportsbook.currency, /^[A-Z]{3}$/, base.sportsbook.currency),
+      },
+      favoriteSports: this.safeStringListOr(input.favoriteSports, base.favoriteSports),
+      favoriteBookmakers: this.safeStringListOr(input.favoriteBookmakers, base.favoriteBookmakers),
+    };
+  }
+
+  private booleanOr(value: unknown, fallback: boolean): boolean {
+    return typeof value === 'boolean' ? value : fallback;
+  }
+
+  private enumOr<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+    return typeof value === 'string' && (allowed as readonly string[]).includes(value)
+      ? (value as T)
+      : fallback;
+  }
+
+  private safeTextOr(value: unknown, policy: RegExp, fallback: string): string {
+    return typeof value === 'string' && policy.test(value) ? value : fallback;
+  }
+
+  private numberOr(value: unknown, minimum: number, maximum: number, fallback: number): number {
+    return typeof value === 'number' && Number.isFinite(value) && value >= minimum && value <= maximum
+      ? value
+      : fallback;
+  }
+
+  private safeStringListOr(value: unknown, fallback: string[]): string[] {
+    if (!Array.isArray(value)) return fallback;
+
+    return Array.from(
+      new Set(
+        value.filter(
+          (entry): entry is string =>
+            typeof entry === 'string' && /^[A-Za-z0-9][A-Za-z0-9 _-]{0,63}$/.test(entry),
+        ),
+      ),
+    ).slice(0, 50);
   }
 
   async findByEmail(email: string) {
@@ -230,7 +301,7 @@ export class UsersService {
   }
 
   // Preferences management
-  async getPreferences(userId: string): Promise<Record<string, unknown>> {
+  async getPreferences(userId: string): Promise<UserPreferences> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { preferences: true },
@@ -241,18 +312,15 @@ export class UsersService {
     }
 
     try {
-      const parsed = JSON.parse(user.preferences);
-      // Deep-merge with defaults to ensure nested keys exist (e.g., display.*)
-      return this.deepMerge(this.getDefaultPreferences(), parsed);
+      return this.applyPreferencePatch(this.getDefaultPreferences(), JSON.parse(user.preferences));
     } catch {
       return this.getDefaultPreferences();
     }
   }
 
-  async updatePreferences(userId: string, updates: Record<string, unknown>): Promise<Record<string, unknown>> {
-    // Get current preferences and merge with updates
+  async updatePreferences(userId: string, updates: Record<string, unknown>): Promise<UserPreferences> {
     const currentPrefs = await this.getPreferences(userId);
-    const newPrefs = this.deepMerge(currentPrefs, updates);
+    const newPrefs = this.applyPreferencePatch(currentPrefs, updates);
 
     await this.prisma.user.update({
       where: { id: userId },
@@ -262,7 +330,7 @@ export class UsersService {
     return newPrefs;
   }
 
-  private getDefaultPreferences(): Record<string, unknown> {
+  private getDefaultPreferences(): UserPreferences {
     return {
       hasCompletedOnboarding: false,
       notifications: {
