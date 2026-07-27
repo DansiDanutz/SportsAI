@@ -15,14 +15,14 @@ Port 6543 requires a **different format** and might not work for migrations.
 **Update DATABASE_URL in Render to:**
 
 ```
-postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
 ```
 
 **Key points:**
 - Username: `postgres` (NOT `postgres.nkaahfrobkvtskolhokj`)
 - Host: `db.nkaahfrobkvtskolhokj.supabase.co`
 - Port: `5432` (direct connection)
-- Password: `Seme05041981!` (as-is, or try `Seme05041981%21` if it fails)
+- Password: `[PASSWORD]` (as-is, or try `[PASSWORD]` if it fails)
 
 ---
 
@@ -31,7 +31,7 @@ postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/pos
 If direct doesn't work, try session pooler:
 
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
 ```
 
 **Key points:**

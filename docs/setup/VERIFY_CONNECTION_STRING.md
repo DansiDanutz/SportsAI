@@ -26,7 +26,7 @@ echo $DATABASE_URL
 **Your connection string should be:**
 
 ```
-postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
 ```
 
 **Key check:**
@@ -67,7 +67,7 @@ If connection still fails, try URL-encoding the password:
 **In Render Environment, update DATABASE_URL to:**
 
 ```
-postgresql://postgres:Seme05041981%21@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
 ```
 
 (Note: `!` becomes `%21`)

@@ -1,13 +1,13 @@
 # ✅ New Password Connection String
 
-## New Password: `Seme065041981!`
+## New Password: `[PASSWORD]`
 
 ---
 
 ## ✅ Connection String (Without Encoding):
 
 ```
-postgresql://postgres:Seme065041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
 ```
 
 ---
@@ -15,7 +15,7 @@ postgresql://postgres:Seme065041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/po
 ## ✅ Connection String (With URL Encoding - Try This If First Doesn't Work):
 
 ```
-postgresql://postgres:Seme065041981%21@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
 ```
 
 **Note:** `!` is encoded as `%21`
@@ -40,7 +40,7 @@ postgresql://postgres:Seme065041981%21@db.nkaahfrobkvtskolhokj.supabase.co:5432/
 Try session pooler format:
 
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme065041981!@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
 ```
 
 ---

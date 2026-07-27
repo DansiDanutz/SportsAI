@@ -1,10 +1,10 @@
 # 🔐 Password Encoding Explanation
 
 ## Your Password
-**Original:** `Seme05041981!`
+**Original:** `[PASSWORD]`
 
 ## In Connection String
-**Encoded:** `Seme05041981%21`
+**Encoded:** `[PASSWORD]`
 
 ---
 
@@ -30,13 +30,13 @@ The `!` character is a **special character** in URLs and connection strings. Whe
 
 ### Option 1: With Encoding (Safer - Recommended)
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981%21@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 ```
 ✅ **This is safer** - guaranteed to work with special characters
 
 ### Option 2: Without Encoding (Might Work)
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 ```
 ⚠️ **Might work** - depends on how Render/Supabase handles it
 
@@ -48,12 +48,12 @@ postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.
 
 1. **First, try WITH encoding** (`%21`):
    ```
-   postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981%21@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+   postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
    ```
 
 2. **If that doesn't work**, try WITHOUT encoding (`!`):
    ```
-   postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+   postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
    ```
 
 ---

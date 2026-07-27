@@ -4,14 +4,14 @@
 
 Your `DATABASE_URL` shows:
 ```
-postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
 ```
 
 **Perfect!** ✅
 - Port: `5432` (direct connection)
 - Host: `db.nkaahfrobkvtskolhokj.supabase.co` (correct)
 - Username: `postgres` (correct)
-- Password: `Seme05041981!` (correct)
+- Password: `[PASSWORD]` (correct)
 
 ---
 

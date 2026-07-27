@@ -13,7 +13,7 @@ You successfully created the `connection_test` table! ✅
 **In Render Shell, run:**
 
 ```bash
-psql "postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test;"
+psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test;"
 ```
 
 **Expected output:**
@@ -31,7 +31,7 @@ psql "postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:54
 **If Test 1 works, try inserting:**
 
 ```bash
-psql "postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "INSERT INTO connection_test (test_message) VALUES ('Render connection works!');"
+psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "INSERT INTO connection_test (test_message) VALUES ('Render connection works!');"
 ```
 
 **Expected output:**
@@ -44,7 +44,7 @@ INSERT 0 1
 ### Test 3: Verify Insert
 
 ```bash
-psql "postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test ORDER BY id DESC LIMIT 5;"
+psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test ORDER BY id DESC LIMIT 5;"
 ```
 
 **Should show both rows:**
@@ -66,10 +66,10 @@ psql "postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:54
 
 ### Error: "Can't reach database server"
 - Check Supabase Network Restrictions (allow all IPs)
-- Try URL-encoding password: `Seme05041981%21`
+- Try URL-encoding password: `[PASSWORD]`
 
 ### Error: "password authentication failed"
-- Verify password is correct: `Seme05041981!`
+- Verify password is correct: `[PASSWORD]`
 - Check if password was reset correctly
 
 ### Error: "relation does not exist"

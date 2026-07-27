@@ -33,10 +33,10 @@ The `!` character in your password might need encoding. Try:
 **Update DATABASE_URL in Render to:**
 
 ```
-postgresql://postgres:Seme05041981%21@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
 ```
 
-**Key change:** `Seme05041981!` → `Seme05041981%21`
+**Key change:** `[PASSWORD]` → `[PASSWORD]`
 
 ---
 
@@ -45,7 +45,7 @@ postgresql://postgres:Seme05041981%21@db.nkaahfrobkvtskolhokj.supabase.co:5432/p
 **In Render Shell, test the connection:**
 
 ```bash
-psql "postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT version();"
+psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT version();"
 ```
 
 **If this fails**, it confirms network/connectivity issue.
@@ -68,14 +68,14 @@ Try session pooler instead of direct connection:
 **Update DATABASE_URL in Render to:**
 
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
 ```
 
 **Key differences:**
 - Username: `postgres.nkaahfrobkvtskolhokj` (with project ref)
 - Host: `aws-0-us-east-1.pooler.supabase.com` (pooler)
 - Port: `5432` (session mode)
-- Password: `Seme05041981!` (or try `Seme05041981%21`)
+- Password: `[PASSWORD]` (or try `[PASSWORD]`)
 
 ---
 
@@ -101,7 +101,7 @@ ping db.nkaahfrobkvtskolhokj.supabase.co
 nc -zv db.nkaahfrobkvtskolhokj.supabase.co 5432
 
 # Test connection
-psql "postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT 1;"
+psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT 1;"
 ```
 
 ---

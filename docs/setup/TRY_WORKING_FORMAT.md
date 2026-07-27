@@ -4,7 +4,7 @@
 
 **Working format:**
 ```
-postgresql://postgres:Seme05041981!@db.asjtxrmftmutcsnqgidy.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.asjtxrmftmutcsnqgidy.supabase.co:5432/postgres
 ```
 
 **Your current project:** `nkaahfrobkvtskolhokj`
@@ -16,7 +16,7 @@ postgresql://postgres:Seme05041981!@db.asjtxrmftmutcsnqgidy.supabase.co:5432/pos
 **Update DATABASE_URL in Render to:**
 
 ```
-postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
 ```
 
 **This is the same format, just with your project reference.**
@@ -34,7 +34,7 @@ The error showed IPv6 address, which Render can't reach. So this might still fai
 Since IPv6 doesn't work, use connection pooling (IPv4):
 
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
 ```
 
 **Key differences:**

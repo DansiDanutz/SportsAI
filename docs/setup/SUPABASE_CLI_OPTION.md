@@ -60,7 +60,7 @@ Your project already uses **Prisma** for migrations, which is:
 
 **Use single quotes:**
 ```bash
-psql 'postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres' -c "SELECT * FROM connection_test;"
+psql 'postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres' -c "SELECT * FROM connection_test;"
 ```
 
 **Or use Prisma (already set up):**

@@ -16,14 +16,14 @@ Connection pooling uses IPv4 and works better with Render.
 ### Update DATABASE_URL in Render to:
 
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
 ```
 
 **Key differences:**
 - Username: `postgres.nkaahfrobkvtskolhokj` (with project ref)
 - Host: `aws-0-us-east-1.pooler.supabase.com` (pooler - IPv4)
 - Port: `5432` (session mode)
-- Password: `Seme05041981!`
+- Password: `[PASSWORD]`
 
 ---
 
@@ -45,7 +45,7 @@ If you want to keep direct connection, try using the IPv4 hostname directly:
 Session pooler behaves like direct connection but uses IPv4:
 
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
 ```
 
 **This is the recommended format for Render!**
@@ -76,7 +76,7 @@ postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.
 
 **Test connection:**
 ```bash
-psql 'postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:5432/postgres' -c "SELECT * FROM connection_test;"
+psql 'postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres' -c "SELECT * FROM connection_test;"
 ```
 
 **Should work now!** ✅

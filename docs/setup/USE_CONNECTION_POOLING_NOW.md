@@ -14,19 +14,19 @@ We already tried the direct connection format multiple times - it fails with IPv
 
 **Change `DATABASE_URL` from:**
 ```
-postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
 ```
 
 **To:**
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
 ```
 
 **Key changes:**
 - Username: `postgres` → `postgres.nkaahfrobkvtskolhokj` (adds project ref)
 - Host: `db.nkaahfrobkvtskolhokj.supabase.co` → `aws-0-us-east-1.pooler.supabase.com` (pooler)
 - Port: `5432` (same - session mode)
-- Password: `Seme05041981!` (same)
+- Password: `[PASSWORD]` (same)
 
 ---
 
