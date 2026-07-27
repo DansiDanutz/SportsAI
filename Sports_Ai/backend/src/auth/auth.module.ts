@@ -14,7 +14,6 @@ import { AdminGuard } from './admin.guard';
 import { TwoFactorService } from './two-factor.service';
 import { DeviceSessionService } from './device-session.service';
 import { JwtRotationService } from './jwt-rotation.service';
-import { JwtMultiSecretGuard } from './jwt-multi-secret.guard';
 import { UsersModule } from '../users/users.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -43,7 +42,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     GoogleOAuthService,
     GitHubOAuthService,
     JwtStrategy,
-    JwtMultiSecretGuard,
     JwtRotationService,
     RateLimiterService,
     ApiRateLimiterService,
@@ -57,6 +55,6 @@ import { ScheduleModule } from '@nestjs/schedule';
       useClass: ApiRateLimitGuard,
     },
   ],
-  exports: [AuthService, GoogleOAuthService, GitHubOAuthService, JwtModule, AdminGuard, ApiRateLimiterService, ApiRateLimitGuard, TwoFactorService, DeviceSessionService, JwtRotationService, JwtMultiSecretGuard],
+  exports: [AuthService, GoogleOAuthService, GitHubOAuthService, JwtModule, AdminGuard, ApiRateLimiterService, ApiRateLimitGuard, TwoFactorService, DeviceSessionService, JwtRotationService],
 })
 export class AuthModule {}

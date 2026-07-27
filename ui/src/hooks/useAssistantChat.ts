@@ -120,10 +120,6 @@ export function useAssistantChat({
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data) as AssistantChatServerMessage;
-        if (import.meta.env.DEV) {
-          console.debug('[useAssistantChat] Received WebSocket message:', data.type, data);
-        }
-
         switch (data.type) {
           case "text": {
             // Append text to current assistant message or create new one
