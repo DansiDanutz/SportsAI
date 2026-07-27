@@ -37,7 +37,7 @@ The direct connection (port 5432) might be blocked. Try connection pooling inste
 3. **Replace** with connection pooling version:
 
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 ```
 
 **Key differences:**
@@ -64,7 +64,7 @@ postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.
 ## 🔴 Solution 4: Verify Connection String
 
 Double-check your `DATABASE_URL` in Render:
-- Password is correct: `Seme05041981!`
+- Password is correct: `[PASSWORD]`
 - Project reference is correct: `nkaahfrobkvtskolhokj`
 - No extra spaces or characters
 

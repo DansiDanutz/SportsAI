@@ -82,7 +82,7 @@ openssl rand -hex 32
 2. Click on **"Connections"** tab
 3. Copy the **"Internal Database URL"** (for Render-to-Render)
    - Format: `postgresql://username:password@host:port/database`
-   - Example: `postgresql://sportsai:abc123@dpg-d5ih1eshg0os738jia6g-a/sportingpostgres`
+    - Example: `postgresql://sportsai:[PASSWORD]@dpg-d5ih1eshg0os738jia6g-a/sportingpostgres`
 
 **Purpose:** Database connection for Prisma
 **Required:** Yes

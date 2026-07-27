@@ -3,7 +3,7 @@
 ## What You Have (Direct Connection):
 
 ```
-postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
 ```
 
 ✅ **This should work!** This is the direct connection format.
@@ -16,7 +16,7 @@ For Render/serverless, **connection pooling is recommended** for better performa
 
 ### Connection Pooling Version:
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 ```
 
 **Benefits:**

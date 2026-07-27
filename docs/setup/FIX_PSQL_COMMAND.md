@@ -8,7 +8,7 @@ Bash interprets `!` as history expansion, causing: `event not found`
 ### Option 1: Use Single Quotes (Easiest)
 
 ```bash
-psql 'postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres' -c "SELECT * FROM connection_test;"
+psql 'postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres' -c "SELECT * FROM connection_test;"
 ```
 
 **Key:** Use **single quotes** `'...'` around the connection string to prevent bash expansion.
@@ -18,7 +18,7 @@ psql 'postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:54
 ### Option 2: Escape the Exclamation Mark
 
 ```bash
-psql "postgresql://postgres:Seme05041981\!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test;"
+psql "postgresql://postgres:[URL_ENCODED_PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test;"
 ```
 
 **Key:** Add backslash before `!` → `\!`
@@ -28,10 +28,10 @@ psql "postgresql://postgres:Seme05041981\!@db.nkaahfrobkvtskolhokj.supabase.co:5
 ### Option 3: Use URL-Encoded Password
 
 ```bash
-psql "postgresql://postgres:Seme05041981%21@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test;"
+psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test;"
 ```
 
-**Key:** Replace `!` with `%21` (URL encoding)
+**Key:** Percent-encode every URI-reserved character in the actual password before replacing `[URL_ENCODED_PASSWORD]` (for example, `!` becomes `%21`).
 
 ---
 
@@ -40,7 +40,7 @@ psql "postgresql://postgres:Seme05041981%21@db.nkaahfrobkvtskolhokj.supabase.co:
 **Run this in Render Shell:**
 
 ```bash
-psql 'postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres' -c "SELECT * FROM connection_test;"
+psql 'postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres' -c "SELECT * FROM connection_test;"
 ```
 
 ---

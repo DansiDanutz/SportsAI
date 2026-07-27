@@ -3,6 +3,7 @@
   "version": "5.0.0",
   "private": true,
   "scripts": {
+    "test": "node --test test/*.test.mjs",
     "build": "npm ci --prefix Sports_Ai/frontend --include=dev && npm --prefix Sports_Ai/frontend run build && node scripts/copy-frontend-dist.mjs",
     "vercel-build": "npm run build"
   },

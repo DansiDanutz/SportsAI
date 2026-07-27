@@ -37,7 +37,7 @@ SELECT * FROM connection_test;
 **In Render Shell, run:**
 
 ```bash
-psql "postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test;"
+psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test;"
 ```
 
 **Expected output:**
@@ -51,13 +51,13 @@ psql "postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:54
 ### Test 2: Insert New Row
 
 ```bash
-psql "postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "INSERT INTO connection_test (test_message) VALUES ('Render connection works!');"
+psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "INSERT INTO connection_test (test_message) VALUES ('Render connection works!');"
 ```
 
 ### Test 3: Verify Insert
 
 ```bash
-psql "postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test ORDER BY id DESC LIMIT 5;"
+psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test ORDER BY id DESC LIMIT 5;"
 ```
 
 ---
@@ -103,10 +103,10 @@ prisma.\$queryRaw\`SELECT * FROM connection_test\`.then(r => {
 ### Error: "Can't reach database server"
 - Check Supabase Network Restrictions (allow all IPs)
 - Verify Supabase project is active
-- Try URL-encoding password: `Seme05041981%21`
+- Try URL-encoding password: `[PASSWORD]`
 
 ### Error: "password authentication failed"
-- Verify password is correct: `Seme05041981!`
+- Verify password is correct: `[PASSWORD]`
 - Check if password was reset correctly in Supabase
 
 ### Error: "relation does not exist"
@@ -121,7 +121,7 @@ prisma.\$queryRaw\`SELECT * FROM connection_test\`.then(r => {
 
 ```bash
 # Test connection and query
-psql "postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT 'Connection successful!' as status, COUNT(*) as table_count FROM connection_test;"
+psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT 'Connection successful!' as status, COUNT(*) as table_count FROM connection_test;"
 ```
 
 **Expected output:**

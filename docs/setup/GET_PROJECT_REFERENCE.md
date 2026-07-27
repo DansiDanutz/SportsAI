@@ -1,7 +1,7 @@
 # 🔍 Get Supabase Project Reference
 
 ## You Have:
-✅ Password: `Seme05041981!`
+✅ Password: `[PASSWORD]`
 
 ## Still Need:
 ❌ Project Reference

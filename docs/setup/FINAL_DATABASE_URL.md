@@ -2,16 +2,16 @@
 
 ## Your Exact Connection String
 
-**Password:** `Seme05041981!` (exactly as you provided)
+**Password:** `[PASSWORD]` (exactly as you provided)
 
 ### Connection Pooling (Recommended):
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 ```
 
 ### Direct Connection (Alternative):
 ```
-postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
 ```
 
 ---
@@ -19,7 +19,7 @@ postgresql://postgres:Seme05041981!@db.nkaahfrobkvtskolhokj.supabase.co:5432/pos
 ## 📋 Copy This Exact String:
 
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:Seme05041981!@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 ```
 
 **No encoding, no changes - exactly as you provided!**

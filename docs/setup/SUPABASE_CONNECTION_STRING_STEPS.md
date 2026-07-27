@@ -112,7 +112,7 @@ The connection string section usually looks like:
 ├─────────────────────────────────────────┤
 │ [Connection pooling] [Session mode]     │
 │                                         │
-│ postgresql://postgres.xxx:xxx@...       │
+│ postgresql://postgres.xxx:[PASSWORD]@...       │
 │ [Copy] button                           │
 └─────────────────────────────────────────┘
 ```

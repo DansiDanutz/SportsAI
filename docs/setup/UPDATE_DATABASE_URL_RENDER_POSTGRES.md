@@ -3,7 +3,7 @@
 ## ✅ Connection String Found!
 
 ```
-postgresql://sportingpostgres_user:7nJOUB0W5dTvmP4LjDQCHvq7dbkfmywa@dpg-d5ih1eshg0os738jia6g-a.virginia-postgres.render.com/sportingpostgres
+postgresql://sportingpostgres_user:[PASSWORD]@dpg-d5ih1eshg0os738jia6g-a.virginia-postgres.render.com/sportingpostgres
 ```
 
 ---
@@ -17,7 +17,7 @@ postgresql://sportingpostgres_user:7nJOUB0W5dTvmP4LjDQCHvq7dbkfmywa@dpg-d5ih1esh
 3. Find `DATABASE_URL`
 4. **Replace** with the connection string above:
    ```
-   postgresql://sportingpostgres_user:7nJOUB0W5dTvmP4LjDQCHvq7dbkfmywa@dpg-d5ih1eshg0os738jia6g-a.virginia-postgres.render.com/sportingpostgres
+   postgresql://sportingpostgres_user:[PASSWORD]@dpg-d5ih1eshg0os738jia6g-a.virginia-postgres.render.com/sportingpostgres
    ```
 5. **Save changes** (will trigger redeploy)
 6. **Wait for redeploy** to complete
