@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Patch, Delete, Param, Body, UseGuards, Request, HttpCode, HttpStatus, BadRequestException, NotFoundException, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Param, Body, UseGuards, Request, HttpCode, HttpStatus, BadRequestException, NotFoundException, Req, ServiceUnavailableException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from './users.service';
 import { UploadsService } from '../uploads/uploads.service';
@@ -143,23 +143,10 @@ export class UsersController {
 
   @Post('me/subscription/upgrade')
   @HttpCode(HttpStatus.OK)
-  async upgradeSubscription(@Request() req: any, @Body() body: UpgradeSubscriptionDto) {
-    const updatedUser = await this.usersService.updateSubscription(req.user.id, body.tier);
-
-    // In production, this would integrate with Stripe/payment processor
-    // For now, we simulate the upgrade immediately
-    return {
-      success: true,
-      message: body.tier === 'premium'
-        ? 'Successfully upgraded to Premium!'
-        : 'Subscription changed to Free tier',
-      user: {
-        id: updatedUser.id,
-        email: updatedUser.email,
-        subscriptionTier: updatedUser.subscriptionTier,
-        creditBalance: updatedUser.creditBalance,
-      },
-    };
+  async upgradeSubscription(@Request() _req: any, @Body() _body: UpgradeSubscriptionDto) {
+    throw new ServiceUnavailableException(
+      'Subscription upgrades are disabled until verified billing is configured',
+    );
   }
 
   @Get('me/subscription')

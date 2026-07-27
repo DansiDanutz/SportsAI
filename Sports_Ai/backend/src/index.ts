@@ -16,6 +16,7 @@ import fastifyStatic from '@fastify/static';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { getCookieSecret, validateAuthSecrets } from './auth/auth-secret-policy';
+import { isAllowedCorsOrigin, resolveAllowedCorsOrigins } from './common/cors-policy';
 
 async function bootstrap() {
   try {
@@ -70,44 +71,9 @@ async function bootstrap() {
 
     // Configure CORS using NestJS's built-in method (works with Fastify)
     // Define CORS variables before helmet (which uses them)
-    const defaultLocalOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'http://localhost:3003',
-      'http://localhost:3004',
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:5175',
-    ];
-
-    const rawCors = (process.env.CORS_ORIGIN || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    const nodeEnv = (process.env.NODE_ENV || '').toLowerCase();
-    const isNonDevRuntime = nodeEnv !== 'development' && nodeEnv !== 'test';
-
-    const isHttpsVercelOrigin = (origin: string): boolean => {
-      try {
-        const url = new URL(origin);
-        return url.protocol === 'https:' && url.hostname.endsWith('.vercel.app');
-      } catch {
-        return false;
-      }
-    };
-
-    // Always allow HTTPS Vercel deployments (preview + prod). This prevents accidental
-    // misconfiguration of NODE_ENV/CORS_ORIGIN from breaking the Vercel frontend.
-    const allowVercelWildcard =
-      rawCors.includes('https://*.vercel.app') ||
-      rawCors.includes('*.vercel.app') ||
-      rawCors.includes('.vercel.app') ||
-      isNonDevRuntime;
-
-    const allowedOrigins = (rawCors.length ? rawCors : defaultLocalOrigins).filter(
-      (o) => !['*.vercel.app', '.vercel.app'].includes(o)
+    const allowedOrigins = resolveAllowedCorsOrigins(
+      process.env.CORS_ORIGIN,
+      process.env.NODE_ENV,
     );
 
     // Configure CORS manually for Fastify compatibility
@@ -120,9 +86,7 @@ async function bootstrap() {
         
         if (!origin) {
           allowOrigin = true; // Non-browser requests
-        } else if (allowedOrigins.includes(origin)) {
-          allowOrigin = true;
-        } else if (isHttpsVercelOrigin(origin)) {
+        } else if (isAllowedCorsOrigin(origin, allowedOrigins)) {
           allowOrigin = true;
         }
         
@@ -147,9 +111,7 @@ async function bootstrap() {
       if (origin) {
         let allowOrigin = false;
         
-        if (allowedOrigins.includes(origin)) {
-          allowOrigin = true;
-        } else if (isHttpsVercelOrigin(origin)) {
+        if (isAllowedCorsOrigin(origin, allowedOrigins)) {
           allowOrigin = true;
         }
         
@@ -172,7 +134,6 @@ async function bootstrap() {
           connectSrc: [
             "'self'",
             ...allowedOrigins,
-            ...(allowVercelWildcard ? ['https://*.vercel.app'] : []),
             'ws:',
             'wss:',
           ],

@@ -12,7 +12,8 @@
     "lint:fix": "eslint src/**/*.{ts,tsx} --fix",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "verify": "npm run lint && npm test -- --run && npm run typecheck && npm run build && npm audit --omit=dev --audit-level=high"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.0",

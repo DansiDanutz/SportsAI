@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Logger } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Headers,
+  Logger,
+  Post,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { TelegramNotificationsService } from './telegram-notifications.service';
 
@@ -8,7 +17,8 @@ import { TelegramNotificationsService } from './telegram-notifications.service';
  * 
  * Setup: Set webhook via Telegram Bot API:
  * POST https://api.telegram.org/bot<TOKEN>/setWebhook
- * { "url": "https://sportsapiai.onrender.com/api/telegram/webhook" }
+ * { "url": "https://sportsapiai.onrender.com/api/telegram/webhook",
+ *   "secret_token": "<TELEGRAM_WEBHOOK_SECRET>" }
  */
 @Controller('api/telegram')
 export class TelegramWebhookController {
@@ -20,7 +30,12 @@ export class TelegramWebhookController {
   ) {}
 
   @Post('webhook')
-  async handleWebhook(@Body() update: any) {
+  async handleWebhook(
+    @Body() update: any,
+    @Headers('x-telegram-bot-api-secret-token') providedSecret?: string,
+  ) {
+    this.assertAuthenticWebhook(providedSecret);
+
     try {
       const message = update?.message;
       if (!message?.text) return { ok: true };
@@ -82,6 +97,26 @@ export class TelegramWebhookController {
     return { ok: true };
   }
 
+  private assertAuthenticWebhook(providedSecret?: string): void {
+    const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+    const isProduction = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+
+    if (!expectedSecret) {
+      if (isProduction) {
+        throw new ServiceUnavailableException(
+          'Telegram webhook is disabled until its secret is configured',
+        );
+      }
+      return;
+    }
+
+    const expected = Buffer.from(expectedSecret);
+    const provided = Buffer.from(providedSecret || '');
+    if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) {
+      throw new UnauthorizedException('Invalid Telegram webhook secret');
+    }
+  }
+
   private async linkAccount(chatId: string, linkCode: string) {
     try {
       // Find user by temporary link code stored in preferences
@@ -89,13 +124,20 @@ export class TelegramWebhookController {
         where: { preferences: { contains: linkCode } },
       });
 
-      if (users.length === 0) {
+      const user = users.find((candidate) => {
+        try {
+          const preferences = JSON.parse(candidate.preferences || '{}');
+          return preferences.telegramLinkCode === linkCode;
+        } catch {
+          return false;
+        }
+      });
+
+      if (!user) {
         await this.telegramService.sendMessage(chatId,
           '❌ Invalid or expired link code. Please generate a new one from SportsAI Settings.');
         return;
       }
-
-      const user = users[0];
 
       // Update user with Telegram chat ID
       const prefs = JSON.parse(user.preferences || '{}');

@@ -1,19 +1,20 @@
-import { Controller, Get, Post, Put, Body, Param, Query, HttpStatus, HttpException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  Query,
+  Request,
+  ServiceUnavailableException,
+  UseGuards,
+} from '@nestjs/common';
+import { AdminGuard, RequireAdmin } from '../auth/admin.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { WalletService } from './wallet.service';
-
-// Simple auth decorator placeholder - replace with actual auth implementation
-const AuthGuard = () => {
-  return (target: any, propertyName: string, descriptor: PropertyDescriptor) => {
-    // In real implementation, add JWT or session validation
-    return descriptor;
-  };
-};
-
-const CurrentUser = () => {
-  return (target: any, propertyName: string, parameterIndex: number) => {
-    // In real implementation, extract user from JWT/session
-  };
-};
 
 @Controller('api/wallet')
 export class WalletController {
@@ -21,14 +22,12 @@ export class WalletController {
 
   /**
    * Get user's wallet balance and details
-   */
+  */
   @Get('balance')
-  @AuthGuard()
-  async getBalance(@Query('userId') userId: string) {
+  @UseGuards(JwtAuthGuard)
+  async getBalance(@Request() req: any) {
     try {
-      if (!userId) {
-        throw new HttpException('User ID required', HttpStatus.BAD_REQUEST);
-      }
+      const userId = req.user.id;
 
       const balance = await this.walletService.getUserBalance(userId);
       const wallet = await this.walletService.getUserWallet(userId);
@@ -52,15 +51,12 @@ export class WalletController {
 
   /**
    * Get user's deposit history
-   */
+  */
   @Get('deposits')
-  @AuthGuard()
-  async getDeposits(@Query('userId') userId: string, @Query('limit') limit?: string) {
+  @UseGuards(JwtAuthGuard)
+  async getDeposits(@Request() req: any, @Query('limit') limit?: string) {
     try {
-      if (!userId) {
-        throw new HttpException('User ID required', HttpStatus.BAD_REQUEST);
-      }
-
+      const userId = req.user.id;
       const wallet = await this.walletService.getUserWallet(userId);
       const limitNum = limit ? parseInt(limit) : 50;
       
@@ -86,15 +82,12 @@ export class WalletController {
 
   /**
    * Get user's withdrawal history
-   */
+  */
   @Get('withdrawals')
-  @AuthGuard()
-  async getWithdrawals(@Query('userId') userId: string, @Query('limit') limit?: string) {
+  @UseGuards(JwtAuthGuard)
+  async getWithdrawals(@Request() req: any, @Query('limit') limit?: string) {
     try {
-      if (!userId) {
-        throw new HttpException('User ID required', HttpStatus.BAD_REQUEST);
-      }
-
+      const userId = req.user.id;
       const wallet = await this.walletService.getUserWallet(userId);
       const limitNum = limit ? parseInt(limit) : 50;
       
@@ -122,15 +115,12 @@ export class WalletController {
 
   /**
    * Get user's profit share history
-   */
+  */
   @Get('profit-share')
-  @AuthGuard()
-  async getProfitShare(@Query('userId') userId: string, @Query('limit') limit?: string) {
+  @UseGuards(JwtAuthGuard)
+  async getProfitShare(@Request() req: any, @Query('limit') limit?: string) {
     try {
-      if (!userId) {
-        throw new HttpException('User ID required', HttpStatus.BAD_REQUEST);
-      }
-
+      const userId = req.user.id;
       const wallet = await this.walletService.getUserWallet(userId);
       const limitNum = limit ? parseInt(limit) : 24; // Default last 24 months
       
@@ -165,75 +155,33 @@ export class WalletController {
 
   /**
    * Make a deposit
-   */
+  */
   @Post('deposit')
-  @AuthGuard()
+  @UseGuards(JwtAuthGuard)
   async deposit(
-    @Query('userId') userId: string,
-    @Body() body: { 
-      amount: number; 
+    @Request() _req: any,
+    @Body() _body: {
+      amount: number;
       method?: string;
       email?: string;
-    }
+    },
   ) {
-    try {
-      if (!userId) {
-        throw new HttpException('User ID required', HttpStatus.BAD_REQUEST);
-      }
-
-      const { amount, method = 'bank_transfer', email } = body;
-
-      if (!amount || amount <= 0) {
-        throw new HttpException('Valid deposit amount required', HttpStatus.BAD_REQUEST);
-      }
-
-      // Create wallet if it doesn't exist (for new users)
-      if (email) {
-        try {
-          await this.walletService.getUserWallet(userId, email);
-        } catch (error) {
-          // Wallet creation handled in getUserWallet
-        }
-      }
-
-      const result = await this.walletService.processDeposit(userId, amount, method);
-
-      if (!result.success) {
-        throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
-      }
-
-      return {
-        success: true,
-        message: result.message,
-        data: {
-          depositId: result.depositId,
-          amount,
-          method,
-          timestamp: new Date().toISOString()
-        }
-      };
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Deposit failed',
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
+    throw new ServiceUnavailableException(
+      'Deposits are disabled until a verified payment provider is configured',
+    );
   }
 
   /**
    * Request a withdrawal
-   */
+  */
   @Post('withdraw')
-  @AuthGuard()
+  @UseGuards(JwtAuthGuard)
   async withdraw(
-    @Query('userId') userId: string,
-    @Body() body: { amount: number }
+    @Request() req: any,
+    @Body() body: { amount: number },
   ) {
     try {
-      if (!userId) {
-        throw new HttpException('User ID required', HttpStatus.BAD_REQUEST);
-      }
-
+      const userId = req.user.id;
       const { amount } = body;
 
       if (!amount || amount <= 0) {
@@ -266,19 +214,16 @@ export class WalletController {
 
   /**
    * Approve withdrawal (admin only)
-   */
+  */
   @Put('approve-withdrawal/:withdrawalId')
-  @AuthGuard()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdmin()
   async approveWithdrawal(
     @Param('withdrawalId') withdrawalId: string,
-    @Body() body: { approvedBy: string }
+    @Request() req: any,
   ) {
     try {
-      const { approvedBy } = body;
-
-      if (!approvedBy) {
-        throw new HttpException('Approver ID required', HttpStatus.BAD_REQUEST);
-      }
+      const approvedBy = req.user.id;
 
       const result = await this.walletService.approveWithdrawal(withdrawalId, approvedBy);
 
@@ -397,7 +342,8 @@ export class WalletController {
    * Get pending withdrawals (admin only)
    */
   @Get('/admin/pending-withdrawals')
-  @AuthGuard()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdmin()
   async getPendingWithdrawals() {
     try {
       const allWallets = await this.walletService.getAllWallets();
@@ -440,20 +386,22 @@ export class WalletController {
    * Process monthly profit distribution (admin only)
    */
   @Post('/admin/distribute-profits')
-  @AuthGuard()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdmin()
   async distributeProfits(
-    @Body() body: { 
-      totalProfit: number; 
+    @Request() req: any,
+    @Body() body: {
+      totalProfit: number;
       month: string;
-      adminId: string;
-    }
+    },
   ) {
     try {
-      const { totalProfit, month, adminId } = body;
+      const { totalProfit, month } = body;
+      const adminId = req.user.id;
 
-      if (!totalProfit || !month || !adminId) {
+      if (!totalProfit || !month) {
         throw new HttpException(
-          'Total profit, month, and admin ID required',
+          'Total profit and month required',
           HttpStatus.BAD_REQUEST
         );
       }

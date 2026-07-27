@@ -1,18 +1,20 @@
-import { Controller, Get, Query, Req } from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('v1/portfolio')
+@UseGuards(JwtAuthGuard)
 export class PortfolioController {
   constructor(private prisma: PrismaService) {}
 
   @Get('performance')
   async getPerformance(@Query('range') range = '30d', @Req() req: any) {
-    const userId = req.user?.id;
+    const userId = req.user.id;
     const since = this.getRangeDate(range);
 
     const analyses = await this.prisma.betSlipAnalysis.findMany({
       where: {
-        ...(userId ? { userId } : {}),
+        userId,
         ...(since ? { createdAt: { gte: since } } : {}),
       },
       orderBy: { createdAt: 'asc' },

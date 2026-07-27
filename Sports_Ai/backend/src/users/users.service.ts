@@ -54,20 +54,6 @@ export class UsersService {
     });
   }
 
-  async updateSubscription(userId: string, tier: 'free' | 'premium') {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { subscriptionTier: tier },
-    });
-  }
-
-  async updateCredits(userId: string, amount: number) {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { creditBalance: { increment: amount } },
-    });
-  }
-
   async updateProfilePicture(userId: string, profilePictureUrl: string | null) {
     return this.prisma.user.update({
       where: { id: userId },

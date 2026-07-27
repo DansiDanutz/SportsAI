@@ -76,7 +76,6 @@ export class WalletService {
   private readonly walletsFilePath = join(process.cwd(), 'data', 'wallets.json');
   private readonly fundStateFilePath = join(process.cwd(), 'data', 'fund_state.json');
   
-  private readonly MINIMUM_DEPOSIT = 100;
   private readonly USER_PROFIT_SHARE = 90; // 90% to users
   private readonly PLATFORM_FEE = 10; // 10% to platform
 
@@ -226,83 +225,6 @@ export class WalletService {
     } catch (error) {
       this.logger.error(`Failed to save wallets: ${error.message}`);
       throw new Error('Could not save wallets');
-    }
-  }
-
-  /**
-   * Process deposit
-   */
-  async processDeposit(
-    userId: string,
-    amount: number,
-    method: string = 'bank_transfer'
-  ): Promise<{ success: boolean; message: string; depositId?: string }> {
-    try {
-      if (amount < this.MINIMUM_DEPOSIT) {
-        return {
-          success: false,
-          message: `Minimum deposit is $${this.MINIMUM_DEPOSIT}`
-        };
-      }
-
-      const wallets = await this.getAllWallets();
-      const wallet = wallets.find(w => w.userId === userId);
-      
-      if (!wallet) {
-        return {
-          success: false,
-          message: 'User wallet not found'
-        };
-      }
-
-      const depositId = `dep_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const depositRecord: DepositRecord = {
-        id: depositId,
-        amount,
-        timestamp: new Date().toISOString(),
-        status: 'completed', // In real implementation, this would be 'pending'
-        method
-      };
-
-      // Update wallet
-      wallet.depositHistory.push(depositRecord);
-      wallet.totalDeposited += amount;
-      wallet.currentBalance += amount;
-      wallet.lastUpdated = new Date().toISOString();
-
-      // Recalculate share percentages for all users
-      await this.recalculateSharePercentages(wallets);
-      await this.saveWallets(wallets);
-
-      // Update fund state
-      const fundState = await this.getFundState();
-      fundState.totalAUM += amount;
-      fundState.totalDeposited += amount;
-      fundState.currentBalance += amount;
-      
-      // Check if this user became active
-      const wasInactive = wallet.currentBalance - amount <= 0;
-      if (wasInactive && wallet.currentBalance > 0) {
-        fundState.activeUsers++;
-      }
-      
-      await this.updateFundState(fundState);
-
-      this.logger.log(`Deposit processed: $${amount} for user ${userId}`);
-      
-      return {
-        success: true,
-        message: `Deposit of $${amount} processed successfully`,
-        depositId
-      };
-
-    } catch (error) {
-      this.logger.error(`Failed to process deposit: ${error.message}`);
-      return {
-        success: false,
-        message: 'Deposit processing failed'
-      };
     }
   }
 

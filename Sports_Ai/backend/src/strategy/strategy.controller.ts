@@ -7,9 +7,12 @@ import {
   Query,
   HttpStatus,
   HttpException,
-  Logger
+  Logger,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { AdminGuard, RequireAdmin } from '../auth/admin.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { StrategyService, BettingPick } from './strategy.service';
 import { HistoryService } from './history.service';
 import { BetSlipService } from './bet-slip.service';
@@ -17,6 +20,7 @@ import { DailyAccumulatorsService } from './daily-accumulators.service';
 
 @ApiTags('Strategy')
 @Controller('api/strategy')
+@UseGuards(JwtAuthGuard)
 export class StrategyController {
   private readonly logger = new Logger(StrategyController.name);
 
@@ -155,6 +159,8 @@ export class StrategyController {
   }
 
   @Post('resolve/:id')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   @ApiOperation({ summary: 'Mark a pick as won/lost for updating results' })
   @ApiParam({ name: 'id', description: 'Pick ID' })
   @ApiResponse({ status: 200, description: 'Pick result updated successfully' })
@@ -287,6 +293,8 @@ export class StrategyController {
   }
 
   @Post('generate-picks')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   @ApiOperation({ summary: 'Force generate new picks for today' })
   @ApiResponse({ status: 200, description: 'New picks generated successfully' })
   async generateNewPicks(): Promise<{
@@ -425,6 +433,8 @@ export class StrategyController {
   }
 
   @Post('bet-slip/test')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   @ApiOperation({ summary: 'Test bet slip analyzer with sample data' })
   @ApiResponse({ status: 200, description: 'Returns test analysis result' })
   async testBetSlipAnalyzer() {
@@ -447,6 +457,8 @@ export class StrategyController {
   // ===== DAILY ACCUMULATORS =====
 
   @Post('accumulators/generate')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   @ApiOperation({ summary: 'Generate daily 2-fold and 3-fold accumulator tickets' })
   async generateDailyAccumulators(@Body() body?: { bankroll?: number }) {
     try {
@@ -458,6 +470,8 @@ export class StrategyController {
   }
 
   @Post('accumulators/resolve')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   @ApiOperation({ summary: 'Resolve pending accumulator tickets with actual results' })
   async resolveAccumulators(@Body() body?: { date?: string }) {
     try {
@@ -483,6 +497,8 @@ export class StrategyController {
   }
 
   @Post('accumulators/bankroll')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   @ApiOperation({ summary: 'Update accumulator bankroll' })
   async updateAccumulatorBankroll(@Body() body: { bankroll: number }) {
     const data = await this.dailyAccumulators.updateBankroll(body.bankroll);

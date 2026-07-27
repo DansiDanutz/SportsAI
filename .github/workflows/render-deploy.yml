@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -25,4 +28,3 @@ jobs:
           # Render returns 200/201 on success depending on hook; fail on non-2xx
           curl -fsS -X POST "${RENDER_DEPLOY_HOOK_URL}"
           echo "✅ Render deploy hook triggered"
-
