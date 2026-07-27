@@ -4,6 +4,9 @@ on:
   deployment_status:
     types: [success, failure, cancelled]
 
+permissions:
+  contents: read
+
 jobs:
   deployment-notification:
     name: Deployment Status Notification
@@ -11,16 +14,23 @@ jobs:
     if: github.event.deployment_status.environment == 'Production'
     steps:
       - name: Send Deployment Notification
+        env:
+          DEPLOYMENT_STATE: ${{ github.event.deployment_status.state }}
+          DEPLOYMENT_ENVIRONMENT: ${{ github.event.deployment_status.environment }}
+          REPOSITORY: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          COMMIT_SHA: ${{ github.sha }}
+          TARGET_URL: ${{ github.event.deployment_status.target_url }}
         run: |
           echo "=========================================="
           echo "Vercel Deployment Status Update"
           echo "=========================================="
-          echo "Deployment Status: ${{ github.event.deployment_status.state }}"
-          echo "Deployment Environment: ${{ github.event.deployment_status.environment }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Triggered by: ${{ github.actor }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "View deployment at: ${{ github.event.deployment_status.target_url }}"
+          echo "Deployment Status: ${DEPLOYMENT_STATE}"
+          echo "Deployment Environment: ${DEPLOYMENT_ENVIRONMENT}"
+          echo "Repository: ${REPOSITORY}"
+          echo "Triggered by: ${ACTOR}"
+          echo "Commit: ${COMMIT_SHA}"
+          echo "View deployment at: ${TARGET_URL}"
           echo "=========================================="
 
       - name: Deployment Success

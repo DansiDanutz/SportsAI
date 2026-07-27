@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 
-interface PrivacySettingsProps {
-  // No props needed - component is self-contained
-}
-
-export function PrivacySettings({}: PrivacySettingsProps) {
+export function PrivacySettings() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState<{
     isPending: boolean;

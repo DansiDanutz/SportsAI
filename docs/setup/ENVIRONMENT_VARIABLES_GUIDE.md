@@ -68,6 +68,15 @@ openssl rand -hex 32
 **Multiple origins:** `https://sports-ai-one.vercel.app,https://your-custom-domain.com`
 **Purpose:** Allows frontend to communicate with backend
 **Required:** Yes
+**Security:** Use exact HTTPS origins only. Wildcards such as `https://*.vercel.app` are rejected because authenticated requests use credentials.
+
+---
+
+### `TELEGRAM_WEBHOOK_SECRET`
+
+**Value:** A private random token shared with Telegram's `setWebhook` `secret_token`
+**Purpose:** Rejects forged Telegram webhook requests before account-linking logic runs
+**Required:** Yes when the Telegram webhook is enabled; production webhooks fail closed when missing
 
 ---
 
@@ -360,6 +369,7 @@ openssl rand -hex 32
 - [ ] `DATABASE_URL` (from Render PostgreSQL)
 - [ ] `JWT_SECRET` (generate your own)
 - [ ] `CORS_ORIGIN` (your Vercel frontend URL)
+- [ ] `TELEGRAM_WEBHOOK_SECRET` (when Telegram integration is enabled)
 
 ### Recommended for Full Functionality
 

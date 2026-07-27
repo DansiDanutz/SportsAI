@@ -12,6 +12,18 @@ export interface CacheDirectives {
   private: boolean;
 }
 
+export function normalizeCacheControlHeader(value: unknown): string | null {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
+    return value.join(', ');
+  }
+
+  return null;
+}
+
 /**
  * Parse Cache-Control header value into structured directives
  * @param cacheControlHeader - The Cache-Control header string

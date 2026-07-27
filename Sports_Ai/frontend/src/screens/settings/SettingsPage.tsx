@@ -975,7 +975,7 @@ export function SettingsPage() {
                   </li>
                   <li className="flex items-center justify-between">
                     <span className="text-gray-300">Gamblers Anonymous</span>
-                    <a href="https://www.gamblersanonymous.org" target="_blank" className="text-green-400 hover:text-green-300">Website →</a>
+                    <a href="https://www.gamblersanonymous.org" target="_blank" rel="noreferrer" className="text-green-400 hover:text-green-300">Website →</a>
                   </li>
                 </ul>
               </div>
@@ -993,7 +993,7 @@ export function SettingsPage() {
                   </li>
                   <li className="flex items-center justify-between">
                     <span className="text-gray-300">BeGambleAware</span>
-                    <a href="https://www.begambleaware.org" target="_blank" className="text-green-400 hover:text-green-300">Website →</a>
+                    <a href="https://www.begambleaware.org" target="_blank" rel="noreferrer" className="text-green-400 hover:text-green-300">Website →</a>
                   </li>
                 </ul>
               </div>
@@ -1011,7 +1011,7 @@ export function SettingsPage() {
                   </li>
                   <li className="flex items-center justify-between">
                     <span className="text-gray-300">Responsible Gambling Council</span>
-                    <a href="https://www.responsiblegambling.org" target="_blank" className="text-green-400 hover:text-green-300">Website →</a>
+                    <a href="https://www.responsiblegambling.org" target="_blank" rel="noreferrer" className="text-green-400 hover:text-green-300">Website →</a>
                   </li>
                 </ul>
               </div>

@@ -1,16 +1,11 @@
-import { Controller, Get, Post, Body, UseGuards, Request, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Post, Request, ServiceUnavailableException, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreditsService } from './credits.service';
-import { IsString, IsNumber, IsOptional, Min, IsIn } from 'class-validator';
+import { IsString, IsNumber, Min } from 'class-validator';
 
 class UnlockOpportunityDto {
   @IsString()
   opportunityId!: string;
-
-  @IsNumber()
-  @Min(1)
-  @IsOptional()
-  creditCost?: number;
 }
 
 class PurchaseCreditsDto {
@@ -44,7 +39,7 @@ export class CreditsController {
       const result = await this.creditsService.unlockOpportunity(
         req.user.id,
         body.opportunityId,
-        body.creditCost || 10
+        10,
       );
       return result;
     } catch (error: any) {
@@ -58,19 +53,10 @@ export class CreditsController {
 
   @Post('purchase')
   @HttpCode(HttpStatus.OK)
-  async purchaseCredits(@Request() req: any, @Body() body: PurchaseCreditsDto) {
-    // In production, this would integrate with Stripe/payment processor
-    // For now, we simulate the purchase immediately
-    const result = await this.creditsService.purchaseCredits(
-      req.user.id,
-      body.credits,
-      body.price
+  async purchaseCredits(@Request() _req: any, @Body() _body: PurchaseCreditsDto) {
+    throw new ServiceUnavailableException(
+      'Credit purchases are disabled until a verified payment provider is configured',
     );
-    return {
-      success: result.success,
-      message: `Successfully purchased ${body.credits} credits!`,
-      newBalance: result.newBalance,
-    };
   }
 
   @Get('history')

@@ -76,32 +76,6 @@ export class CreditsService {
     };
   }
 
-  async purchaseCredits(
-    userId: string,
-    credits: number,
-    price: number
-  ): Promise<{ success: boolean; newBalance: number }> {
-    // Record purchase and update balance
-    const [updatedUser] = await this.prisma.$transaction([
-      this.prisma.user.update({
-        where: { id: userId },
-        data: { creditBalance: { increment: credits } },
-      }),
-      this.prisma.creditTransaction.create({
-        data: {
-          userId,
-          type: 'purchase',
-          amount: credits,
-        },
-      }),
-    ]);
-
-    return {
-      success: true,
-      newBalance: updatedUser.creditBalance,
-    };
-  }
-
   async getTransactionHistory(userId: string, limit: number = 20) {
     return this.prisma.creditTransaction.findMany({
       where: { userId },

@@ -1,9 +1,12 @@
-import { Controller, Get, Post, Put, Body, Query, HttpStatus, HttpException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Query, HttpStatus, HttpException, UseGuards } from '@nestjs/common';
+import { AdminGuard, RequireAdmin } from '../auth/admin.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AutonomousService } from './autonomous.service';
 import { BankrollService } from './bankroll.service';
 import { MartingaleService } from './martingale.service';
 
 @Controller('api/autonomous')
+@UseGuards(JwtAuthGuard)
 export class AutonomousController {
   constructor(
     private autonomousService: AutonomousService,
@@ -51,6 +54,8 @@ export class AutonomousController {
    * Run autonomous scan manually
    */
   @Post('scan')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async runScan() {
     try {
       const result = await this.autonomousService.runAutonomousScan();
@@ -72,6 +77,8 @@ export class AutonomousController {
    * Resolve completed bets manually
    */
   @Post('resolve')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async resolveBets() {
     try {
       const result = await this.autonomousService.resolveCompletedBets();
@@ -93,6 +100,8 @@ export class AutonomousController {
    * Update autonomous configuration
    */
   @Put('config')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async updateConfig(@Body() config: any) {
     try {
       await this.autonomousService.updateConfig(config);
@@ -113,6 +122,8 @@ export class AutonomousController {
    * Enable/disable autonomous engine
    */
   @Put('toggle')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async toggleEngine(@Body() body: { enabled: boolean }) {
     try {
       const { enabled } = body;
@@ -213,6 +224,8 @@ export class AutonomousController {
    * Freeze/unfreeze bankroll
    */
   @Put('bankroll/freeze')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async freezeBankroll(@Body() body: { freeze: boolean; reason?: string }) {
     try {
       const { freeze, reason } = body;
@@ -242,6 +255,8 @@ export class AutonomousController {
    * Set martingale mode
    */
   @Put('martingale/mode')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async setMartingaleMode(@Body() body: { mode: 'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE' | 'HYBRID' }) {
     try {
       const { mode } = body;
@@ -263,6 +278,8 @@ export class AutonomousController {
    * Enable/disable martingale
    */
   @Put('martingale/toggle')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async toggleMartingale(@Body() body: { enabled: boolean }) {
     try {
       const { enabled } = body;

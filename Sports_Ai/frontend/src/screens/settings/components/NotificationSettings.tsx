@@ -2,11 +2,7 @@ import { useState } from 'react';
 import { usePushNotifications } from '../../../hooks/usePushNotifications';
 import { api } from '../../../services/api';
 
-interface NotificationSettingsProps {
-  // No props needed - component is self-contained
-}
-
-export function NotificationSettings({}: NotificationSettingsProps) {
+export function NotificationSettings() {
   const { permission: pushPermission, isSupported: isPushSupported, requestPermission, simulatePushNotification } = usePushNotifications();
 
   // Notification preferences

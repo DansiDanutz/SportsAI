@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
-import { cacheMetadataStore } from '../utils/cacheUtils';
+import { cacheMetadataStore, normalizeCacheControlHeader } from '../utils/cacheUtils';
 import {
   idempotencyKeyStore,
   createRequestSignature,
@@ -95,7 +95,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response: AxiosResponse) => {
     // Extract and store Cache-Control header for this endpoint
-    const cacheControl = response.headers['cache-control'] || null;
+    const cacheControl = normalizeCacheControlHeader(response.headers['cache-control']);
     const endpoint = response.config.url || '';
 
     if (cacheControl) {
