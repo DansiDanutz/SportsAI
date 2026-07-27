@@ -150,7 +150,7 @@ export class BankrollService {
       return JSON.parse(data);
     } catch (error) {
       this.logger.error(`Failed to read bankroll state: ${error.message}`);
-      throw new Error('Could not read bankroll state');
+      throw new Error('Could not read bankroll state', { cause: error });
     }
   }
 
@@ -163,7 +163,7 @@ export class BankrollService {
       await fs.writeFile(this.bankrollFilePath, JSON.stringify(state, null, 2));
     } catch (error) {
       this.logger.error(`Failed to update bankroll state: ${error.message}`);
-      throw new Error('Could not update bankroll state');
+      throw new Error('Could not update bankroll state', { cause: error });
     }
   }
 

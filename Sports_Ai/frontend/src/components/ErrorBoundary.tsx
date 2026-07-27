@@ -32,12 +32,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
     }
 
     // Log error to error tracking service in production
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       // TODO: Integrate with error tracking service (e.g., Sentry)
       // Sentry.captureException(error, { contexts: { react: errorInfo } });
     }
@@ -93,7 +93,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-gray-600 text-center mb-6">
               We're sorry, but something unexpected happened. Please try refreshing the page.
             </p>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <details className="mb-4 p-3 bg-gray-100 rounded text-sm">
                 <summary className="cursor-pointer font-medium text-gray-700 mb-2">
                   Error Details (Development Only)

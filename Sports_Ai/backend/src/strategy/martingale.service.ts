@@ -108,7 +108,7 @@ export class MartingaleService {
       return JSON.parse(data);
     } catch (error) {
       this.logger.error(`Failed to read martingale state: ${error.message}`);
-      throw new Error('Could not read martingale state');
+      throw new Error('Could not read martingale state', { cause: error });
     }
   }
 
@@ -121,7 +121,7 @@ export class MartingaleService {
       await fs.writeFile(this.martingaleFilePath, JSON.stringify(state, null, 2));
     } catch (error) {
       this.logger.error(`Failed to update martingale state: ${error.message}`);
-      throw new Error('Could not update martingale state');
+      throw new Error('Could not update martingale state', { cause: error });
     }
   }
 

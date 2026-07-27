@@ -385,7 +385,7 @@ export class AiController {
       };
     });
 
-    let advice: AiAdvice[] = [];
+    let advice: AiAdvice[];
     try {
       // Hard-cap the AI provider time so this endpoint stays snappy even on provider issues.
       const timeoutMs = Number(process.env.AI_ADVICE_TIMEOUT_MS || 8000);

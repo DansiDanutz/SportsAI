@@ -93,7 +93,6 @@ export class FlashscoreService implements OnModuleDestroy {
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), timeoutMs);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (await Promise.race([
         p,
         new Promise<T>((_, reject) =>
@@ -145,7 +144,6 @@ export class FlashscoreService implements OnModuleDestroy {
       const extracted = await this.withTimeout(
         page.evaluate(() => {
           // Backend TS config doesn't include DOM libs; access via globalThis to avoid `document` typing.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const doc = (globalThis as any).document as any;
 
           const firstText = (selectors: string[]): string | null => {
