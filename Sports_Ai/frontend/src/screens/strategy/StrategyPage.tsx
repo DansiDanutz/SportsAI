@@ -120,7 +120,7 @@ export function StrategyPage() {
   const bankroll = bankrollQuery.data;
   const todaysPicks = picksQuery.data || [];
   const martingaleStatus = martingaleQuery.data;
-  const history = historyQuery.data || [];
+  const history = useMemo(() => historyQuery.data ?? [], [historyQuery.data]);
   const performance = performanceQuery.data;
 
   // Calculate running total P&L

@@ -157,7 +157,7 @@ export class WalletService {
       return JSON.parse(data);
     } catch (error) {
       this.logger.error(`Failed to read fund state: ${error.message}`);
-      throw new Error('Could not read fund state');
+      throw new Error('Could not read fund state', { cause: error });
     }
   }
 
@@ -169,7 +169,7 @@ export class WalletService {
       await fs.writeFile(this.fundStateFilePath, JSON.stringify(state, null, 2));
     } catch (error) {
       this.logger.error(`Failed to update fund state: ${error.message}`);
-      throw new Error('Could not update fund state');
+      throw new Error('Could not update fund state', { cause: error });
     }
   }
 
@@ -224,7 +224,7 @@ export class WalletService {
       await fs.writeFile(this.walletsFilePath, JSON.stringify(wallets, null, 2));
     } catch (error) {
       this.logger.error(`Failed to save wallets: ${error.message}`);
-      throw new Error('Could not save wallets');
+      throw new Error('Could not save wallets', { cause: error });
     }
   }
 

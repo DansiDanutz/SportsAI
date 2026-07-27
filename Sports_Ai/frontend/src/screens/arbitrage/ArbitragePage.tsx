@@ -11,7 +11,7 @@ import { useOddsHistory } from '../../hooks/useOddsHistory';
 import { api, ArbitrageOpportunity, ArbitrageLeg } from '../../services/api';
 import { calculateArbitrageProfit, calculateStakes } from '../../utils/arbitrageUtils';
 
-interface ArbitrageData extends ArbitrageOpportunity {}
+type ArbitrageData = ArbitrageOpportunity;
 
 function LineMovementSection({ opportunities }: { opportunities: ArbitrageData[] }) {
   const [selectedEventId, setSelectedEventId] = useState<string | undefined>(

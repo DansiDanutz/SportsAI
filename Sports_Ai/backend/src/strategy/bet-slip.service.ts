@@ -290,7 +290,7 @@ export class BetSlipService {
     // Determine if current stake is recommended
     const isRecommended = currentStake <= optimalStake * 1.5 && currentStake >= optimalStake * 0.5;
     
-    let reasoning = '';
+    let reasoning: string;
     if (kellyFraction <= 0) {
       reasoning = 'Kelly suggests no bet - negative expected value';
     } else if (currentStake > optimalStake * 2) {

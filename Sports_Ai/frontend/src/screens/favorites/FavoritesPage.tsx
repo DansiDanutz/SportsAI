@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Layout } from '../../components/Layout';
 import { api } from '../../services/api';
 import debounce from 'lodash/debounce';
@@ -54,8 +54,8 @@ export function FavoritesPage() {
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Debounced search function - only search when 4+ characters are typed
-  const searchTeams = useCallback(
-    debounce(async (query: string) => {
+  const searchTeams = useMemo(
+    () => debounce(async (query: string) => {
       if (query.length < 4) {
         setTeamSearchResults([]);
         setShowSuggestions(false);
@@ -76,6 +76,8 @@ export function FavoritesPage() {
     }, 300),
     []
   );
+
+  useEffect(() => () => searchTeams.cancel(), [searchTeams]);
 
   // Close suggestions when clicking outside
   useEffect(() => {

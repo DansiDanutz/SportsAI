@@ -66,6 +66,7 @@ export function DemoPage() {
       status: 'calculating'
     }
   ]);
+  const opportunityCount = arbitrageOpportunities.length;
 
   const [aiPrediction, setAiPrediction] = useState({
     homeWin: 0,
@@ -108,7 +109,7 @@ export function DemoPage() {
   // Simulate arbitrage calculation
   useEffect(() => {
     const calculateArbitrage = (index: number) => {
-      setTimeout(() => {
+      return setTimeout(() => {
         setArbitrageOpportunities(prev => {
           const updated = [...prev];
           const opp = updated[index];
@@ -142,10 +143,12 @@ export function DemoPage() {
       }, 2000 + index * 1000); // Stagger the calculations
     };
 
-    arbitrageOpportunities.forEach((_, index) => {
-      calculateArbitrage(index);
-    });
-  }, []);
+    const timers = Array.from({ length: opportunityCount }, (_, index) =>
+      calculateArbitrage(index)
+    );
+
+    return () => timers.forEach(clearTimeout);
+  }, [opportunityCount]);
 
   // Simulate AI prediction loading
   useEffect(() => {

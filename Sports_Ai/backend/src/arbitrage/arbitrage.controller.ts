@@ -166,7 +166,9 @@ export class ArbitrageController {
       };
     } catch (error) {
       console.error('Error fetching arbitrage opportunities:', error);
-      throw new Error(`Failed to fetch arbitrage opportunities: ${error.message}`);
+      throw new Error(`Failed to fetch arbitrage opportunities: ${error.message}`, {
+        cause: error,
+      });
     }
   }
 }

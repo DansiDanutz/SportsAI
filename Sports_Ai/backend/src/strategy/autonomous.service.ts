@@ -127,7 +127,7 @@ export class AutonomousService {
       return JSON.parse(data);
     } catch (error) {
       this.logger.error(`Failed to read config: ${error.message}`);
-      throw new Error('Could not read autonomous config');
+      throw new Error('Could not read autonomous config', { cause: error });
     }
   }
 

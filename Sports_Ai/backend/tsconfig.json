@@ -16,9 +16,9 @@
     "experimentalDecorators": true,
     "noImplicitAny": false,
     "strictNullChecks": false,
-    "baseUrl": ".",
+    "types": ["node", "jest"],
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"],
