@@ -18,7 +18,7 @@ psql 'postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/
 ### Option 2: Escape the Exclamation Mark
 
 ```bash
-psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test;"
+psql "postgresql://postgres:[URL_ENCODED_PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test;"
 ```
 
 **Key:** Add backslash before `!` → `\!`
@@ -31,7 +31,7 @@ psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/
 psql "postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres" -c "SELECT * FROM connection_test;"
 ```
 
-**Key:** Replace `!` with `%21` (URL encoding)
+**Key:** Percent-encode every URI-reserved character in the actual password before replacing `[URL_ENCODED_PASSWORD]` (for example, `!` becomes `%21`).
 
 ---
 

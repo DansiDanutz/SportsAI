@@ -4,7 +4,7 @@
 **Original:** `[PASSWORD]`
 
 ## In Connection String
-**Encoded:** `[PASSWORD]`
+**Encoded:** `[URL_ENCODED_PASSWORD]`
 
 ---
 
@@ -30,7 +30,7 @@ The `!` character is a **special character** in URLs and connection strings. Whe
 
 ### Option 1: With Encoding (Safer - Recommended)
 ```
-postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+postgresql://postgres.nkaahfrobkvtskolhokj:[URL_ENCODED_PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 ```
 ✅ **This is safer** - guaranteed to work with special characters
 
@@ -46,9 +46,9 @@ postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.sup
 
 **Try BOTH:**
 
-1. **First, try WITH encoding** (`%21`):
+1. **First, percent-encode the actual password** (for example, `!` becomes `%21`):
    ```
-   postgresql://postgres.nkaahfrobkvtskolhokj:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+   postgresql://postgres.nkaahfrobkvtskolhokj:[URL_ENCODED_PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
    ```
 
 2. **If that doesn't work**, try WITHOUT encoding (`!`):

@@ -15,10 +15,10 @@ postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgr
 ## ✅ Connection String (With URL Encoding - Try This If First Doesn't Work):
 
 ```
-postgresql://postgres:[PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
+postgresql://postgres:[URL_ENCODED_PASSWORD]@db.nkaahfrobkvtskolhokj.supabase.co:5432/postgres
 ```
 
-**Note:** `!` is encoded as `%21`
+**Note:** Percent-encode every URI-reserved character in the actual password before replacing `[URL_ENCODED_PASSWORD]` (for example, `!` becomes `%21`).
 
 ---
 
