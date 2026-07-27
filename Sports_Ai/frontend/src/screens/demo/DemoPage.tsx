@@ -114,8 +114,8 @@ export function DemoPage() {
           const opp = updated[index];
           
           // Simulate calculation - determine stakes for $1000 total
-          let totalStake = 1000;
-          let stakes: number[] = [];
+          const totalStake = 1000;
+          const stakes: number[] = [];
           let totalImplied = 0;
           
           // Calculate implied probabilities

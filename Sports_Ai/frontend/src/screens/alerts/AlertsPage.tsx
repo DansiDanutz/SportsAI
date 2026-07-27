@@ -202,15 +202,18 @@ export function AlertsPage() {
     const conditions = alert.conditions;
 
     switch (alert.type) {
-      case 'odds_threshold':
+      case 'odds_threshold': {
         const oddsConditions = conditions as OddsThresholdCondition;
         return `Odds ${oddsConditions.direction} ${oddsConditions.threshold.toFixed(2)}`;
-      case 'arbitrage_opportunity':
+      }
+      case 'arbitrage_opportunity': {
         const arbConditions = conditions as ArbitrageCondition;
         return `Min profit: ${arbConditions.minProfitMargin.toFixed(1)}%`;
-      case 'favorite_team_event':
+      }
+      case 'favorite_team_event': {
         const teamConditions = conditions as FavoriteTeamCondition;
         return `Team: ${teamConditions.teamName}`;
+      }
       default:
         return 'Unknown condition';
     }

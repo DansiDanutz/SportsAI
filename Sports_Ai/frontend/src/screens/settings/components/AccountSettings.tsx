@@ -60,7 +60,7 @@ export function AccountSettings({
   const validatePhoneNumber = (phone: string): { valid: boolean; error?: string } => {
     if (!phone) return { valid: true };
     const digitsOnly = phone.replace(/\D/g, '');
-    const validCharsRegex = /^[0-9\s\-\(\)\+\.]+$/;
+    const validCharsRegex = /^[0-9\s()+.-]+$/;
     if (!validCharsRegex.test(phone)) {
       return { valid: false, error: 'Phone number can only contain digits, spaces, dashes, and parentheses' };
     }
