@@ -54,7 +54,7 @@
     "otplib": "^13.0.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.0",
-    "playwright": "^1.57.0",
+    "playwright": "^1.62.0",
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.0",
