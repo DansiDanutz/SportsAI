@@ -40,7 +40,7 @@
     "@nestjs/websockets": "^11.1.28",
     "@prisma/client": "^6.19.1",
     "@swc-node/register": "^1.11.1",
-    "@swc/helpers": "^0.5.18",
+    "@swc/helpers": "^0.5.23",
     "@types/bcryptjs": "^2.4.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/qrcode": "^1.5.6",
