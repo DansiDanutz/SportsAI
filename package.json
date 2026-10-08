@@ -16,7 +16,7 @@
     "@nestjs/core": "^11.1.28",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
-    "@nestjs/platform-fastify": "^11.1.28",
+    "@nestjs/platform-fastify": "^11.2.4",
     "@nestjs/platform-socket.io": "^11.1.28",
     "@nestjs/schedule": "^6.1.0",
     "@nestjs/throttler": "^6.5.0",
